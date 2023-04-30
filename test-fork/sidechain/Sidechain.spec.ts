@@ -59,7 +59,7 @@ describe("Sidechain", () => {
         // setup sidechain config
         sidechainConfig = {
             chainId: 123,
-            multisigs: { daoMultisig: dao.address },
+            multisigs: { daoMultisig: dao.address, pauseGaurdian: dao.address },
             naming: { ...sidechainNaming },
             extConfig: {
                 canonicalChainId: L1_CHAIN_ID,

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import { OFT } from "../layerzero/token/oft/OFT.sol";
+import { PausableOFT } from "./PausableOFT.sol";
 
 /**
  * @title AuraBalOFT
  * @author AuraFinance
  * @dev Sidechain auraBAL
  */
-contract AuraBalOFT is OFT {
+contract AuraBalOFT is PausableOFT {
     /* -------------------------------------------------------------------
        Constructor 
     ------------------------------------------------------------------- */
@@ -16,6 +16,7 @@ contract AuraBalOFT is OFT {
     constructor(
         string memory _name,
         string memory _symbol,
-        address _lzEndpoint
-    ) OFT(_name, _symbol, _lzEndpoint) {}
+        address _lzEndpoint,
+        address _guardian
+    ) PausableOFT(_name, _symbol, _lzEndpoint, _guardian) {}
 }

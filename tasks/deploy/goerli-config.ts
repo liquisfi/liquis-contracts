@@ -1,5 +1,6 @@
 import {
     ExtSystemConfig,
+    MultisigConfig,
     Phase1Deployed,
     Phase2Deployed,
     Phase3Deployed,
@@ -89,6 +90,10 @@ const addresses: ExtSystemConfig = {
         assetsIn: ["0x13ACD41C585d7EbB4a9460f7C8f50BE60DC080Cd", "0x0595D1Df64279ddB51F1bdC405Fe2D0b4Cc86681"],
     },
     lzEndpoint: "0xbfD2135BFfbb0B5378b56643c2Df8a87552Bfa23",
+    sidechain: {
+        auraBalInflowLimit: parseEther("1000000"),
+        auraInflowLimit: parseEther("1000000"),
+    },
 };
 
 const naming = {
@@ -102,10 +107,11 @@ const naming = {
     tokenFactoryNamePrefix: "slk",
 };
 
-const multisigs = {
+const multisigs: MultisigConfig = {
     vestingMultisig: "0xcC4790f1493aD2be35f868e8429398794246144A",
     treasuryMultisig: "0xcC4790f1493aD2be35f868e8429398794246144A",
     daoMultisig: "0xcC4790f1493aD2be35f868e8429398794246144A",
+    pauseGaurdian: "0xcC4790f1493aD2be35f868e8429398794246144A",
 };
 
 const distroList = getMockDistro();

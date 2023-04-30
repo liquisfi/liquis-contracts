@@ -73,7 +73,13 @@ export async function deployCanonicalPhase(
         hre,
         new AuraProxyOFT__factory(deployer),
         "AuraProxyOFT",
-        [config.lzEndpoint, phase2.cvx.address, phase2.cvxLocker.address],
+        [
+            config.lzEndpoint,
+            phase2.cvx.address,
+            phase2.cvxLocker.address,
+            multisigs.pauseGaurdian,
+            config.sidechain.auraInflowLimit,
+        ],
         {},
         debug,
         waitForBlocks,
@@ -82,7 +88,13 @@ export async function deployCanonicalPhase(
         hre,
         new AuraBalProxyOFT__factory(deployer),
         "AuraBalProxyOFT",
-        [config.lzEndpoint, phase2.cvxCrv.address, auraBalVault.vault.address],
+        [
+            config.lzEndpoint,
+            phase2.cvxCrv.address,
+            auraBalVault.vault.address,
+            multisigs.pauseGaurdian,
+            config.sidechain.auraBalInflowLimit,
+        ],
         {},
         debug,
         waitForBlocks,
@@ -226,7 +238,13 @@ export async function deploySidechainSystem(
         create2Factory,
         new AuraOFT__factory(deployer),
         "AuraOFT",
-        [naming.auraOftName, naming.auraOftSymbol, extConfig.lzEndpoint, extConfig.canonicalChainId],
+        [
+            naming.auraOftName,
+            naming.auraOftSymbol,
+            extConfig.lzEndpoint,
+            multisigs.pauseGaurdian,
+            extConfig.canonicalChainId,
+        ],
         deployOptionsWithCallbacks([auraOFTTransferOwnership]),
     );
 
@@ -331,7 +349,7 @@ export async function deploySidechainSystem(
         create2Factory,
         new AuraBalOFT__factory(deployer),
         "AuraBalOFT",
-        [naming.auraBalOftName, naming.auraBalOftSymbol, extConfig.lzEndpoint],
+        [naming.auraBalOftName, naming.auraBalOftSymbol, extConfig.lzEndpoint, multisigs.pauseGaurdian],
         deployOptionsWithCallbacks([auraBalOFTTransferOwnership]),
     );
 

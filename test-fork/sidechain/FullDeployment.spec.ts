@@ -137,7 +137,7 @@ describe("Sidechain", () => {
         // setup sidechain config
         sidechainConfig = {
             chainId: 123,
-            multisigs: { daoMultisig: dao.address },
+            multisigs: { daoMultisig: dao.address, pauseGaurdian: dao.address },
             naming: { ...sidechainNaming },
             extConfig: {
                 canonicalChainId: L1_CHAIN_ID,
@@ -441,17 +441,18 @@ describe("Sidechain", () => {
     });
 
     describe("Lock AURA", () => {
-        const lockAmount = simpleToExactAmount(10);
+        const lockAmount = simpleToExactAmount(5);
         before(async () => {
             // Transfer some AURA to L2
-            await phase2.cvx.connect(auraWhale.signer).approve(auraProxyOFT.address, lockAmount);
+            const bridgeAmount = lockAmount.mul(2);
+            await phase2.cvx.connect(auraWhale.signer).approve(auraProxyOFT.address, bridgeAmount);
             await auraProxyOFT
                 .connect(auraWhale.signer)
                 .sendFrom(
                     auraWhale.address,
                     L2_CHAIN_ID,
                     deployer.address,
-                    lockAmount,
+                    bridgeAmount,
                     ZERO_ADDRESS,
                     ZERO_ADDRESS,
                     [],
@@ -466,6 +467,16 @@ describe("Sidechain", () => {
             const balancesAfter = await phase2.cvxLocker.balances(deployer.address);
             await increaseTime(ONE_WEEK);
             expect(balancesAfter.locked.sub(balancesBefore.locked)).eq(lockAmount);
+        });
+        it("locking from L2 -> l1 when shutdown", async () => {
+            await phase2.cvxLocker.connect(dao.signer).shutdown();
+            const balancesBefore = await phase2.cvxLocker.balances(deployer.address);
+            const balanceBefore = await phase2.cvx.balanceOf(deployer.address);
+            await auraOFT.lock(lockAmount, { value: NATIVE_FEE });
+            const balancesAfter = await phase2.cvxLocker.balances(deployer.address);
+            const balanceAfter = await phase2.cvx.balanceOf(deployer.address);
+            expect(balancesAfter.locked).eq(balancesBefore.locked);
+            expect(balanceAfter.sub(balanceBefore)).eq(lockAmount);
         });
     });
 
