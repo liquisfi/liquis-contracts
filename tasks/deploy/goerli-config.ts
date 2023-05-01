@@ -51,7 +51,7 @@ import {
     AuraProxyOFT__factory,
     AuraBalProxyOFT__factory,
 } from "../../types/generated";
-import { Signer } from "ethers";
+import { Signer, ethers } from "ethers";
 import { ZERO_ADDRESS } from "../../test-utils/constants";
 import { getMockDistro } from "../../scripts/deployMocks";
 import { CanonicalPhaseDeployed } from "scripts/deploySidechain";
@@ -91,8 +91,8 @@ const addresses: ExtSystemConfig = {
     },
     lzEndpoint: "0xbfD2135BFfbb0B5378b56643c2Df8a87552Bfa23",
     sidechain: {
-        auraBalInflowLimit: parseEther("1000000"),
-        auraInflowLimit: parseEther("1000000"),
+        auraBalInflowLimit: ethers.utils.parseEther("1000000"),
+        auraInflowLimit: ethers.utils.parseEther("1000000"),
     },
 };
 
