@@ -43,6 +43,8 @@ describe("StakingProxy", () => {
         bob = accounts[2];
         bobAddress = await bob.getAddress();
 
+        await contracts.cvxLocker.addReward(mocks.crv.address, contracts.cvxStakingProxy.address);
+
         const operatorAccount = await impersonateAccount(contracts.booster.address);
         let tx = await contracts.cvx
             .connect(operatorAccount.signer)
@@ -69,8 +71,6 @@ describe("StakingProxy", () => {
     it("has correct initial config", async () => {
         expect(await contracts.cvxStakingProxy.crv()).eq(mocks.crv.address);
         expect(await contracts.cvxStakingProxy.cvx()).eq(contracts.cvx.address);
-        expect(await contracts.cvxStakingProxy.crvDepositorWrapper()).eq(contracts.crvDepositorWrapper.address);
-        expect(await contracts.cvxStakingProxy.outputBps()).eq(9975);
         expect(await contracts.cvxStakingProxy.rewards()).eq(contracts.cvxLocker.address);
         expect(await contracts.cvxStakingProxy.owner()).eq(await accounts[0].getAddress());
         expect(await contracts.cvxStakingProxy.pendingOwner()).eq(ZERO_ADDRESS);
@@ -120,10 +120,6 @@ describe("StakingProxy", () => {
             it("fails to rescue token", async () => {
                 const tx = contracts.cvxStakingProxy.connect(accounts[2]).rescueToken(ZERO_ADDRESS, ZERO_ADDRESS);
                 await expect(tx).to.revertedWith("!auth");
-            });
-            it("fails to distribute", async () => {
-                const tx = contracts.cvxStakingProxy.connect(accounts[2])["distribute(uint256)"](0);
-                await expect(tx).to.be.revertedWith("!auth");
             });
         });
         describe("when called by owner", () => {
@@ -198,10 +194,7 @@ describe("StakingProxy", () => {
                 const tx = contracts.cvxStakingProxy.rescueToken(contracts.cvx.address, ZERO_ADDRESS);
                 await expect(tx).to.revertedWith("not allowed");
             });
-            it("fails to rescue cvxCrv", async () => {
-                const tx = contracts.cvxStakingProxy.rescueToken(contracts.cvxCrv.address, ZERO_ADDRESS);
-                await expect(tx).to.revertedWith("not allowed");
-            });
+
             it("set call incentive", async () => {
                 const oldCallIncentive = await contracts.cvxStakingProxy.callIncentive();
                 const tx = contracts.cvxStakingProxy.setCallIncentive(oldCallIncentive.add(1));
@@ -236,18 +229,17 @@ describe("StakingProxy", () => {
             const stakingProxyBalance = await mocks.crv.balanceOf(contracts.cvxStakingProxy.address);
             expect(stakingProxyBalance).to.equal(rate.mul(incentive).div(10000));
 
-            const balanceBefore = await contracts.cvxCrv.balanceOf(contracts.cvxLocker.address);
+            const balanceBefore = await mocks.crv.balanceOf(contracts.cvxLocker.address);
+
             const tx = await contracts.cvxStakingProxy["distribute()"]();
             await tx.wait();
 
-            const balanceAfter = await contracts.cvxCrv.balanceOf(contracts.cvxLocker.address);
+            const balanceAfter = await mocks.crv.balanceOf(contracts.cvxLocker.address);
 
-            const outputBps = await contracts.cvxStakingProxy.outputBps();
-            const minOut = await contracts.crvDepositorWrapper.getMinOut(stakingProxyBalance, outputBps);
             const callIncentive = await contracts.cvxStakingProxy.callIncentive();
-            const callIncentiveAmount = minOut.mul(callIncentive).div("10000");
+            const callIncentiveAmount = stakingProxyBalance.mul(callIncentive).div("10000");
 
-            expect(balanceAfter.sub(balanceBefore)).gt(minOut.sub(callIncentiveAmount));
+            expect(balanceAfter.sub(balanceBefore)).eq(stakingProxyBalance.sub(callIncentiveAmount));
             // False negative check
             expect(balanceAfter).gt(0);
         });
@@ -268,9 +260,6 @@ describe("StakingProxy", () => {
         });
         it("fails to distribute cvxCrv or crv", async () => {
             await expect(contracts.cvxStakingProxy.distributeOther(mocks.crv.address)).to.be.revertedWith(
-                "not allowed",
-            );
-            await expect(contracts.cvxStakingProxy.distributeOther(contracts.cvxCrv.address)).to.be.revertedWith(
                 "not allowed",
             );
         });

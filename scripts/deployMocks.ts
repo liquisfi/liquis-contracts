@@ -130,6 +130,15 @@ async function deployMocks(hre: HardhatRuntimeEnvironment, signer: Signer, debug
         debug,
     );
 
+    const lit = await deployContract<MockERC20>(
+        hre,
+        new MockERC20__factory(deployer),
+        "MockLIT",
+        ["mockLit", "mockLit", 18, deployerAddress, 10000000],
+        {},
+        debug,
+    );
+
     const crvBpt = await deployContract<MockBalancerPoolToken>(
         hre,
         new MockBalancerPoolToken__factory(deployer),
@@ -276,6 +285,7 @@ async function deployMocks(hre: HardhatRuntimeEnvironment, signer: Signer, debug
         weth,
         addresses: {
             token: crv.address,
+            lit: lit.address,
             tokenBpt: crvBpt.address,
             tokenWhale: deployerAddress,
             minter: crvMinter.address,

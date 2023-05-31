@@ -585,15 +585,19 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    const optionsExerciser = await deployContract<OptionsExerciser>(
-        hre,
-        new OptionsExerciser__factory(deployer),
-        "OptionsExerciser",
-        [cvxCrv.address, booster.address, crvDepositorWrapper.address],
-        {},
-        debug,
-        waitForBlocks,
-    );
+    let optionsExerciser: OptionsExerciser;
+    // Some addresses are hardcoded in an immutable way and does not work with hre
+    if (chain != Chain.local) {
+        optionsExerciser = await deployContract<OptionsExerciser>(
+            hre,
+            new OptionsExerciser__factory(deployer),
+            "OptionsExerciser",
+            [cvxCrv.address, booster.address, crvDepositorWrapper.address],
+            {},
+            debug,
+            waitForBlocks,
+        );
+    }
 
     const cvxStakingProxy = await deployContract<LiqStakingProxy>(
         hre,
