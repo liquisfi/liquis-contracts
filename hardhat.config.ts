@@ -2,6 +2,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-etherscan";
 import "./tasks/coverage";
@@ -23,25 +24,11 @@ const chainIds = {
     ropsten: 3,
 };
 
-const compilerSettings = {
-    metadata: {
-        // Not including the metadata hash
-        // https://github.com/paulrberg/solidity-template/issues/31
-        bytecodeHash: "none",
-    },
-    // Disable the optimizer when debugging
-    // https://hardhat.org/hardhat-network/#solidity-optimizer-support
-    optimizer: {
-        enabled: true,
-        runs: 800,
-    },
-};
-
 const config: HardhatUserConfig = {
     defaultNetwork: "hardhat",
     gasReporter: {
         currency: "USD",
-        enabled: true,
+        enabled: false,
         excludeContracts: [],
         src: "./contracts",
     },
@@ -65,6 +52,12 @@ const config: HardhatUserConfig = {
             url: process.env.NODE_URL || "",
         },
         rinkeby: { url: process.env.NODE_URL || "", gasPrice: 3000000000 },
+        localhost: {
+            chainId: 1,
+            url: "http://127.0.0.1:8545/",
+            allowUnlimitedContractSize: true,
+            timeout: 1000 * 60,
+        },
     },
     paths: {
         artifacts: "./artifacts",
@@ -76,11 +69,15 @@ const config: HardhatUserConfig = {
         compilers: [
             {
                 version: "0.6.12",
-                settings: compilerSettings,
+                settings: {
+                    optimizer: { enabled: true, runs: 1000 },
+                },
             },
             {
                 version: "0.8.11",
-                settings: compilerSettings,
+                settings: {
+                    optimizer: { enabled: true, runs: 1000 },
+                },
             },
         ],
     },
@@ -91,12 +88,14 @@ const config: HardhatUserConfig = {
     etherscan: {
         apiKey: process.env.ETHERSCAN_KEY,
     },
+    contractSizer: {
+        alphaSort: true,
+        disambiguatePaths: false,
+        runOnCompile: false,
+        strict: true,
+    },
     mocha: {
         timeout: 480000, // 8 min timeout
-    },
-    docgen: {
-        outputDir: "./docs/natspec",
-        templates: "./docs/templates",
     },
 };
 

@@ -49,6 +49,7 @@ __metadata:
     graphql: ^16.5.0
     graphql-request: ^4.3.0
     hardhat: 2.9.1
+    hardhat-contract-sizer: ^2.8.0
     hardhat-gas-reporter: ^1.0.4
     husky: ^7.0.4
     lint-staged: ^11.2.6
@@ -142,6 +143,13 @@ __metadata:
   bin:
     codechecks: dist/runner.js
   checksum: ba7528a61055fbc857740631f9a31e5050a38bae42966d67ac6b48380918f426a7fe870a7533a32504d08cda7a5f3522445857b3edfd09c354a3b09b42face40
+  languageName: node
+  linkType: hard
+
+"@colors/colors@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@colors/colors@npm:1.5.0"
+  checksum: d64d5260bed1d5012ae3fc617d38d1afc0329fec05342f4e6b838f46998855ba56e0a73833f4a80fa8378c84810da254f76a8a19c39d038260dc06dc4e007425
   languageName: node
   linkType: hard
 
@@ -4235,6 +4243,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"cli-table3@npm:^0.6.0":
+  version: 0.6.3
+  resolution: "cli-table3@npm:0.6.3"
+  dependencies:
+    "@colors/colors": 1.5.0
+    string-width: ^4.2.0
+  dependenciesMeta:
+    "@colors/colors":
+      optional: true
+  checksum: 09897f68467973f827c04e7eaadf13b55f8aec49ecd6647cc276386ea660059322e2dd8020a8b6b84d422dbdd619597046fa89cbbbdc95b2cea149a2df7c096c
+  languageName: node
+  linkType: hard
+
 "cli-table@npm:^0.3.1":
   version: 0.3.11
   resolution: "cli-table@npm:0.3.11"
@@ -4628,11 +4649,11 @@ __metadata:
 
 "convex-platform@file:convex-platform/contracts::locator=%40aurafinance%2Faura-contracts%40workspace%3A.":
   version: 0.0.0
-  resolution: "convex-platform@file:convex-platform/contracts#convex-platform/contracts::hash=0da004&locator=%40aurafinance%2Faura-contracts%40workspace%3A."
+  resolution: "convex-platform@file:convex-platform/contracts#convex-platform/contracts::hash=38716b&locator=%40aurafinance%2Faura-contracts%40workspace%3A."
   dependencies:
     "@openzeppelin/contracts-0.6": "npm:@openzeppelin/contracts@3.4.0"
     "@openzeppelin/contracts-upgradeable-0.6": "npm:@openzeppelin/contracts-upgradeable@3.4.0"
-  checksum: 0688f3bd2975778ae6b8c6c858c8214f40b4e640b52230c3986344c5ad95a07c25cee769098c0dd01add2282b252ce05e167622bd10e824e35cfd81fe43623db
+  checksum: 38445588d3f3c9746d71e9e528d3109578a31755e2e825b631b6e59b7d99bec59ef7f8ee866ed06dec22187cfe51ba08d8c5132efc3bc9c56667ef80e43ffc7e
   languageName: node
   linkType: hard
 
@@ -7809,6 +7830,19 @@ __metadata:
   version: 2.1.0
   resolution: "hard-rejection@npm:2.1.0"
   checksum: 7baaf80a0c7fff4ca79687b4060113f1529589852152fa935e6787a2bc96211e784ad4588fb3048136ff8ffc9dfcf3ae385314a5b24db32de20bea0d1597f9dc
+  languageName: node
+  linkType: hard
+
+"hardhat-contract-sizer@npm:^2.8.0":
+  version: 2.9.0
+  resolution: "hardhat-contract-sizer@npm:2.9.0"
+  dependencies:
+    chalk: ^4.0.0
+    cli-table3: ^0.6.0
+    strip-ansi: ^6.0.0
+  peerDependencies:
+    hardhat: ^2.0.0
+  checksum: 91ea80d1aea6407b6ee7a8cba8b6b5413ea2884477fda964863b3928f05dd64ab34639122ee85177ea836150e21109ead88208aa12321c58cffaddb849f810ef
   languageName: node
   linkType: hard
 

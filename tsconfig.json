@@ -31,7 +31,8 @@
         "types/**/*",
         "test-utils/**/*",
         "scripts/**/*",
-        "docs/**/*.js"
+        "docs/**/*.js",
+        "test-liquis"
     ],
     "files": [
         "./index.ts",
