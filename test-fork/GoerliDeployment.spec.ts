@@ -252,13 +252,11 @@ describe.skip("Full Deployment", () => {
                     expect(await cvxLocker.owner()).eq(multisigs.daoMultisig);
                 });
                 it("Aura staking proxy has correct config", async () => {
-                    const { cvxLocker, cvxStakingProxy, cvx, crvDepositorWrapper } = phase2;
+                    const { cvxLocker, cvxStakingProxy, cvx } = phase2;
                     const { multisigs, addresses } = config;
                     expect(await cvxStakingProxy.crv()).eq(addresses.token);
                     expect(await cvxStakingProxy.cvx()).eq(cvx.address);
                     expect(await cvxStakingProxy.keeper()).eq(!addresses.keeper ? ZERO_ADDRESS : addresses.keeper);
-                    expect(await cvxStakingProxy.crvDepositorWrapper()).eq(crvDepositorWrapper.address);
-                    expect(await cvxStakingProxy.outputBps()).eq(9975);
                     expect(await cvxStakingProxy.rewards()).eq(cvxLocker.address);
                     expect(await cvxStakingProxy.owner()).eq(multisigs.daoMultisig);
                     expect(await cvxStakingProxy.pendingOwner()).eq(ZERO_ADDRESS);
