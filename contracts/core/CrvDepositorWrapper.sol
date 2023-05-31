@@ -9,7 +9,7 @@ import { BalInvestor } from "./BalInvestor.sol";
 
 /**
  * @title   CrvDepositorWrapper
- * @notice  Converts BAL -> balBPT and then wraps to auraBAL via the crvDepositor
+ * @notice  Converts LIT -> balBPT and then wraps to auraBAL via the crvDepositor
  */
 contract CrvDepositorWrapper is ICrvDepositorWrapper, BalInvestor {
     address public immutable crvDeposit;
@@ -31,7 +31,7 @@ contract CrvDepositorWrapper is ICrvDepositorWrapper, BalInvestor {
 
     /**
      * @dev Gets minimum output based on BPT oracle price
-     * @param _amount Units of BAL to deposit
+     * @param _amount Units of LIT to deposit
      * @param _outputBps Multiplier where 100% == 10000, 99.5% == 9950 and 98% == 9800
      * @return minOut Units of BPT to expect as output
      */
@@ -45,8 +45,28 @@ contract CrvDepositorWrapper is ICrvDepositorWrapper, BalInvestor {
         bool _lock,
         address _stakeAddress
     ) external {
+        _depositFor(msg.sender, _amount, _minOut, _lock, _stakeAddress);
+    }
+
+    function depositFor(
+        address _for,
+        uint256 _amount,
+        uint256 _minOut,
+        bool _lock,
+        address _stakeAddress
+    ) external {
+        _depositFor(_for, _amount, _minOut, _lock, _stakeAddress);
+    }
+
+    function _depositFor(
+        address _for,
+        uint256 _amount,
+        uint256 _minOut,
+        bool _lock,
+        address _stakeAddress
+    ) internal {
         _investBalToPool(_amount, _minOut);
         uint256 bptBalance = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
-        ICrvDepositor(crvDeposit).depositFor(msg.sender, bptBalance, _lock, _stakeAddress);
+        ICrvDepositor(crvDeposit).depositFor(_for, bptBalance, _lock, _stakeAddress);
     }
 }

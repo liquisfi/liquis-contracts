@@ -71,16 +71,36 @@ contract CrvDepositorWrapperWithFee is ICrvDepositorWrapper, BalInvestor, Ownabl
         bool _lock,
         address _stakeAddress
     ) external {
+        _depositFor(msg.sender, _amount, _minOut, _lock, _stakeAddress);
+    }
+
+    function depositFor(
+        address _for,
+        uint256 _amount,
+        uint256 _minOut,
+        bool _lock,
+        address _stakeAddress
+    ) external {
+        _depositFor(_for, _amount, _minOut, _lock, _stakeAddress);
+    }
+
+    function _depositFor(
+        address _for,
+        uint256 _amount,
+        uint256 _minOut,
+        bool _lock,
+        address _stakeAddress
+    ) internal {
         (uint256 amountIn, uint256 fee) = _applyFee(_amount);
         (uint256 minOut, ) = _applyFee(_minOut);
 
         _investBalToPool(amountIn, minOut);
         uint256 bptBalance = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
-        crvDepositor.depositFor(msg.sender, bptBalance, _lock, _stakeAddress);
+        crvDepositor.depositFor(_for, bptBalance, _lock, _stakeAddress);
 
         if (fee > 0) {
-            IERC20(BAL).safeTransferFrom(msg.sender, voterProxy, fee);
-            booster.earmarkFees(BAL);
+            IERC20(LIT).safeTransferFrom(msg.sender, voterProxy, fee);
+            booster.earmarkFees(LIT);
         }
     }
 
