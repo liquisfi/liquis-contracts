@@ -58,6 +58,7 @@ import {
     VirtualBalanceRewardPool__factory,
     AuraClaimZapV3,
     AuraClaimZapV3__factory,
+    OptionsExerciser__factory,
 } from "../../types/generated";
 import { Signer } from "ethers";
 import { simpleToExactAmount } from "../../test-utils/math";
@@ -308,6 +309,7 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         "0xA3739b206097317c72EF416F0E75BB8f58FbD308",
         deployer,
     ),
+    optionsExerciser: OptionsExerciser__factory.connect(ZERO_ADDRESS, deployer),
 });
 
 const getPhase3 = async (deployer: Signer): Promise<Phase3Deployed> => ({

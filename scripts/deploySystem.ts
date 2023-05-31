@@ -88,6 +88,8 @@ import {
     PoolMigrator__factory,
     PoolManagerV4,
     BoosterOwnerSecondary,
+    OptionsExerciser,
+    OptionsExerciser__factory,
 } from "../types/generated";
 import { AssetHelpers } from "@balancer-labs/balancer-js";
 import { Chain, deployContract, waitForTx } from "../tasks/utils";
@@ -136,6 +138,7 @@ interface BalancerPoolFactories {
 interface ExtSystemConfig {
     authorizerAdapter?: string;
     token: string;
+    lit?: string;
     tokenBpt: string;
     tokenWhale?: string;
     minter: string;
@@ -146,7 +149,7 @@ interface ExtSystemConfig {
     voteParameter?: string;
     gauges?: string[];
     balancerVault: string;
-    balancerPoolFactories: BalancerPoolFactories;
+    balancerPoolFactories?: BalancerPoolFactories;
     balancerPoolId: string;
     balancerMinOutBps: string;
     balancerPoolOwner?: string;
@@ -233,6 +236,7 @@ interface Phase2Deployed extends Phase1Deployed {
     balLiquidityProvider: BalLiquidityProvider;
     penaltyForwarder: AuraPenaltyForwarder;
     extraRewardsDistributor: ExtraRewardsDistributor;
+    optionsExerciser: OptionsExerciser;
 }
 
 interface Phase3Deployed extends Phase2Deployed {
@@ -575,7 +579,17 @@ async function deployPhase2(
         hre,
         new CrvDepositorWrapper__factory(deployer),
         "CrvDepositorWrapper",
-        [crvDepositor.address, config.balancerVault, config.token, config.weth, config.balancerPoolId],
+        [crvDepositor.address, config.balancerVault, config.lit, config.weth, config.balancerPoolId],
+        {},
+        debug,
+        waitForBlocks,
+    );
+
+    const optionsExerciser = await deployContract<OptionsExerciser>(
+        hre,
+        new OptionsExerciser__factory(deployer),
+        "OptionsExerciser",
+        [cvxCrv.address, booster.address, crvDepositorWrapper.address],
         {},
         debug,
         waitForBlocks,
@@ -1040,6 +1054,7 @@ async function deployPhase2(
         extraRewardsDistributor,
         poolManagerProxy,
         poolManagerSecondaryProxy,
+        optionsExerciser,
     };
 }
 

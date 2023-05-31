@@ -46,6 +46,7 @@ import {
     PoolManagerV4__factory,
     BoosterOwnerSecondary__factory,
     ExtraRewardStashV3__factory,
+    OptionsExerciser__factory,
 } from "../../types/generated";
 import { Signer } from "ethers";
 import { ZERO_ADDRESS } from "../../test-utils/constants";
@@ -151,6 +152,7 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         "0xa7AAa5feE1676938Eec8E45F984552C216da3796",
         deployer,
     ),
+    optionsExerciser: OptionsExerciser__factory.connect(ZERO_ADDRESS, deployer),
 });
 
 const getPhase3 = async (deployer: Signer): Promise<Phase3Deployed> => ({
