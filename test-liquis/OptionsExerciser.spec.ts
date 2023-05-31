@@ -7,7 +7,7 @@ import {
     VoterProxy__factory,
     AuraToken,
     AuraMinter,
-    AuraStakingProxy,
+    LiqStakingProxy,
     RewardFactory,
     TokenFactory,
     ProxyFactory,
@@ -21,8 +21,6 @@ import {
     PoolManagerProxy,
     PoolManagerV3,
     OptionsExerciser,
-    SmartWalletChecker,
-    BunniHub,
 } from "../types/generated";
 import { Signer } from "ethers";
 import { increaseTime, increaseTimeTo } from "../test-utils/time";
@@ -105,7 +103,7 @@ describe("Booster", () => {
     let optionsExerciser: OptionsExerciser;
 
     let cvxCrvRewards: BaseRewardPool;
-    let cvxStakingProxy: AuraStakingProxy;
+    let cvxStakingProxy: LiqStakingProxy;
     let cvxCrv: CvxCrvToken;
 
     let crvDepositor: CrvDepositor;
