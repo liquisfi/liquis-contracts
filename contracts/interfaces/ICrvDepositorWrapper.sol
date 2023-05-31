@@ -5,9 +5,17 @@ interface ICrvDepositorWrapper {
     function getMinOut(uint256, uint256) external view returns (uint256);
 
     function deposit(
-        uint256,
-        uint256,
-        bool,
+        uint256 _amount,
+        uint256 _minOut,
+        bool _lock,
+        address _stakeAddress
+    ) external;
+
+    function depositFor(
+        address _for,
+        uint256 _amount,
+        uint256 _minOut,
+        bool _lock,
         address _stakeAddress
     ) external;
 }
