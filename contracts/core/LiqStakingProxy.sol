@@ -6,7 +6,6 @@ import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import { SafeMath } from "@openzeppelin/contracts-0.8/utils/math/SafeMath.sol";
 import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
-import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
 
 /**
  * @title   AuraStakingProxy
@@ -23,8 +22,6 @@ contract LiqStakingProxy {
     address public immutable cvx;
 
     address public keeper;
-    address public crvDepositorWrapper;
-    uint256 public outputBps;
     uint256 public constant denominator = 10000;
 
     address public rewards;
