@@ -11,16 +11,9 @@ import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
 /**
  * @title   AuraStakingProxy
  * @author  adapted from ConvexFinance
- * @notice  Receives CRV from the Booster as overall reward, then distributes to vlCVX holders. Also
- *          acts as a depositor proxy to support deposit/withdrawals from the CVX staking contract.
- * @dev     From CVX:
- *           - receive tokens to stake
- *           - get current staked balance
- *           - withdraw staked tokens
- *           - send rewards back to owner(cvx locker)
- *           - register token types that can be distributed
+ * @notice  Receives CRV (oLIT) from the Booster as overall reward, then distributes to vlCVX holders.
  */
-contract AuraStakingProxy {
+contract LiqStakingProxy {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -28,7 +21,6 @@ contract AuraStakingProxy {
     //tokens
     address public immutable crv;
     address public immutable cvx;
-    address public immutable cvxCrv;
 
     address public keeper;
     address public crvDepositorWrapper;
@@ -47,41 +39,19 @@ contract AuraStakingProxy {
     /* ========== CONSTRUCTOR ========== */
 
     /**
-     * @param _rewards       vlCVX
-     * @param _crv           CRV token
-     * @param _cvx           CVX token
-     * @param _cvxCrv        cvxCRV token
-     * @param _crvDepositorWrapper    Wrapper that converts CRV to CRVBPT and deposits
-     * @param _outputBps     Configurable output bps where 100% == 10000
+     * @param _rewards       vlCVX -> vlLIQ
+     * @param _crv           CRV token -> oLIT received from Booster
+     * @param _cvx           CVX token -> LIQ
      */
     constructor(
         address _rewards,
         address _crv,
-        address _cvx,
-        address _cvxCrv,
-        address _crvDepositorWrapper,
-        uint256 _outputBps
+        address _cvx
     ) {
         rewards = _rewards;
         owner = msg.sender;
         crv = _crv;
         cvx = _cvx;
-        cvxCrv = _cvxCrv;
-        crvDepositorWrapper = _crvDepositorWrapper;
-        outputBps = _outputBps;
-    }
-
-    /**
-     * @notice Set CrvDepositorWrapper
-     * @param   _crvDepositorWrapper CrvDepositorWrapper address
-     * @param   _outputBps Min output base points
-     */
-    function setCrvDepositorWrapper(address _crvDepositorWrapper, uint256 _outputBps) external {
-        require(msg.sender == owner, "!auth");
-        require(_outputBps > 9000 && _outputBps < 10000, "Invalid output bps");
-
-        crvDepositorWrapper = _crvDepositorWrapper;
-        outputBps = _outputBps;
     }
 
     /**
@@ -131,15 +101,11 @@ contract AuraStakingProxy {
     }
 
     /**
-     * @notice  Approve crvDepositorWrapper to transfer contract CRV
-     *          and rewards to transfer cvxCrv
+     * @notice  Approve locker contract to pull oLIT from this contract
      */
     function setApprovals() external {
-        IERC20(crv).safeApprove(crvDepositorWrapper, 0);
-        IERC20(crv).safeApprove(crvDepositorWrapper, type(uint256).max);
-
-        IERC20(cvxCrv).safeApprove(rewards, 0);
-        IERC20(cvxCrv).safeApprove(rewards, type(uint256).max);
+        IERC20(crv).safeApprove(rewards, 0);
+        IERC20(crv).safeApprove(rewards, type(uint256).max);
     }
 
     /**
@@ -147,53 +113,34 @@ contract AuraStakingProxy {
      */
     function rescueToken(address _token, address _to) external {
         require(msg.sender == owner, "!auth");
-        require(_token != crv && _token != cvx && _token != cvxCrv, "not allowed");
+        require(_token != crv && _token != cvx, "not allowed");
 
         uint256 bal = IERC20(_token).balanceOf(address(this));
         IERC20(_token).safeTransfer(_to, bal);
     }
 
-    function distribute(uint256 _minOut) external {
-        require(msg.sender == keeper, "!auth");
-        _distribute(_minOut);
-    }
-
-    /**
-     * @dev Collects cvxCRV rewards from cvxRewardPool, converts any CRV deposited directly from
-     *      the booster, and then applies the rewards to the cvxLocker, rewarding the caller in the process.
-     */
     function distribute() external {
         // If keeper enabled, require
         if (keeper != address(0)) {
             require(msg.sender == keeper, "!auth");
         }
-        _distribute(0);
+        _distribute();
     }
 
-    function _distribute(uint256 _minOut) internal {
-        //convert crv to cvxCrv
+    function _distribute() internal {
         uint256 crvBal = IERC20(crv).balanceOf(address(this));
+
         if (crvBal > 0) {
-            uint256 minOut = _minOut != 0
-                ? _minOut
-                : ICrvDepositorWrapper(crvDepositorWrapper).getMinOut(crvBal, outputBps);
-            ICrvDepositorWrapper(crvDepositorWrapper).deposit(crvBal, minOut, true, address(0));
-        }
-
-        //distribute cvxcrv
-        uint256 cvxCrvBal = IERC20(cvxCrv).balanceOf(address(this));
-
-        if (cvxCrvBal > 0) {
-            uint256 incentiveAmount = cvxCrvBal.mul(callIncentive).div(denominator);
-            cvxCrvBal = cvxCrvBal.sub(incentiveAmount);
+            uint256 incentiveAmount = crvBal.mul(callIncentive).div(denominator);
+            crvBal = crvBal.sub(incentiveAmount);
 
             //send incentives
-            IERC20(cvxCrv).safeTransfer(msg.sender, incentiveAmount);
+            IERC20(crv).safeTransfer(msg.sender, incentiveAmount);
 
             //update rewards
-            IAuraLocker(rewards).queueNewRewards(cvxCrv, cvxCrvBal);
+            IAuraLocker(rewards).queueNewRewards(crv, crvBal);
 
-            emit RewardsDistributed(cvxCrv, cvxCrvBal);
+            emit RewardsDistributed(crv, crvBal);
         }
     }
 
@@ -201,7 +148,7 @@ contract AuraStakingProxy {
      * @notice Allow generic token distribution in case a new reward is ever added
      */
     function distributeOther(IERC20 _token) external {
-        require(address(_token) != crv && address(_token) != cvxCrv, "not allowed");
+        require(address(_token) != crv, "not allowed");
 
         uint256 bal = _token.balanceOf(address(this));
 
