@@ -316,7 +316,7 @@ xdescribe("Full Deployment", () => {
                     const { addresses } = config;
                     expect(await crvDepositorWrapper.crvDeposit()).eq(crvDepositor.address);
                     expect(await crvDepositorWrapper.BALANCER_VAULT()).eq(addresses.balancerVault);
-                    expect(await crvDepositorWrapper.BAL()).eq(addresses.token);
+                    expect(await crvDepositorWrapper.LIT()).eq(addresses.token);
                     expect(await crvDepositorWrapper.WETH()).eq(addresses.weth);
                     expect(await crvDepositorWrapper.BAL_ETH_POOL_ID()).eq(addresses.balancerPoolId);
                 });
