@@ -137,7 +137,7 @@ describe("Booster", () => {
             const balsBefore = await Promise.all([
                 await mocks.crv.balanceOf((await booster.poolInfo(0)).crvRewards), // reward pool
                 await mocks.crv.balanceOf(await booster.lockRewards()), // cvxCrv
-                await mocks.crv.balanceOf(await booster.stakerRewards()), // auraStakingProxy
+                await mocks.crv.balanceOf(await booster.stakerRewards()), // stakingProxy
                 await mocks.crv.balanceOf(aliceAddress), // alice
                 await mocks.crv.balanceOf(await booster.treasury()), // platform
             ]);
@@ -150,7 +150,7 @@ describe("Booster", () => {
             const balsAfter = await Promise.all([
                 await mocks.crv.balanceOf((await booster.poolInfo(0)).crvRewards), // reward pool
                 await mocks.crv.balanceOf(await booster.lockRewards()), // cvxCrv
-                await mocks.crv.balanceOf(await booster.stakerRewards()), // auraStakingProxy
+                await mocks.crv.balanceOf(await booster.stakerRewards()), // stakingProxy
                 await mocks.crv.balanceOf(aliceAddress), // alice
                 await mocks.crv.balanceOf(await booster.treasury()), // platform
             ]);

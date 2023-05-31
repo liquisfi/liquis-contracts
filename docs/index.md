@@ -1572,7 +1572,7 @@ function setDistributor(address _distributor) public
 
 _Updates distributor address_
 
-## AuraStakingProxy
+## LiqStakingProxy
 
 Receives CRV from the Booster as overall reward, then distributes to vlCVX holders. Also
 acts as a depositor proxy to support deposit/withdrawals from the CVX staking contract.

@@ -47,8 +47,8 @@ import {
     ConvexMasterChef,
     AuraLocker,
     AuraLocker__factory,
-    AuraStakingProxy,
-    AuraStakingProxy__factory,
+    LiqStakingProxy,
+    LiqStakingProxy__factory,
     AuraToken,
     AuraToken__factory,
     AuraMinter,
@@ -228,7 +228,7 @@ interface Phase2Deployed extends Phase1Deployed {
     poolManagerProxy: PoolManagerProxy;
     poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
     cvxLocker: AuraLocker;
-    cvxStakingProxy: AuraStakingProxy;
+    cvxStakingProxy: LiqStakingProxy;
     chef: ConvexMasterChef;
     vestedEscrows: AuraVestedEscrow[];
     drops: AuraMerkleDrop[];
@@ -595,18 +595,11 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    const cvxStakingProxy = await deployContract<AuraStakingProxy>(
+    const cvxStakingProxy = await deployContract<LiqStakingProxy>(
         hre,
-        new AuraStakingProxy__factory(deployer),
-        "AuraStakingProxy",
-        [
-            cvxLocker.address,
-            config.token,
-            cvx.address,
-            cvxCrv.address,
-            crvDepositorWrapper.address,
-            config.balancerMinOutBps,
-        ],
+        new LiqStakingProxy__factory(deployer),
+        "LiqStakingProxy",
+        [cvxLocker.address, config.token, cvx.address],
         {},
         debug,
         waitForBlocks,

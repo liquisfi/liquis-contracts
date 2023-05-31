@@ -360,11 +360,10 @@ xdescribe("Full Deployment", () => {
                     expect(await cvxLocker.owner()).eq(multisigs.daoMultisig);
                 });
                 it("Aura staking proxy has correct config", async () => {
-                    const { cvxLocker, cvxCrv, cvxStakingProxy, cvx, crvDepositorWrapper } = phase2;
+                    const { cvxLocker, cvxStakingProxy, cvx, crvDepositorWrapper } = phase2;
                     const { multisigs, addresses } = config;
                     expect(await cvxStakingProxy.crv()).eq(addresses.token);
                     expect(await cvxStakingProxy.cvx()).eq(cvx.address);
-                    expect(await cvxStakingProxy.cvxCrv()).eq(cvxCrv.address);
                     expect(await cvxStakingProxy.keeper()).eq(!addresses.keeper ? ZERO_ADDRESS : addresses.keeper);
                     expect(await cvxStakingProxy.crvDepositorWrapper()).eq(crvDepositorWrapper.address);
                     expect(await cvxStakingProxy.outputBps()).eq(9950);
@@ -1530,7 +1529,7 @@ xdescribe("Full Deployment", () => {
                     expect(crvBalance).gte(earned);
                     expect(cvxBalance).gt(0);
                 });
-                it("allows conversion of rewards via AuraStakingProxy", async () => {
+                it("allows conversion of rewards via LiqStakingProxy", async () => {
                     const crv = MockERC20__factory.connect(config.addresses.token, deployer);
                     const crvBalance = await crv.balanceOf(phase4.cvxStakingProxy.address);
                     expect(crvBalance).gt(0);

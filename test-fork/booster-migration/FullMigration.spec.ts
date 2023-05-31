@@ -672,7 +672,7 @@ describe("Full Migration", () => {
             expect(crvBalance).gte(earned);
             expect(cvxBalance).gt(0);
         });
-        it("allows conversion of rewards via AuraStakingProxy", async () => {
+        it("allows conversion of rewards via StakingProxy", async () => {
             const crv = MockERC20__factory.connect(config.addresses.token, deployer);
             const crvBalance = await crv.balanceOf(phase2.cvxStakingProxy.address);
             expect(crvBalance).gt(0);

@@ -1,5 +1,5 @@
 import hre, { ethers } from "hardhat";
-import { BigNumber, Signer } from "ethers";
+import { Signer } from "ethers";
 import { expect } from "chai";
 import { deployPhase1, deployPhase2, deployPhase3, deployPhase4, SystemDeployed } from "../../scripts/deploySystem";
 import { deployMocks, DeployMocksResult, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
@@ -7,7 +7,7 @@ import { impersonateAccount, increaseTime, simpleToExactAmount, ZERO, ZERO_ADDRE
 import { deployContract } from "../../tasks/utils";
 import { MockERC20, MockERC20__factory } from "../../types";
 
-describe("AuraStakingProxy", () => {
+describe("StakingProxy", () => {
     let accounts: Signer[];
     let contracts: SystemDeployed;
     let mocks: DeployMocksResult;
@@ -69,7 +69,6 @@ describe("AuraStakingProxy", () => {
     it("has correct initial config", async () => {
         expect(await contracts.cvxStakingProxy.crv()).eq(mocks.crv.address);
         expect(await contracts.cvxStakingProxy.cvx()).eq(contracts.cvx.address);
-        expect(await contracts.cvxStakingProxy.cvxCrv()).eq(contracts.cvxCrv.address);
         expect(await contracts.cvxStakingProxy.crvDepositorWrapper()).eq(contracts.crvDepositorWrapper.address);
         expect(await contracts.cvxStakingProxy.outputBps()).eq(9975);
         expect(await contracts.cvxStakingProxy.rewards()).eq(contracts.cvxLocker.address);
@@ -80,10 +79,6 @@ describe("AuraStakingProxy", () => {
 
     describe("admin fns", () => {
         describe("when called by EOA", () => {
-            it("fails to set crvDepositorWrapper", async () => {
-                const tx = contracts.cvxStakingProxy.connect(accounts[2]).setCrvDepositorWrapper(ZERO_ADDRESS, "9001");
-                await expect(tx).to.revertedWith("!auth");
-            });
             it("fails to set the keeper", async () => {
                 const tx = contracts.cvxStakingProxy.connect(accounts[2]).setKeeper(ZERO_ADDRESS);
                 await expect(tx).to.be.revertedWith("!auth");
@@ -132,31 +127,6 @@ describe("AuraStakingProxy", () => {
             });
         });
         describe("when called by owner", () => {
-            it("fails to set crvDepositorWrapper if output bps out of range", async () => {
-                let tx = contracts.cvxStakingProxy.setCrvDepositorWrapper(ZERO_ADDRESS, "8999");
-                await expect(tx).to.revertedWith("Invalid output bps");
-
-                tx = contracts.cvxStakingProxy.setCrvDepositorWrapper(ZERO_ADDRESS, "10001");
-                await expect(tx).to.revertedWith("Invalid output bps");
-            });
-            it("sets crvDepositorWrapper", async () => {
-                const oldCrvDepositorWrapper = await contracts.cvxStakingProxy.crvDepositorWrapper();
-                const proposedCrvDepositorWrapper = ZERO_ADDRESS;
-                expect(proposedCrvDepositorWrapper).not.eq(oldCrvDepositorWrapper);
-
-                const oldOutputBps = await contracts.cvxStakingProxy.outputBps();
-                const proposedOutputBps = BigNumber.from("9003");
-                expect(proposedOutputBps).not.eq(oldOutputBps);
-
-                await contracts.cvxStakingProxy.setCrvDepositorWrapper(ZERO_ADDRESS, proposedOutputBps);
-                const newCrvDepositorWrapper = await contracts.cvxStakingProxy.crvDepositorWrapper();
-                expect(newCrvDepositorWrapper).eq(proposedCrvDepositorWrapper);
-                const newOutputBps = await contracts.cvxStakingProxy.outputBps();
-                expect(newOutputBps).eq(proposedOutputBps);
-
-                // reset
-                await contracts.cvxStakingProxy.setCrvDepositorWrapper(oldCrvDepositorWrapper, oldOutputBps);
-            });
             it("sets keeper", async () => {
                 const oldKeeper = await contracts.cvxStakingProxy.keeper();
                 const proposedKeeper = await accounts[2].getAddress();

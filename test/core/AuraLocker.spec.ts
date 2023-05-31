@@ -18,7 +18,7 @@ import {
 import { impersonateAccount } from "../../test-utils/fork";
 import {
     AuraLocker,
-    AuraStakingProxy,
+    LiqStakingProxy,
     AuraToken,
     BaseRewardPool,
     Booster,
@@ -78,7 +78,7 @@ interface SnapshotData {
 describe("AuraLocker", () => {
     let accounts: Signer[];
     let auraLocker: AuraLocker;
-    let cvxStakingProxy: AuraStakingProxy;
+    let cvxStakingProxy: LiqStakingProxy;
     let cvxCrvRewards: BaseRewardPool;
     let booster: Booster;
     let cvx: AuraToken;
@@ -980,7 +980,7 @@ describe("AuraLocker", () => {
         });
         it("queues rewards when cvxCrv period is finished", async () => {
             await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(100));
-            // AuraStakingProxy["distribute()"](), faked by impersonating account
+            // LiqStakingProxy["distribute()"](), faked by impersonating account
             let rewards = simpleToExactAmount(100);
             const rewardDistribution = await auraLocker.rewardsDuration();
             const cvxCrvLockerBalance0 = await cvxCrv.balanceOf(auraLocker.address);

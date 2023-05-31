@@ -23,7 +23,7 @@ import {
     AuraLocker__factory,
     AuraMerkleDrop__factory,
     AuraPenaltyForwarder__factory,
-    AuraStakingProxy__factory,
+    LiqStakingProxy__factory,
     AuraVestedEscrow__factory,
     BalLiquidityProvider__factory,
     BaseRewardPool__factory,
@@ -286,7 +286,7 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         deployer,
     ),
     cvxLocker: AuraLocker__factory.connect("0x3Fa73f1E5d8A792C80F426fc8F84FBF7Ce9bBCAC", deployer),
-    cvxStakingProxy: AuraStakingProxy__factory.connect("0xd9e863B7317a66fe0a4d2834910f604Fd6F89C6c", deployer),
+    cvxStakingProxy: LiqStakingProxy__factory.connect("0xd9e863B7317a66fe0a4d2834910f604Fd6F89C6c", deployer),
     chef: ConvexMasterChef__factory.connect("0x1ab80F7Fb46B25b7e0B2cfAC23Fc88AC37aaf4e9", deployer),
     vestedEscrows: [
         AuraVestedEscrow__factory.connect("0x5bd3fCA8D3d8c94a6419d85E0a76ec8Da52d836a", deployer),

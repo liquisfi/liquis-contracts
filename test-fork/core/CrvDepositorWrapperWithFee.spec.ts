@@ -7,7 +7,7 @@ import {
     ERC20__factory,
     ERC20,
     CrvDepositorWrapperWithFee__factory,
-    AuraStakingProxy,
+    LiqStakingProxy,
 } from "../../types/generated";
 import { impersonate, impersonateAccount } from "../../test-utils";
 import { deployContract } from "../../tasks/utils";
@@ -26,7 +26,7 @@ describe("CrvDepositorWrapperWithFee", () => {
     let system: SystemDeployed;
     let bal: ERC20;
 
-    let stakingProxy: AuraStakingProxy;
+    let stakingProxy: LiqStakingProxy;
     let crvDepositorWrapperWithFee: CrvDepositorWrapperWithFee;
 
     before(async () => {
@@ -77,8 +77,7 @@ describe("CrvDepositorWrapperWithFee", () => {
         await crvDepositorWrapperWithFee.setApprovals();
     });
 
-    it("updates AuraStakingProxy", async () => {
-        await system.cvxStakingProxy.setCrvDepositorWrapper(crvDepositorWrapperWithFee.address, 9950);
+    it("updates StakingProxy", async () => {
         await system.cvxStakingProxy.setApprovals();
     });
 
