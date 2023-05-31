@@ -7,6 +7,8 @@ import { impersonateAccount, increaseTime, simpleToExactAmount, ZERO, ZERO_ADDRE
 import { deployContract } from "../../tasks/utils";
 import { MockERC20, MockERC20__factory } from "../../types";
 
+// yarn hardhat test ./test/core/LiqStakingProxy.spec.ts
+
 describe("StakingProxy", () => {
     let accounts: Signer[];
     let contracts: SystemDeployed;
