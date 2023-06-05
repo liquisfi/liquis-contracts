@@ -1,13 +1,13 @@
 {
-    "name": "@aurafinance/aura-contracts",
-    "description": "Aura Finance smart contracts",
+    "name": "@liquisfi/liquis-contracts",
+    "description": "Liquis Finance smart contracts",
     "version": "1.0.0",
     "scripts": {
         "clean": "shx rm -rf ./artifacts ./cache ./coverage ./types/generated ./coverage.json ./contracts/convex-platform",
         "reset": "yarn clean && yarn compile",
         "commit": "git-cz",
-        "compile": "yarn compile:cvx && yarn compile:aura  && yarn run compile:ts",
-        "compile:aura": "yarn hardhat compile --config hardhat.config.ts",
+        "compile": "yarn compile:cvx && yarn compile:liquis  && yarn run compile:ts",
+        "compile:liquis": "yarn hardhat compile --config hardhat.config.ts",
         "compile:cvx": "yarn hardhat compile --config hardhat-cvx.config.ts",
         "compile:ts": "npx tsc",
         "coverage": "yarn typechain && hardhat coverage:externalSrc --solcoverjs ./.solcover.js --temp artifacts --testfiles 'test/**/*.ts'",
