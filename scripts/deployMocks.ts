@@ -29,6 +29,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 interface DeployMocksResult {
     lptoken: MockERC20;
     crv: MockERC20;
+    lit: MockERC20;
     crvMinter: MockCurveMinter;
     voting: MockVoting;
     votingEscrow: MockCurveVoteEscrow;
@@ -274,6 +275,7 @@ async function deployMocks(hre: HardhatRuntimeEnvironment, signer: Signer, debug
     return {
         lptoken,
         crv,
+        lit,
         crvMinter,
         voting,
         votingEscrow,
