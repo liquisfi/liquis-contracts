@@ -121,6 +121,7 @@ async function deployMocks(hre: HardhatRuntimeEnvironment, signer: Signer, debug
     // 1. Deployments
     // -----------------------------
 
+    // oLit token for mocks
     const crv = await deployContract<MockERC20>(
         hre,
         new MockERC20__factory(deployer),

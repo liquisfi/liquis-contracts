@@ -627,7 +627,7 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    let tx = await cvxLocker.addReward(cvxCrv.address, cvxStakingProxy.address);
+    let tx = await cvxLocker.addReward(token, cvxStakingProxy.address);
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await cvxLocker.setApprovals();
