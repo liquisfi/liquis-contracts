@@ -45,8 +45,6 @@ describe("StakingProxy", () => {
         bob = accounts[2];
         bobAddress = await bob.getAddress();
 
-        await contracts.cvxLocker.addReward(mocks.crv.address, contracts.cvxStakingProxy.address);
-
         const operatorAccount = await impersonateAccount(contracts.booster.address);
         let tx = await contracts.cvx
             .connect(operatorAccount.signer)
