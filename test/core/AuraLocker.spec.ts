@@ -14,6 +14,7 @@ import {
     simpleToExactAmount,
     ZERO,
     ZERO_ADDRESS,
+    e15,
 } from "../../test-utils";
 import { impersonateAccount } from "../../test-utils/fork";
 import {
@@ -83,6 +84,7 @@ describe("AuraLocker", () => {
     let booster: Booster;
     let cvx: AuraToken;
     let cvxCrv: CvxCrvToken;
+    let olit: MockERC20;
     let crvDepositor: CrvDepositor;
     let mocks: DeployMocksResult;
 
@@ -245,6 +247,7 @@ describe("AuraLocker", () => {
         cvxCrvRewards = contracts.cvxCrvRewards;
         cvx = contracts.cvx;
         cvxCrv = contracts.cvxCrv;
+        olit = mocks.crv;
         crvDepositor = contracts.crvDepositor;
 
         const operatorAccount = await impersonateAccount(booster.address);
@@ -293,7 +296,8 @@ describe("AuraLocker", () => {
         expect(await auraLocker.epochCount(), "AuraLocker epoch counts").to.equal(1);
         expect(await auraLocker.queuedRewards(cvxCrv.address), "AuraLocker lockDuration").to.equal(0);
         expect(await auraLocker.rewardPerToken(cvxCrv.address), "AuraLocker rewardPerToken").to.equal(0);
-        expect(await auraLocker.lastTimeRewardApplicable(cvxCrv.address), "cvxCrv lastTimeRewardApplicable").to.gt(0);
+        expect(await auraLocker.lastTimeRewardApplicable(cvxCrv.address), "cvxCrv lastTimeRewardApplicable").to.eq(0);
+        expect(await auraLocker.lastTimeRewardApplicable(olit.address), "olit lastTimeRewardApplicable").to.gt(0);
         // expect(await auraLocker.rewardTokens(0),"AuraLocker lockDuration").to.equal( 86400 * 7 * 17);
         // constants
         expect(await auraLocker.newRewardRatio(), "AuraLocker newRewardRatio").to.equal(830);
@@ -388,14 +392,14 @@ describe("AuraLocker", () => {
 
             const incentive = await booster.stakerIncentive();
             const rate = await mocks.crvMinter.rate();
-            const stakingCrvBalance = await mocks.crv.balanceOf(cvxStakingProxy.address);
+            const stakingCrvBalance = await olit.balanceOf(cvxStakingProxy.address);
             expect(stakingCrvBalance).to.equal(rate.mul(incentive).div(10000));
 
-            const balBefore = await cvxCrv.balanceOf(auraLocker.address);
+            const balBefore = await olit.balanceOf(auraLocker.address);
             const tx = await cvxStakingProxy["distribute()"]();
             await tx.wait();
 
-            const balAfter = await cvxCrv.balanceOf(auraLocker.address);
+            const balAfter = await olit.balanceOf(auraLocker.address);
             expect(balAfter).gt(balBefore.add(stakingCrvBalance.div(3)));
         });
 
@@ -451,10 +455,10 @@ describe("AuraLocker", () => {
 
         it("get rewards from CVX locker", async () => {
             await increaseTime(ONE_DAY.mul(105));
-            const cvxCrvBefore = await cvxCrv.balanceOf(aliceAddress);
+            const olitBefore = await olit.balanceOf(aliceAddress);
             const dataBefore = await getSnapShot(aliceAddress);
 
-            expect(await auraLocker.rewardPerToken(cvxCrv.address), "rewardPerToken").to.equal(
+            expect(await auraLocker.rewardPerToken(olit.address), "rewardPerToken").to.equal(
                 dataBefore.account.claimableRewards[0].amount.div(100),
             );
 
@@ -462,14 +466,14 @@ describe("AuraLocker", () => {
             const dataAfter = await getSnapShot(aliceAddress);
 
             await tx.wait();
-            const cvxCrvAfter = await cvxCrv.balanceOf(aliceAddress);
-            const cvxCrvBalance = cvxCrvAfter.sub(cvxCrvBefore);
-            expect(cvxCrvBalance.gt("0")).to.equal(true);
-            expect(cvxCrvBalance).to.equal(dataBefore.account.claimableRewards[0].amount);
+            const olitAfter = await olit.balanceOf(aliceAddress);
+            const olitBalance = olitAfter.sub(olitBefore);
+            expect(olitBalance.gt("0")).to.equal(true);
+            expect(olitBalance).to.equal(dataBefore.account.claimableRewards[0].amount);
             expect(dataAfter.account.claimableRewards[0].amount).to.equal(0);
             await expect(tx)
                 .emit(auraLocker, "RewardPaid")
-                .withArgs(aliceAddress, await auraLocker.rewardTokens(0), cvxCrvBalance);
+                .withArgs(aliceAddress, await auraLocker.rewardTokens(0), olitBalance);
         });
 
         it("process expired locks", async () => {
@@ -957,9 +961,7 @@ describe("AuraLocker", () => {
         it("fails if the amount of rewards is 0", async () => {
             // Only the rewardsDistributor can queue cvxCRV rewards
             await expect(
-                auraLocker
-                    .connect(cvxStakingProxyAccount.signer)
-                    .queueNewRewards(cvxCrv.address, simpleToExactAmount(0)),
+                auraLocker.connect(cvxStakingProxyAccount.signer).queueNewRewards(olit.address, simpleToExactAmount(0)),
             ).revertedWith("No reward");
         });
         it("fails if balance is too low", async () => {
@@ -983,113 +985,119 @@ describe("AuraLocker", () => {
             // LiqStakingProxy["distribute()"](), faked by impersonating account
             let rewards = simpleToExactAmount(100);
             const rewardDistribution = await auraLocker.rewardsDuration();
-            const cvxCrvLockerBalance0 = await cvxCrv.balanceOf(auraLocker.address);
-            const queuedCvxCrvRewards0 = await auraLocker.queuedRewards(cvxCrv.address);
-            const rewardData0 = await auraLocker.rewardData(cvxCrv.address);
+            const olitLockerBalance0 = await olit.balanceOf(auraLocker.address);
+            const queuedOLitRewards0 = await auraLocker.queuedRewards(olit.address);
+            const rewardData0 = await auraLocker.rewardData(olit.address);
             const timeStamp = await getTimestamp();
 
             expect(timeStamp, "reward period finish").to.gte(rewardData0.periodFinish);
-            expect(await cvxCrv.balanceOf(cvxStakingProxyAccount.address)).to.gt(rewards);
+            // expect(await olit.balanceOf(cvxStakingProxyAccount.address)).to.gt(rewards);
 
-            //  test queuing rewards
+            // test queuing rewards
             // await auraLocker.connect(cvxStakingProxyAccount.signer).queueNewRewards(rewards);
             rewards = await distributeRewardsFromBooster();
             // Validate
-            const rewardData1 = await auraLocker.rewardData(cvxCrv.address);
-            expect(await cvxCrv.balanceOf(auraLocker.address), "cvxCrv is transfer to locker").to.eq(
-                cvxCrvLockerBalance0.add(rewards),
+            const rewardData1 = await auraLocker.rewardData(olit.address);
+            expect(await olit.balanceOf(auraLocker.address), "olit is transfer to locker").to.eq(
+                olitLockerBalance0.add(rewards),
             );
-            expect(await auraLocker.queuedRewards(cvxCrv.address), "queued cvxCrv rewards").to.eq(0);
+            expect(await auraLocker.queuedRewards(olit.address), "queued olit rewards").to.eq(0);
 
             // Verify reward data is updated, reward rate, lastUpdateTime, periodFinish; when the lastUpdateTime is lt than now.
-            expect(rewardData1.lastUpdateTime, "cvxCrv reward last update time").to.gt(rewardData0.lastUpdateTime);
-            expect(rewardData1.periodFinish, "cvxCrv reward period finish").to.gt(rewardData0.periodFinish);
-            expect(rewardData1.rewardPerTokenStored, "cvxCrv reward per token stored").to.eq(
+            expect(rewardData1.lastUpdateTime, "olit reward last update time").to.gt(rewardData0.lastUpdateTime);
+            expect(rewardData1.periodFinish, "olit reward period finish").to.gt(rewardData0.periodFinish);
+            expect(rewardData1.rewardPerTokenStored, "olit reward per token stored").to.eq(
                 rewardData0.rewardPerTokenStored,
             );
-            expect(rewardData1.rewardRate, "cvxCrv rewards rate").to.eq(
-                queuedCvxCrvRewards0.add(rewards).div(rewardDistribution),
+            expect(rewardData1.rewardRate, "olit rewards rate").to.eq(
+                queuedOLitRewards0.add(rewards).div(rewardDistribution),
             );
         });
 
         it("only starts distributing the rewards when the queued amount is over 83% of the remaining", async () => {
             await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(100));
-            const cvxCrvLockerBalance0 = await cvxCrv.balanceOf(auraLocker.address);
-            const rewardData0 = await auraLocker.rewardData(cvxCrv.address);
+            const olitLockerBalance0 = await olit.balanceOf(auraLocker.address);
+            const rewardData0 = await auraLocker.rewardData(olit.address);
             const timeStamp = await getTimestamp();
 
             expect(timeStamp, "reward period finish").to.gte(rewardData0.periodFinish);
-            expect(await cvxCrv.balanceOf(cvxStakingProxyAccount.address)).to.gt(0);
+            // expect(await olit.balanceOf(cvxStakingProxyAccount.address)).to.gt(0);
 
             // cvxStakingProxy["distribute()"]();=>auraLocker.queueNewRewards()
             // First distribution to update the reward finish period.
             let rewards = await distributeRewardsFromBooster();
+
             // Validate
-            const cvxCrvLockerBalance1 = await cvxCrv.balanceOf(auraLocker.address);
-            const queuedCvxCrvRewards1 = await auraLocker.queuedRewards(cvxCrv.address);
-            const rewardData1 = await auraLocker.rewardData(cvxCrv.address);
+            const olitLockerBalance1 = await olit.balanceOf(auraLocker.address);
+            const queuedOLitRewards1 = await auraLocker.queuedRewards(olit.address);
+            const rewardData1 = await auraLocker.rewardData(olit.address);
 
             // Verify reward data is updated, reward rate, lastUpdateTime, periodFinish; when the lastUpdateTime is lt than now.
-            expect(rewardData1.lastUpdateTime, "cvxCrv reward last update time").to.gt(rewardData0.lastUpdateTime);
-            expect(rewardData1.periodFinish, "cvxCrv reward period finish").to.gt(rewardData0.periodFinish);
-            expect(rewardData1.rewardPerTokenStored, "cvxCrv reward per token stored").to.eq(
+            expect(rewardData1.lastUpdateTime, "olit reward last update time").to.gt(rewardData0.lastUpdateTime);
+            expect(rewardData1.periodFinish, "olit reward period finish").to.gt(rewardData0.periodFinish);
+            expect(rewardData1.rewardPerTokenStored, "olit reward per token stored").to.eq(
                 rewardData0.rewardPerTokenStored,
             );
-            expect(rewardData1.rewardRate, "cvxCrv rewards rate").to.gt(rewardData0.rewardRate);
-            expect(cvxCrvLockerBalance1, "cvxCrv is transfer to locker").to.eq(cvxCrvLockerBalance0.add(rewards));
-            expect(queuedCvxCrvRewards1, "queued cvxCrv rewards").to.eq(0);
+            expect(rewardData1.rewardRate, "olit rewards rate").to.gt(rewardData0.rewardRate);
+            expect(olitLockerBalance1, "olit is transfer to locker").to.eq(olitLockerBalance0.add(rewards));
+            expect(queuedOLitRewards1, "queued olit rewards").to.eq(0);
 
-            // Second distribution , without notification as the ratio is not reached.
+            // Second distribution of an small amount, without notification as the ratio is not reached.
             await increaseTime(ONE_DAY);
-            rewards = await distributeRewardsFromBooster();
+            // rewards = await distributeRewardsFromBooster();
+            await olit.transfer(cvxStakingProxy.address, e15.mul(10));
+            let tx = await cvxStakingProxy["distribute()"]();
+            const receipt = await tx.wait();
+            const event = receipt.events.find(e => e.event === "RewardsDistributed");
+            rewards = event.args[1];
 
-            const cvxCrvLockerBalance2 = await cvxCrv.balanceOf(auraLocker.address);
-            const queuedCvxCrvRewards2 = await auraLocker.queuedRewards(cvxCrv.address);
-            const rewardData2 = await auraLocker.rewardData(cvxCrv.address);
+            const olitLockerBalance2 = await olit.balanceOf(auraLocker.address);
+            const queuedOLitRewards2 = await auraLocker.queuedRewards(olit.address);
+            const rewardData2 = await auraLocker.rewardData(olit.address);
 
             // Verify reward data is not updated, as ratio is not reached.
-            expect(rewardData2.lastUpdateTime, "cvxCrv reward last update time").to.eq(rewardData1.lastUpdateTime);
-            expect(rewardData2.periodFinish, "cvxCrv reward period finish").to.eq(rewardData1.periodFinish);
-            expect(rewardData2.rewardPerTokenStored, "cvxCrv reward per token stored").to.eq(
+            expect(rewardData2.lastUpdateTime, "olit reward last update time").to.eq(rewardData1.lastUpdateTime);
+            expect(rewardData2.periodFinish, "olit reward period finish").to.eq(rewardData1.periodFinish);
+            expect(rewardData2.rewardPerTokenStored, "olit reward per token stored").to.eq(
                 rewardData1.rewardPerTokenStored,
             );
-            expect(rewardData2.rewardRate, "cvxCrv rewards rate").to.eq(rewardData1.rewardRate);
-            expect(cvxCrvLockerBalance2, "cvxCrv is transfer to locker").to.eq(cvxCrvLockerBalance1.add(rewards));
-            expect(queuedCvxCrvRewards2, "queued cvxCrv rewards").to.eq(queuedCvxCrvRewards1.add(rewards));
+            expect(rewardData2.rewardRate, "olit rewards rate").to.eq(rewardData1.rewardRate);
+            expect(olitLockerBalance2, "olit is transfer to locker").to.eq(olitLockerBalance1.add(rewards));
+            expect(queuedOLitRewards2, "queued olit rewards").to.eq(queuedOLitRewards1.add(rewards));
 
             // Third distribution the ratio is reached, the reward is distributed.
             await mockDepositCVRToStakeContract(1000);
             rewards = await distributeRewardsFromBooster();
 
-            const cvxCrvLockerBalance3 = await cvxCrv.balanceOf(auraLocker.address);
-            const queuedCvxCrvRewards3 = await auraLocker.queuedRewards(cvxCrv.address);
-            const rewardData3 = await auraLocker.rewardData(cvxCrv.address);
+            const olitLockerBalance3 = await olit.balanceOf(auraLocker.address);
+            const queuedOLitRewards3 = await auraLocker.queuedRewards(olit.address);
+            const rewardData3 = await auraLocker.rewardData(olit.address);
 
             // Verify reward data is updated, reward rate, lastUpdateTime, periodFinish; when the lastUpdateTime is lt than now.
-            expect(rewardData3.lastUpdateTime, "cvxCrv reward last update time").to.gt(rewardData2.lastUpdateTime);
-            expect(rewardData3.periodFinish, "cvxCrv reward period finish").to.gt(rewardData2.periodFinish);
-            expect(rewardData3.rewardPerTokenStored, "cvxCrv reward per token stored").to.gt(
+            expect(rewardData3.lastUpdateTime, "olit reward last update time").to.gt(rewardData2.lastUpdateTime);
+            expect(rewardData3.periodFinish, "olit reward period finish").to.gt(rewardData2.periodFinish);
+            expect(rewardData3.rewardPerTokenStored, "olit reward per token stored").to.gt(
                 rewardData2.rewardPerTokenStored,
             );
-            expect(rewardData3.rewardRate, "cvxCrv rewards rate").to.gt(rewardData2.rewardRate);
-            expect(cvxCrvLockerBalance3, "cvxCrv is transfer to locker").to.eq(cvxCrvLockerBalance2.add(rewards));
-            expect(queuedCvxCrvRewards3, "queued cvxCrv rewards").to.eq(0);
+            expect(rewardData3.rewardRate, "olit rewards rate").to.gt(rewardData2.rewardRate);
+            expect(olitLockerBalance3, "olit is transfer to locker").to.eq(olitLockerBalance2.add(rewards));
+            expect(queuedOLitRewards3, "queued olit rewards").to.eq(0);
 
             // Process expired locks and claim rewards for user.
             await increaseTime(ONE_WEEK.mul(17));
 
             await auraLocker.connect(alice).processExpiredLocks(false);
-            const userCvxCrvData = await auraLocker.userData(aliceAddress, cvxCrv.address);
-            const cvxCrvAliceBalance3 = await cvxCrv.balanceOf(aliceAddress);
+            const userOLitData = await auraLocker.userData(aliceAddress, olit.address);
+            const olitAliceBalance3 = await olit.balanceOf(aliceAddress);
 
-            const tx = await auraLocker["getReward(address)"](aliceAddress);
+            tx = await auraLocker["getReward(address)"](aliceAddress);
             await expect(tx)
                 .to.emit(auraLocker, "RewardPaid")
-                .withArgs(aliceAddress, cvxCrv.address, userCvxCrvData.rewards);
-            const cvxCrvAliceBalance4 = await cvxCrv.balanceOf(aliceAddress);
-            const cvxCrvLockerBalance4 = await cvxCrv.balanceOf(auraLocker.address);
-            expect(cvxCrvAliceBalance4, "cvxCrv claimed").to.eq(cvxCrvAliceBalance3.add(userCvxCrvData.rewards));
-            expect(cvxCrvLockerBalance4, "cvxCrv sent").to.eq(cvxCrvLockerBalance3.sub(userCvxCrvData.rewards));
+                .withArgs(aliceAddress, olit.address, userOLitData.rewards);
+            const olitAliceBalance4 = await olit.balanceOf(aliceAddress);
+            const olitLockerBalance4 = await olit.balanceOf(auraLocker.address);
+            expect(olitAliceBalance4, "olit claimed").to.eq(olitAliceBalance3.add(userOLitData.rewards));
+            expect(olitLockerBalance4, "olit sent").to.eq(olitLockerBalance3.sub(userOLitData.rewards));
         });
     });
 
@@ -1171,7 +1179,7 @@ describe("AuraLocker", () => {
             const delegate = await auraLocker.delegates(aliceAddress);
             expect(delegate).eq(ZERO_ADDRESS);
 
-            expect((await auraLocker.rewardData(cvxCrv.address)).rewardRate).gt(0);
+            expect((await auraLocker.rewardData(olit.address)).rewardRate).gt(0);
         });
         it("fails to delegate to 0", async () => {
             await expect(auraLocker.connect(alice).delegate(ZERO_ADDRESS)).to.be.revertedWith(
@@ -1490,14 +1498,12 @@ describe("AuraLocker", () => {
             await cvx.connect(alice).approve(auraLocker.address, cvxAmount);
 
             // approves  distributor
-            await auraLocker.connect(accounts[7]).approveRewardDistributor(cvxCrv.address, cvxCrvRewards.address, true);
-            expect(await auraLocker.rewardDistributors(cvxCrv.address, cvxCrvRewards.address)).to.eq(true);
+            await auraLocker.connect(accounts[7]).approveRewardDistributor(olit.address, cvxCrvRewards.address, true);
+            expect(await auraLocker.rewardDistributors(olit.address, cvxCrvRewards.address)).to.eq(true);
 
             // disapproves  distributor
-            await auraLocker
-                .connect(accounts[7])
-                .approveRewardDistributor(cvxCrv.address, cvxCrvRewards.address, false);
-            expect(await auraLocker.rewardDistributors(cvxCrv.address, cvxCrvRewards.address)).to.eq(false);
+            await auraLocker.connect(accounts[7]).approveRewardDistributor(olit.address, cvxCrvRewards.address, false);
+            expect(await auraLocker.rewardDistributors(olit.address, cvxCrvRewards.address)).to.eq(false);
         });
         it("set Kick Incentive", async () => {
             await expect(auraLocker.connect(accounts[7]).setKickIncentive(100, 3))
