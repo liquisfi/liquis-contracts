@@ -4,10 +4,6 @@ pragma solidity 0.8.11;
 interface IBaseRewardPool {
     function pid() external view returns (uint256);
 
-    function setOptionsExerciser(address _optionExerciser) external;
-
-    function optionExerciser() external returns (address);
-
     function earned(address account) external view returns (uint256);
 
     function stake(uint256 _amount) external returns (bool);
