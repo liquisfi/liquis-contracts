@@ -9,7 +9,7 @@ import { BalInvestor } from "./BalInvestor.sol";
 
 /**
  * @title   CrvDepositorWrapper
- * @notice  Converts LIT -> balBPT and then wraps to auraBAL via the crvDepositor
+ * @notice  Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor
  */
 contract CrvDepositorWrapper is ICrvDepositorWrapper, BalInvestor {
     address public immutable crvDeposit;
@@ -17,10 +17,10 @@ contract CrvDepositorWrapper is ICrvDepositorWrapper, BalInvestor {
     constructor(
         address _crvDeposit,
         IBalancerVault _balancerVault,
-        address _bal,
+        address _lit,
         address _weth,
         bytes32 _balETHPoolId
-    ) BalInvestor(_balancerVault, _bal, _weth, _balETHPoolId) {
+    ) BalInvestor(_balancerVault, _lit, _weth, _balETHPoolId) {
         crvDeposit = _crvDeposit;
     }
 
