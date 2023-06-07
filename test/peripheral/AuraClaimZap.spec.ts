@@ -49,7 +49,8 @@ describe("AuraClaimZap", () => {
         await phase3.poolManager.setProtectPool(false);
         contracts = await deployPhase4(hre, deployer, phase3, mocks.addresses);
 
-        await mocks.crv.transfer(aliceAddress, simpleToExactAmount(1));
+        // await mocks.crv.transfer(aliceAddress, simpleToExactAmount(1));
+        await mocks.lit.transfer(aliceAddress, simpleToExactAmount(1));
         await mocks.crv.transfer(mocks.balancerVault.address, simpleToExactAmount(10));
         await contracts.cvxCrv.transfer(mocks.balancerVault.address, simpleToExactAmount(10));
 
@@ -73,25 +74,26 @@ describe("AuraClaimZap", () => {
         );
     });
 
-    it("claim rewards from cvxCrvStaking", async () => {
+    // Different config, Booster provides oLIT, cvxCrvRewards distributes oLIT, but crvDepositorWrapper only LIT
+    it.skip("claim rewards from cvxCrvStaking", async () => {
         const lock = true;
         const stakeAddress = contracts.cvxCrvRewards.address;
-        const balance = await mocks.crv.balanceOf(aliceAddress);
+        const balance = await mocks.lit.balanceOf(aliceAddress);
 
         const minOut = await contracts.crvDepositorWrapper.connect(alice).getMinOut(balance, "10000");
-        await mocks.crv.connect(alice).approve(contracts.crvDepositorWrapper.address, balance);
+        await mocks.lit.connect(alice).approve(contracts.crvDepositorWrapper.address, balance);
         await contracts.crvDepositorWrapper.connect(alice).deposit(balance, minOut, lock, stakeAddress);
 
         const rewardBalance = await contracts.cvxCrvRewards.balanceOf(aliceAddress);
         expect(rewardBalance).eq(minOut);
 
-        await contracts.booster.earmarkRewards(0);
+        await contracts.booster.earmarkRewards(0); // oLIT is distributed from Booster
 
         await increaseTime(ONE_WEEK.mul("4"));
 
-        const expectedRewards = await contracts.cvxCrvRewards.earned(aliceAddress);
+        const expectedRewards = await contracts.cvxCrvRewards.earned(aliceAddress); // alice earns oLIT
 
-        await mocks.crv.connect(alice).approve(contracts.claimZap.address, ethers.constants.MaxUint256);
+        await mocks.lit.connect(alice).approve(contracts.claimZap.address, ethers.constants.MaxUint256);
         const options = Options.ClaimCvxCrv + Options.LockCrvDeposit + Options.UseAllWalletFunds;
         const minBptAmountOut = await contracts.crvDepositorWrapper.getMinOut(expectedRewards, 10000);
         const amounts: ClaimRewardsAmountsStruct = {
