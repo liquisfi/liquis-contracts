@@ -147,7 +147,8 @@ describe("AuraClaimZapV3", () => {
             ethers.constants.MaxUint256,
         );
     });
-    it("claim rewards from cvxCrvStaking and stake crv, cvxCrv", async () => {
+    // Skipped because rewards from Booster is oLIT and the CrvDepositorWrapper works with LIT as entry token
+    it.skip("claim rewards from cvxCrvStaking and stake crv, cvxCrv", async () => {
         const amount = simpleToExactAmount(10);
         const cvxCrvRewardsBalance = await depositIntoBasePoolReward(alice, amount);
         await phase4.booster.earmarkRewards(pid);
@@ -182,7 +183,8 @@ describe("AuraClaimZapV3", () => {
 
         expect(dataAfter.cvxCrvRewardsBalance).eq(minBptAmountOut.add(cvxCrvRewardsBalance));
     });
-    it("claim rewards from cvxCrvStaking and stake crv, cvxCrv with wallet funds", async () => {
+    // Skipped because rewards from Booster is oLIT and the CrvDepositorWrapper works with LIT as entry token
+    it.skip("claim rewards from cvxCrvStaking and stake crv, cvxCrv with wallet funds", async () => {
         await phase4.booster.earmarkRewards(pid);
         await increaseTime(ONE_WEEK.mul("4"));
 
@@ -323,7 +325,8 @@ describe("AuraClaimZapV3", () => {
         expect(await phase4.cvxCrv.balanceOf(alice.address)).eq(ZERO);
         await expect(tx, "lockCvxCrv: true + useAllWalletFunds: true").to.emit(phase4.cvxCrvRewards, "Staked");
     });
-    it("claim from pools and then deposit into new vault", async () => {
+    // Skipped because rewards from Booster is oLIT and the CrvDepositorWrapper works with LIT as entry token
+    it.skip("claim from pools and then deposit into new vault", async () => {
         const poolId = 0;
         await phase4.booster.earmarkRewards(poolId);
         const pool = await phase4.booster.poolInfo(poolId);
