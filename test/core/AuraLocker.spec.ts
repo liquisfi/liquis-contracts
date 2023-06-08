@@ -935,20 +935,11 @@ describe("AuraLocker", () => {
     });
 
     context("queueing new rewards", () => {
-        async function mockDepositCVRToStakeContract(amount: number) {
-            const crvDepositorAccount = await impersonateAccount(crvDepositor.address);
-            const cvxCrvConnected = cvxCrv.connect(crvDepositorAccount.signer);
-            await cvxCrvConnected.mint(cvxStakingProxyAccount.address, simpleToExactAmount(amount));
-            await cvxCrvConnected.approve(cvxStakingProxyAccount.address, simpleToExactAmount(amount));
-        }
-
         let cvxStakingProxyAccount: Account;
         // t = 0.5, Lock, delegate to self, wait 15 weeks (1.5 weeks before lockup)
         beforeEach(async () => {
             await setup();
             cvxStakingProxyAccount = await impersonateAccount(cvxStakingProxy.address);
-            // Given that cvxStakingProxyAccount holds cvxCrv (fake balance on staking proxy)
-            await mockDepositCVRToStakeContract(1000);
 
             await cvx.connect(alice).approve(auraLocker.address, simpleToExactAmount(1000));
         });
@@ -982,7 +973,7 @@ describe("AuraLocker", () => {
         });
         it("queues rewards when cvxCrv period is finished", async () => {
             await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(100));
-            // LiqStakingProxy["distribute()"](), faked by impersonating account
+
             let rewards = simpleToExactAmount(100);
             const rewardDistribution = await auraLocker.rewardsDuration();
             const olitLockerBalance0 = await olit.balanceOf(auraLocker.address);
@@ -991,10 +982,8 @@ describe("AuraLocker", () => {
             const timeStamp = await getTimestamp();
 
             expect(timeStamp, "reward period finish").to.gte(rewardData0.periodFinish);
-            // expect(await olit.balanceOf(cvxStakingProxyAccount.address)).to.gt(rewards);
 
             // test queuing rewards
-            // await auraLocker.connect(cvxStakingProxyAccount.signer).queueNewRewards(rewards);
             rewards = await distributeRewardsFromBooster();
             // Validate
             const rewardData1 = await auraLocker.rewardData(olit.address);
@@ -1021,9 +1010,7 @@ describe("AuraLocker", () => {
             const timeStamp = await getTimestamp();
 
             expect(timeStamp, "reward period finish").to.gte(rewardData0.periodFinish);
-            // expect(await olit.balanceOf(cvxStakingProxyAccount.address)).to.gt(0);
 
-            // cvxStakingProxy["distribute()"]();=>auraLocker.queueNewRewards()
             // First distribution to update the reward finish period.
             let rewards = await distributeRewardsFromBooster();
 
@@ -1066,7 +1053,6 @@ describe("AuraLocker", () => {
             expect(queuedOLitRewards2, "queued olit rewards").to.eq(queuedOLitRewards1.add(rewards));
 
             // Third distribution the ratio is reached, the reward is distributed.
-            await mockDepositCVRToStakeContract(1000);
             rewards = await distributeRewardsFromBooster();
 
             const olitLockerBalance3 = await olit.balanceOf(auraLocker.address);
