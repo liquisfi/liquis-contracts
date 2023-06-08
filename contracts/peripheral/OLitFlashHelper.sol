@@ -112,9 +112,8 @@ interface IPool {
 /**
  * @title   OptionsExerciser
  * @author  LiquisFinance
- * @notice  Main deposit contract; keeps track of pool info & user deposits; distributes rewards.
- * @dev     They say all paths lead to Rome, and the cvxBooster is no different. This is where it all goes down.
- *          It is responsible for tracking all the pools, it collects rewards from all pools and redirects it.
+ * @notice  Main helper contract; allows for claiming oLIT from RewardPools and later exercise it.
+ * @dev     Implements AaveFlashloan in order to facilitate the conversion in one step.
  */
 contract OptionsExerciser is IFlashLoanSimpleReceiver {
     using SafeERC20 for IERC20;
