@@ -16,9 +16,9 @@ import {
 } from "../types/generated";
 import { Contract, Signer } from "ethers";
 import { increaseTime } from "../test-utils/time";
-import { ZERO_ADDRESS, ZERO, e18, e6 } from "../test-utils/constants";
+import { ZERO_ADDRESS, ZERO, e18, e6, ONE_WEEK } from "../test-utils/constants";
 import { deployContract, waitForTx } from "../tasks/utils";
-import { impersonateAccount } from "../test-utils";
+import { impersonateAccount, assertBNClosePercent } from "../test-utils";
 
 import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../scripts/deploySystem";
 import { getMockDistro } from "../scripts/deployMocks";
@@ -258,22 +258,25 @@ describe("Booster", () => {
         it("increases veLit balance on VoterProxy after a LIT deposit", async () => {
             const initLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
             const cvxCrvBalInit = await cvxCrv.balanceOf(deployerAddress);
-
             const amount = e18.mul(100000);
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "9800");
+            const minOut = await crvDepositorWrapper.getMinOut(amount, "9900");
 
             await lit.connect(deployer).approve(crvDepositorWrapper.address, amount);
-            await crvDepositorWrapper.deposit(amount, ZERO, true, ZERO_ADDRESS);
+            await crvDepositorWrapper.deposit(amount, minOut, true, ZERO_ADDRESS);
             const deployerVeLitBalance = await velit.balanceOf(deployerAddress);
 
             const endLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
+            const diffVeLit = endLitVotingEscrowBal.sub(initLitVotingEscrowBal);
 
             expect(deployerVeLitBalance).eq(ZERO); // veLit remains in the VoterProxy
-            expect(endLitVotingEscrowBal.sub(initLitVotingEscrowBal)).gt(ZERO);
+            expect(diffVeLit).gt(minOut);
 
             // Deployer did not stake his cvxCrv
             const cvxCrvBalEnd = await cvxCrv.balanceOf(deployerAddress);
-            expect(cvxCrvBalEnd.sub(cvxCrvBalInit)).gt(minOut);
+            const diffCvxCrvBal = cvxCrvBalEnd.sub(cvxCrvBalInit);
+            expect(diffCvxCrvBal).gt(minOut);
+
+            assertBNClosePercent(diffVeLit, diffCvxCrvBal, "1");
         });
 
         it("stakes cvxCrv on behalf of user in the stakingRewardPool", async () => {
@@ -289,11 +292,13 @@ describe("Booster", () => {
 
             const stakedBalanceBefore = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            await crvDepositorWrapper.connect(alice).deposit(e18.mul(10000), ZERO, true, stakeAddress);
+            const minOut = await crvDepositorWrapper.getMinOut(e18.mul(10000), "9900");
+
+            await crvDepositorWrapper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            expect(stakedBalanceAfter).gt(stakedBalanceBefore);
+            expect(stakedBalanceAfter.sub(stakedBalanceBefore)).gt(minOut);
         });
 
         it("allows deposits on behalf of another user, amounts match", async () => {
@@ -315,7 +320,7 @@ describe("Booster", () => {
 
             const cvxCrvBalanceAfter = await cvxCrv.balanceOf(userAddress);
             const cvxCrvBalanceDelta = cvxCrvBalanceAfter.sub(cvxCrvBalanceBefore);
-            expect(cvxCrvBalanceDelta).to.equal(amount);
+            expect(cvxCrvBalanceDelta).eq(amount);
         });
 
         it("stakes on behalf of another user", async () => {
@@ -333,7 +338,7 @@ describe("Booster", () => {
             await crvDepositor.connect(alice).depositFor(userAddress, amount, lock, stakeAddress);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(userAddress);
-            expect(stakedBalanceAfter.sub(stakedBalanceBefore)).gt(ZERO);
+            expect(stakedBalanceAfter.sub(stakedBalanceBefore)).eq(amount);
         });
 
         it("zapIn with Lit reverts if slippage is to high", async () => {
@@ -364,8 +369,7 @@ describe("Booster", () => {
             await crvDepositorWrapper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
-
-            expect(endBalStaked.sub(initBalStaked).gt(ZERO));
+            expect(endBalStaked.sub(initBalStaked).gt(minOut));
         });
 
         it("zapIn with Lit works with decent slippage in big amounts (1M LIT)", async () => {
@@ -387,7 +391,7 @@ describe("Booster", () => {
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            expect(endBalStaked.sub(initBalStaked).gt(ZERO));
+            expect(endBalStaked.sub(initBalStaked).gt(minOut));
         });
     });
 
