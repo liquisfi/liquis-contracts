@@ -14,7 +14,7 @@ contract MockCurveVoteEscrow is ERC20("MockVE", "MockVE") {
 
     mapping(address => uint256) public lockTimes;
 
-    uint256 public constant MAX_LEN = 365 days;
+    uint256 public constant MAX_LEN = 4 * 365 days;
 
     constructor(address _smart_wallet_checker, address _token) {
         smart_wallet_checker = _smart_wallet_checker;

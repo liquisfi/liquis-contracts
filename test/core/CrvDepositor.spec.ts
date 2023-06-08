@@ -76,11 +76,11 @@ describe("CrvDepositor", () => {
     });
 
     describe("basic flow of locking", () => {
-        it("locks up for a year initially", async () => {
+        it("locks up for 4 years initially", async () => {
             const unlockTime = await mocks.votingEscrow.lockTimes(voterProxy.address);
             const now = await getTimestamp();
-            expect(unlockTime).gt(now.add(ONE_WEEK.mul(51)));
-            expect(unlockTime).lt(now.add(ONE_WEEK.mul(53)));
+            expect(unlockTime).gt(now.add(ONE_WEEK.mul(51 * 4)));
+            expect(unlockTime).lt(now.add(ONE_WEEK.mul(53 * 4)));
         });
 
         it("deposit", async () => {
@@ -96,7 +96,7 @@ describe("CrvDepositor", () => {
             const cvxCrvAfter = await cvxCrv.balanceOf(aliceAddress);
             expect(cvxCrvAfter.sub(cvxCrvBefore)).to.equal(amount);
         });
-        it("increases lock to a year again", async () => {
+        it("increases lock to 4 years again", async () => {
             const unlockTimeBefore = await mocks.votingEscrow.lockTimes(voterProxy.address);
 
             await increaseTime(ONE_WEEK.mul(2));
@@ -108,8 +108,8 @@ describe("CrvDepositor", () => {
             expect(unlockTimeAfter).gt(unlockTimeBefore);
 
             const after = await getTimestamp();
-            expect(unlockTimeAfter).gt(after.add(ONE_WEEK.mul(51)));
-            expect(unlockTimeAfter).lt(after.add(ONE_WEEK.mul(53)));
+            expect(unlockTimeAfter).gt(after.add(ONE_WEEK.mul(51 * 4)));
+            expect(unlockTimeAfter).lt(after.add(ONE_WEEK.mul(53 * 4)));
         });
     });
 
@@ -128,7 +128,7 @@ describe("CrvDepositor", () => {
 
             const cvxCrvBalanceAfter = await cvxCrv.balanceOf(aliceAddress);
             const cvxCrvBalanceDelta = cvxCrvBalanceAfter.sub(cvxCrvBalanceBefore);
-            expect(cvxCrvBalanceDelta).gt(ZERO);
+            expect(cvxCrvBalanceDelta).to.equal(minOut);
         });
 
         it("stakes on behalf of user", async () => {
@@ -144,7 +144,7 @@ describe("CrvDepositor", () => {
             await crvDepositorWrapper.deposit(amount, minOut, lock, stakeAddress);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
-            expect(stakedBalanceAfter.sub(stakedBalanceBefore)).gt(ZERO);
+            expect(stakedBalanceAfter.sub(stakedBalanceBefore)).to.equal(minOut);
         });
     });
     describe("calling depositFor", () => {
