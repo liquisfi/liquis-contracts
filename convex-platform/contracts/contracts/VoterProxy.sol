@@ -67,7 +67,7 @@ contract VoterProxy {
     }
 
     function getName() external pure returns (string memory) {
-        return "BalancerVoterProxy";
+        return "BunniVoterProxy";
     }
 
     function setOwner(address _owner) external {
