@@ -10,12 +10,12 @@ import { AuraMath } from "../utils/AuraMath.sol";
 /**
  * @title   LiqVestedEscrow
  * @author  Aura, adapted from ConvexFinance (convex-platform/contracts/contracts/VestedEscrow)
- * @notice  Vests tokens over a given timeframe to an array of recipients. Allows locking of
- *          these tokens directly to staking contract.
+ * @notice  Vests tokens over a given timeframe to an array of recipients.
+ *          Allows locking of these tokens directly to staking contract.
  * @dev     Adaptations:
  *           - One time initialisation
  *           - Consolidation of fundAdmin/admin
- *           - Lock in Locker by default
+ *           - Lock in LiqLocker by default
  *           - Start and end time
  */
 contract LiqVestedEscrow is ReentrancyGuard {
@@ -43,7 +43,7 @@ contract LiqVestedEscrow is ReentrancyGuard {
     /**
      * @param rewardToken_    Reward token (LIQ)
      * @param admin_          Admin to cancel rewards
-     * @param liqLocker_     Contract where rewardToken can be staked
+     * @param liqLocker_      Contract where rewardToken can be staked
      * @param startTime_      Timestamp when claim starts
      * @param endTime_        When vesting ends
      */
