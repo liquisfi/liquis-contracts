@@ -3,7 +3,7 @@ import { Signer } from "ethers";
 import { expect } from "chai";
 import { deployPhase1, deployPhase2, Phase2Deployed } from "../../scripts/deploySystem";
 import { deployMocks, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
-import { AuraLocker, AuraVestedEscrow, AuraVestedEscrow__factory, ERC20 } from "../../types/generated";
+import { AuraLocker, LiqVestedEscrow, LiqVestedEscrow__factory, ERC20 } from "../../types/generated";
 import { ONE_HOUR, ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
 import { getTimestamp, increaseTime } from "../../test-utils/time";
 import { BN, simpleToExactAmount } from "../../test-utils/math";
@@ -16,7 +16,7 @@ describe("AuraVestedEscrow", () => {
     let contracts: Phase2Deployed;
     let aura: ERC20;
     let auraLocker: AuraLocker;
-    let vestedEscrow: AuraVestedEscrow;
+    let vestedEscrow: LiqVestedEscrow;
 
     let deployTime: BN;
 
@@ -73,7 +73,7 @@ describe("AuraVestedEscrow", () => {
         auraLocker = contracts.cvxLocker.connect(deployer);
 
         deployTime = await getTimestamp();
-        vestedEscrow = await new AuraVestedEscrow__factory(deployer).deploy(
+        vestedEscrow = await new LiqVestedEscrow__factory(deployer).deploy(
             aura.address,
             fundAdminAddress,
             auraLocker.address,
@@ -85,7 +85,7 @@ describe("AuraVestedEscrow", () => {
     it("initial configuration is correct", async () => {
         expect(await vestedEscrow.rewardToken()).eq(aura.address);
         expect(await vestedEscrow.admin()).eq(fundAdminAddress);
-        expect(await vestedEscrow.auraLocker()).eq(auraLocker.address);
+        expect(await vestedEscrow.liqLocker()).eq(auraLocker.address);
         expect(await vestedEscrow.startTime()).eq(deployTime.add(ONE_WEEK));
         expect(await vestedEscrow.endTime()).eq(deployTime.add(ONE_WEEK.mul(53)));
         expect(await vestedEscrow.totalTime()).eq(ONE_WEEK.mul(52));
@@ -143,8 +143,8 @@ describe("AuraVestedEscrow", () => {
     });
     it("fails to claim if the locker address is zero", async () => {
         await vestedEscrow.connect(fundAdmin).setLocker(ZERO_ADDRESS);
-        expect(await vestedEscrow.auraLocker()).eq(ZERO_ADDRESS);
-        await expect(vestedEscrow.connect(alice).claim(true)).to.be.revertedWith("!auraLocker");
+        expect(await vestedEscrow.liqLocker()).eq(ZERO_ADDRESS);
+        await expect(vestedEscrow.connect(alice).claim(true)).to.be.revertedWith("!liqLocker");
         // return original value
         await vestedEscrow.connect(fundAdmin).setLocker(auraLocker.address);
     });
@@ -206,7 +206,7 @@ describe("AuraVestedEscrow", () => {
     });
     it("allows admin to change locker", async () => {
         await vestedEscrow.connect(bob).setLocker(bobAddress);
-        expect(await vestedEscrow.auraLocker()).eq(bobAddress);
+        expect(await vestedEscrow.liqLocker()).eq(bobAddress);
     });
 
     describe("constructor fails", async () => {
@@ -215,7 +215,7 @@ describe("AuraVestedEscrow", () => {
         });
         it("if start date is not in the future", async () => {
             await expect(
-                new AuraVestedEscrow__factory(deployer).deploy(
+                new LiqVestedEscrow__factory(deployer).deploy(
                     aura.address,
                     fundAdminAddress,
                     auraLocker.address,
@@ -226,7 +226,7 @@ describe("AuraVestedEscrow", () => {
         });
         it("if end date is before the start date", async () => {
             await expect(
-                new AuraVestedEscrow__factory(deployer).deploy(
+                new LiqVestedEscrow__factory(deployer).deploy(
                     aura.address,
                     fundAdminAddress,
                     auraLocker.address,
@@ -237,7 +237,7 @@ describe("AuraVestedEscrow", () => {
         });
         it("if the vested period is less than 16 weeks", async () => {
             await expect(
-                new AuraVestedEscrow__factory(deployer).deploy(
+                new LiqVestedEscrow__factory(deployer).deploy(
                     aura.address,
                     fundAdminAddress,
                     auraLocker.address,

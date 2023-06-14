@@ -398,7 +398,7 @@ xdescribe("Full Deployment", () => {
                     const escrow0 = vestedEscrows[0];
                     expect(await escrow0.rewardToken()).eq(phase2.cvx.address);
                     expect(await escrow0.admin()).eq(config.multisigs.vestingMultisig);
-                    expect(await escrow0.auraLocker()).eq(phase2.cvxLocker.address);
+                    expect(await escrow0.liqLocker()).eq(phase2.cvxLocker.address);
                     expect(await escrow0.startTime()).gt(phase2Timestamp.add(ONE_WEEK).sub(5400));
                     expect(await escrow0.startTime()).lt(phase2Timestamp.add(ONE_WEEK).add(5400));
                     expect(await escrow0.endTime()).gt(phase2Timestamp.add(ONE_WEEK.mul(17)).sub(5400));
@@ -412,7 +412,7 @@ xdescribe("Full Deployment", () => {
                     const escrow1 = vestedEscrows[1];
                     expect(await escrow1.rewardToken()).eq(phase2.cvx.address);
                     expect(await escrow1.admin()).eq(config.multisigs.vestingMultisig);
-                    expect(await escrow1.auraLocker()).eq(phase2.cvxLocker.address);
+                    expect(await escrow1.liqLocker()).eq(phase2.cvxLocker.address);
                     expect(await escrow1.startTime()).gt(phase2Timestamp.add(ONE_WEEK).sub(5400));
                     expect(await escrow1.startTime()).lt(phase2Timestamp.add(ONE_WEEK).add(5400));
                     expect(await escrow1.endTime()).gt(phase2Timestamp.add(ONE_WEEK.mul(27)).sub(5400));
@@ -426,7 +426,7 @@ xdescribe("Full Deployment", () => {
                     const escrow2 = vestedEscrows[2];
                     expect(await escrow2.rewardToken()).eq(phase2.cvx.address);
                     expect(await escrow2.admin()).eq(config.multisigs.vestingMultisig);
-                    expect(await escrow2.auraLocker()).eq(phase2.cvxLocker.address);
+                    expect(await escrow2.liqLocker()).eq(phase2.cvxLocker.address);
                     expect(await escrow2.startTime()).gt(phase2Timestamp.add(ONE_WEEK).sub(5400));
                     expect(await escrow2.startTime()).lt(phase2Timestamp.add(ONE_WEEK).add(5400));
                     expect(await escrow2.endTime()).gt(phase2Timestamp.add(ONE_WEEK.mul(105)).sub(5400));
@@ -440,7 +440,7 @@ xdescribe("Full Deployment", () => {
                     const escrow3 = vestedEscrows[3];
                     expect(await escrow3.rewardToken()).eq(phase2.cvx.address);
                     expect(await escrow3.admin()).eq(ZERO_ADDRESS);
-                    expect(await escrow3.auraLocker()).eq(phase2.cvxLocker.address);
+                    expect(await escrow3.liqLocker()).eq(phase2.cvxLocker.address);
                     expect(await escrow3.startTime()).gt(phase2Timestamp.add(ONE_WEEK).sub(5400));
                     expect(await escrow3.startTime()).lt(phase2Timestamp.add(ONE_WEEK).add(5400));
                     expect(await escrow3.endTime()).gt(phase2Timestamp.add(ONE_WEEK.mul(105)).sub(5400));
@@ -452,7 +452,7 @@ xdescribe("Full Deployment", () => {
                     const escrow4 = vestedEscrows[4];
                     expect(await escrow4.rewardToken()).eq(phase2.cvx.address);
                     expect(await escrow4.admin()).eq(ZERO_ADDRESS);
-                    expect(await escrow4.auraLocker()).eq(phase2.cvxLocker.address);
+                    expect(await escrow4.liqLocker()).eq(phase2.cvxLocker.address);
                     expect(await escrow4.startTime()).gt(phase2Timestamp.add(ONE_WEEK).sub(5400));
                     expect(await escrow4.startTime()).lt(phase2Timestamp.add(ONE_WEEK).add(5400));
                     expect(await escrow4.endTime()).gt(phase2Timestamp.add(ONE_WEEK.mul(209)).sub(5400));
