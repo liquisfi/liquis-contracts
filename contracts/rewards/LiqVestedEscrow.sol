@@ -8,24 +8,24 @@ import { ReentrancyGuard } from "@openzeppelin/contracts-0.8/security/Reentrancy
 import { AuraMath } from "../utils/AuraMath.sol";
 
 /**
- * @title   AuraVestedEscrow
- * @author  adapted from ConvexFinance (convex-platform/contracts/contracts/VestedEscrow)
+ * @title   LiqVestedEscrow
+ * @author  Aura, adapted from ConvexFinance (convex-platform/contracts/contracts/VestedEscrow)
  * @notice  Vests tokens over a given timeframe to an array of recipients. Allows locking of
  *          these tokens directly to staking contract.
  * @dev     Adaptations:
  *           - One time initialisation
  *           - Consolidation of fundAdmin/admin
- *           - Lock in AuraLocker by default
+ *           - Lock in Locker by default
  *           - Start and end time
  */
-contract AuraVestedEscrow is ReentrancyGuard {
+contract LiqVestedEscrow is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable rewardToken;
 
     address public admin;
     address public immutable funder;
-    IAuraLocker public auraLocker;
+    IAuraLocker public liqLocker;
 
     uint256 public immutable startTime;
     uint256 public immutable endTime;
@@ -41,29 +41,29 @@ contract AuraVestedEscrow is ReentrancyGuard {
     event Claim(address indexed user, uint256 amount, bool locked);
 
     /**
-     * @param rewardToken_    Reward token (AURA)
+     * @param rewardToken_    Reward token (LIQ)
      * @param admin_          Admin to cancel rewards
-     * @param auraLocker_     Contract where rewardToken can be staked
-     * @param starttime_      Timestamp when claim starts
-     * @param endtime_        When vesting ends
+     * @param liqLocker_     Contract where rewardToken can be staked
+     * @param startTime_      Timestamp when claim starts
+     * @param endTime_        When vesting ends
      */
     constructor(
         address rewardToken_,
         address admin_,
-        address auraLocker_,
-        uint256 starttime_,
-        uint256 endtime_
+        address liqLocker_,
+        uint256 startTime_,
+        uint256 endTime_
     ) {
-        require(starttime_ >= block.timestamp, "start must be future");
-        require(endtime_ > starttime_, "end must be greater");
+        require(startTime_ >= block.timestamp, "start must be future");
+        require(endTime_ > startTime_, "end must be greater");
 
         rewardToken = IERC20(rewardToken_);
         admin = admin_;
         funder = msg.sender;
-        auraLocker = IAuraLocker(auraLocker_);
+        liqLocker = IAuraLocker(liqLocker_);
 
-        startTime = starttime_;
-        endTime = endtime_;
+        startTime = startTime_;
+        endTime = endTime_;
         totalTime = endTime - startTime;
         require(totalTime >= 16 weeks, "!short");
     }
@@ -83,17 +83,17 @@ contract AuraVestedEscrow is ReentrancyGuard {
 
     /**
      * @notice Change locker contract address
-     * @param _auraLocker Aura Locker address
+     * @param _liqLocker Aura Locker address
      */
-    function setLocker(address _auraLocker) external {
+    function setLocker(address _liqLocker) external {
         require(msg.sender == admin, "!auth");
-        auraLocker = IAuraLocker(_auraLocker);
+        liqLocker = IAuraLocker(_liqLocker);
     }
 
     /**
      * @notice Fund recipients with rewardTokens
      * @param _recipient  Array of recipients to vest rewardTokens for
-     * @param _amount     Arrary of amount of rewardTokens to vest
+     * @param _amount     Array of amount of rewardTokens to vest
      */
     function fund(address[] calldata _recipient, uint256[] calldata _amount) external nonReentrant {
         require(_recipient.length == _amount.length, "!arr");
@@ -187,9 +187,9 @@ contract AuraVestedEscrow is ReentrancyGuard {
         totalClaimed[_recipient] += claimable;
 
         if (_lock) {
-            require(address(auraLocker) != address(0), "!auraLocker");
-            rewardToken.safeApprove(address(auraLocker), claimable);
-            auraLocker.lock(_recipient, claimable);
+            require(address(liqLocker) != address(0), "!liqLocker");
+            rewardToken.safeApprove(address(liqLocker), claimable);
+            liqLocker.lock(_recipient, claimable);
         } else {
             rewardToken.safeTransfer(_recipient, claimable);
         }
