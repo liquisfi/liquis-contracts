@@ -63,8 +63,8 @@ import {
     ExtraRewardsDistributor__factory,
     AuraBalRewardPool,
     AuraBalRewardPool__factory,
-    AuraVestedEscrow,
-    AuraVestedEscrow__factory,
+    LiqVestedEscrow,
+    LiqVestedEscrow__factory,
     AuraMerkleDrop,
     AuraMerkleDrop__factory,
     ClaimFeesHelper,
@@ -230,7 +230,7 @@ interface Phase2Deployed extends Phase1Deployed {
     cvxLocker: AuraLocker;
     cvxStakingProxy: LiqStakingProxy;
     chef: ConvexMasterChef;
-    vestedEscrows: AuraVestedEscrow[];
+    vestedEscrows: LiqVestedEscrow[];
     drops: AuraMerkleDrop[];
     lbpBpt: BalancerPoolDeployed;
     balLiquidityProvider: BalLiquidityProvider;
@@ -758,10 +758,10 @@ async function deployPhase2(
         const groupVestingAmount = vestingGroup.recipients.reduce((p, c) => p.add(c.amount), BN.from(0));
         const vestingEnd = vestingStart.add(vestingGroup.period);
 
-        const vestedEscrow = await deployContract<AuraVestedEscrow>(
+        const vestedEscrow = await deployContract<LiqVestedEscrow>(
             hre,
-            new AuraVestedEscrow__factory(deployer),
-            "AuraVestedEscrow",
+            new LiqVestedEscrow__factory(deployer),
+            "LiqVestedEscrow",
             [cvx.address, vestingGroup.admin, cvxLocker.address, vestingStart, vestingEnd],
             {},
             debug,
