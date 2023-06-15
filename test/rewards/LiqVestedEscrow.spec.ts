@@ -10,7 +10,7 @@ import { BN, simpleToExactAmount } from "../../test-utils/math";
 import { impersonateAccount } from "../../test-utils/fork";
 
 const debug = false;
-describe("AuraVestedEscrow", () => {
+describe("LiqVestedEscrow", () => {
     let accounts: Signer[];
 
     let contracts: Phase2Deployed;
