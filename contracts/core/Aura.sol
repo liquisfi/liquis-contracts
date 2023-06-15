@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import { ERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/ERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+
 import { AuraMath } from "../utils/AuraMath.sol";
 import { IVoterProxy } from "../interfaces/IVoterProxy.sol";
 
@@ -11,7 +13,7 @@ import { IVoterProxy } from "../interfaces/IVoterProxy.sol";
  * @dev     The minting schedule is based on the amount of CRV earned through staking and is
  *          distributed along a supply curve (cliffs etc). Fork of ConvexToken.
  */
-contract AuraToken is ERC20 {
+contract AuraToken is ERC20, ERC20Permit {
     using AuraMath for uint256;
 
     address public operator;
@@ -39,7 +41,7 @@ contract AuraToken is ERC20 {
         address _proxy,
         string memory _nameArg,
         string memory _symbolArg
-    ) ERC20(_nameArg, _symbolArg) {
+    ) ERC20(_nameArg, _symbolArg) ERC20Permit(_nameArg) {
         operator = msg.sender;
         vecrvProxy = _proxy;
         reductionPerCliff = EMISSIONS_MAX_SUPPLY.div(totalCliffs);
