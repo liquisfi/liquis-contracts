@@ -1241,6 +1241,7 @@ __metadata:
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@nomiclabs/hardhat-etherscan": ^3.0.3
     "@nomiclabs/hardhat-waffle": ^2.0.1
+    "@openzeppelin/contracts": ^4.9.0
     "@openzeppelin/contracts-0.8": "npm:@openzeppelin/contracts@4.4.2"
     "@snapshot-labs/snapshot.js": ^0.3.53
     "@typechain/ethers-v5": ^8.0.5
@@ -1413,6 +1414,13 @@ __metadata:
   version: 3.4.0
   resolution: "@openzeppelin/contracts-upgradeable@npm:3.4.0"
   checksum: a9305f4609dd0948bb810ac2fddbeca4ea590a945362c840c876016e3a736c9d0e4cb1d1e004aab7b444cd052385b969068b61891771537c5dfe44a4df081751
+  languageName: node
+  linkType: hard
+
+"@openzeppelin/contracts@npm:^4.9.0":
+  version: 4.9.1
+  resolution: "@openzeppelin/contracts@npm:4.9.1"
+  checksum: 9bb3cc6aecd6c56d5ece10d9820d43e6e9c460395b75cc4af9b4e776f1a9e56c9906bc03538b0707e617dc31f1abdfffcbeedfecc8884358d864198ed73f59c1
   languageName: node
   linkType: hard
 
@@ -4649,11 +4657,11 @@ __metadata:
 
 "convex-platform@file:convex-platform/contracts::locator=%40liquisfi%2Fliquis-contracts%40workspace%3A.":
   version: 0.0.0
-  resolution: "convex-platform@file:convex-platform/contracts#convex-platform/contracts::hash=6d855a&locator=%40liquisfi%2Fliquis-contracts%40workspace%3A."
+  resolution: "convex-platform@file:convex-platform/contracts#convex-platform/contracts::hash=c2416b&locator=%40liquisfi%2Fliquis-contracts%40workspace%3A."
   dependencies:
     "@openzeppelin/contracts-0.6": "npm:@openzeppelin/contracts@3.4.0"
     "@openzeppelin/contracts-upgradeable-0.6": "npm:@openzeppelin/contracts-upgradeable@3.4.0"
-  checksum: d28246b9a6c2a3044bc670430eab3a617263a5fc8162cb951803c9d8b5366f9113000e282f83a2e13692d922a627723e855526c6a11cc4b2a085bc907606ef19
+  checksum: 8e8e4524ef8583646173fc9a283b6ccadcc1017af2f42ec8d451424731cb0643d62290b08a6f3dcf4015ea546f15e28527a4c76fc8278b7f7f3f0289cbad5a4e
   languageName: node
   linkType: hard
 
