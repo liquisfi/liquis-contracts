@@ -12,11 +12,11 @@ import { ILitConvertor } from "../interfaces/ILitConvertor.sol";
 import { Math } from "../utils/Math.sol";
 
 /**
- * @title   StakingRewardsPool
+ * @title   PrelaunchRewardsPool
  * @author  LiquisFinance
  * @notice  Staking rewards contract for the prelaunch of Liquis Protocol.
  */
-contract StakingRewardsPool {
+contract PrelaunchRewardsPool {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
