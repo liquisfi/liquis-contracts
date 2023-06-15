@@ -24,9 +24,10 @@ contract LiqMerkleDrop {
     IERC20 public immutable aura;
     IAuraLocker public auraLocker;
 
-    uint256 public immutable deployTime;
     uint256 public startTime;
     uint256 public immutable expiryTime;
+    uint256 public immutable deployTime;
+    uint256 public immutable gracePeriod = 10 weeks;
 
     uint256 public constant MAX_BONUS = 0.999e18;
     uint256 public constant PERCENTAGE_BASE = 1e18;
@@ -116,7 +117,7 @@ contract LiqMerkleDrop {
 
     function withdrawExpired() external {
         require(msg.sender == dao, "!auth");
-        require(block.timestamp > expiryTime, "!expired");
+        require(block.timestamp > expiryTime.add(gracePeriod), "!expired");
         uint256 amt = aura.balanceOf(address(this));
         aura.safeTransfer(dao, amt);
         emit ExpiredWithdrawn(amt);
@@ -149,7 +150,7 @@ contract LiqMerkleDrop {
     ) public returns (bool) {
         require(merkleRoot != bytes32(0), "!root");
         require(block.timestamp > startTime, "!started");
-        require(block.timestamp < expiryTime, "!active");
+        require(block.timestamp < expiryTime.add(gracePeriod), "!active");
         require(_amount > 0, "!amount");
         require(hasClaimed[msg.sender] == false, "already claimed");
 
