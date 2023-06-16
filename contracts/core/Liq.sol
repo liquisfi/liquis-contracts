@@ -8,12 +8,12 @@ import { AuraMath } from "../utils/AuraMath.sol";
 import { IVoterProxy } from "../interfaces/IVoterProxy.sol";
 
 /**
- * @title   AuraToken
+ * @title   LiqToken
  * @notice  Basically an ERC20 with minting functionality operated by the "operator" of the VoterProxy (Booster).
  * @dev     The minting schedule is based on the amount of CRV earned through staking and is
  *          distributed along a supply curve (cliffs etc). Fork of ConvexToken.
  */
-contract AuraToken is ERC20, ERC20Permit {
+contract LiqToken is ERC20, ERC20Permit {
     using AuraMath for uint256;
 
     address public operator;
@@ -79,7 +79,7 @@ contract AuraToken is ERC20, ERC20Permit {
     }
 
     /**
-     * @dev Mints AURA to a given user based on the BAL supply schedule.
+     * @dev Mints LIQ to a given user based on the BAL supply schedule.
      */
     function mint(address _to, uint256 _amount) external {
         require(totalSupply() != 0, "Not initialised");

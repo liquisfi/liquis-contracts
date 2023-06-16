@@ -49,10 +49,10 @@ import {
     LiqLocker__factory,
     LiqStakingProxy,
     LiqStakingProxy__factory,
-    AuraToken,
-    AuraToken__factory,
-    AuraMinter,
-    AuraMinter__factory,
+    LiqToken,
+    LiqToken__factory,
+    LiqMinter,
+    LiqMinter__factory,
     MockERC20,
     ConvexMasterChef__factory,
     CrvDepositorWrapper,
@@ -212,8 +212,8 @@ interface Factories {
     proxyFactory: ProxyFactory;
 }
 interface Phase2Deployed extends Phase1Deployed {
-    cvx: AuraToken;
-    minter: AuraMinter;
+    cvx: LiqToken;
+    minter: LiqMinter;
     booster: Booster;
     boosterOwner: BoosterOwner;
     factories: Factories;
@@ -399,20 +399,20 @@ async function deployPhase2(
         throw console.error();
     }
 
-    const cvx = await deployContract<AuraToken>(
+    const cvx = await deployContract<LiqToken>(
         hre,
-        new AuraToken__factory(deployer),
-        "AuraToken",
+        new LiqToken__factory(deployer),
+        "LiqToken",
         [deployment.voterProxy.address, naming.cvxName, naming.cvxSymbol],
         {},
         debug,
         waitForBlocks,
     );
 
-    const minter = await deployContract<AuraMinter>(
+    const minter = await deployContract<LiqMinter>(
         hre,
-        new AuraMinter__factory(deployer),
-        "AuraMinter",
+        new LiqMinter__factory(deployer),
+        "LiqMinter",
         [cvx.address, multisigs.daoMultisig],
         {},
         debug,

@@ -10,7 +10,7 @@ import {
     MasterChefRewardHook,
     MasterChefRewardHook__factory,
     ExtraRewardStashV3__factory,
-    AuraToken,
+    LiqToken,
     BoosterOwner,
     Booster,
 } from "../types/generated";
@@ -31,7 +31,7 @@ describe("ChefSiphon", () => {
     let phase2: Phase2Deployed;
 
     let masterChef: ConvexMasterChef;
-    let auraToken: AuraToken;
+    let liqToken: LiqToken;
     let boosterOwner: BoosterOwner;
     let booster: Booster;
 
@@ -56,7 +56,7 @@ describe("ChefSiphon", () => {
 
         phase2 = await config.getPhase2(protocolDao);
         masterChef = phase2.chef;
-        auraToken = phase2.cvx;
+        liqToken = phase2.cvx;
         boosterOwner = phase2.boosterOwner;
         booster = phase2.booster;
     });
@@ -97,7 +97,7 @@ describe("ChefSiphon", () => {
                 hre,
                 new MasterChefRewardHook__factory(eoa),
                 "MasterChefRewardHook",
-                [stashAddress, masterChef.address, auraToken.address],
+                [stashAddress, masterChef.address, liqToken.address],
             );
         });
         it("deploy siphon tokens for masterChefRewardHook", async () => {
@@ -146,7 +146,7 @@ describe("ChefSiphon", () => {
             await masterChefRewardHook.deposit(masterChefRewardHookSiphonToken.address);
         });
         it("set stash reward hook to masterChefRewardHook", async () => {
-            await boosterOwner.setStashExtraReward(stashAddress, auraToken.address);
+            await boosterOwner.setStashExtraReward(stashAddress, liqToken.address);
             await boosterOwner.setStashRewardHook(stashAddress, masterChefRewardHook.address);
 
             const stash = ExtraRewardStashV3__factory.connect(stashAddress, protocolDao);
@@ -155,11 +155,11 @@ describe("ChefSiphon", () => {
 
         // Test claiming works
         it("claim rewards for ChefForwarder", async () => {
-            const balanceBefore = await auraToken.balanceOf(eoaAddress);
+            const balanceBefore = await liqToken.balanceOf(eoaAddress);
             await advanceBlock();
 
-            await chefForwarder.connect(eoa).claim(auraToken.address);
-            const balanceAfter = await auraToken.balanceOf(eoaAddress);
+            await chefForwarder.connect(eoa).claim(liqToken.address);
+            const balanceAfter = await liqToken.balanceOf(eoaAddress);
             expect(balanceAfter).gt(balanceBefore);
         });
         it("claim rewards via earmarkRewards for MasterChefRewardHook", async () => {
@@ -167,12 +167,12 @@ describe("ChefSiphon", () => {
             expect(poolInfo.stash).eq(stashAddress);
 
             const stash = ExtraRewardStashV3__factory.connect(stashAddress, protocolDao);
-            const tokenInfo = await stash.tokenInfo(auraToken.address);
+            const tokenInfo = await stash.tokenInfo(liqToken.address);
 
-            const balanceBefore = await auraToken.balanceOf(tokenInfo.rewardAddress);
+            const balanceBefore = await liqToken.balanceOf(tokenInfo.rewardAddress);
             await advanceBlock();
             await booster.earmarkRewards(auraBalPid);
-            const balanceAfter = await auraToken.balanceOf(tokenInfo.rewardAddress);
+            const balanceAfter = await liqToken.balanceOf(tokenInfo.rewardAddress);
 
             expect(balanceAfter).gt(balanceBefore);
         });

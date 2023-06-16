@@ -4,7 +4,7 @@ import {
     Booster,
     VoterProxy,
     VoterProxy__factory,
-    AuraToken,
+    LiqToken,
     CvxCrvToken,
     CrvDepositor,
     BaseRewardPool,
@@ -93,7 +93,7 @@ describe("Booster", () => {
     let cvxCrvStaking: BaseRewardPool;
     let cvxStakingProxy: LiqStakingProxy;
     let cvxCrv: CvxCrvToken;
-    let cvx: AuraToken;
+    let cvx: LiqToken;
 
     let pool: Pool;
     let daoSigner: Signer;

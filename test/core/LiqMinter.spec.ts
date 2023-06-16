@@ -3,13 +3,13 @@ import { Signer } from "ethers";
 import { expect } from "chai";
 import { deployPhase1, deployPhase2, deployPhase3, deployPhase4 } from "../../scripts/deploySystem";
 import { deployMocks, DeployMocksResult, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
-import { AuraToken, AuraMinter } from "../../types/generated";
+import { LiqToken, LiqMinter } from "../../types/generated";
 import { simpleToExactAmount, getTimestamp, increaseTime, ONE_WEEK } from "../../test-utils";
 
-describe("AuraMinter", () => {
+describe("LiqMinter", () => {
     let accounts: Signer[];
-    let cvx: AuraToken;
-    let minter: AuraMinter;
+    let cvx: LiqToken;
+    let minter: LiqMinter;
     let mocks: DeployMocksResult;
     let deployer: Signer;
     let alice: Signer;
@@ -47,12 +47,12 @@ describe("AuraMinter", () => {
         await hre.ethers.provider.send("evm_revert", [idSnapShot]);
     });
     it("initial configuration is correct", async () => {
-        expect(await minter.aura()).to.equal(cvx.address);
+        expect(await minter.liq()).to.equal(cvx.address);
         expect(await minter.inflationProtectionTime()).to.gt((await getTimestamp()).add(ONE_WEEK.mul(155)));
         expect(await minter.inflationProtectionTime()).to.lt((await getTimestamp()).add(ONE_WEEK.mul(157)));
         expect(await minter.owner()).to.equal(await deployer.getAddress());
     });
-    describe("@method AuraMinter.mint fails if", async () => {
+    describe("@method LiqMinter.mint fails if", async () => {
         it("sender is not the dao", async () => {
             await expect(minter.connect(alice).mint(aliceAddress, simpleToExactAmount(1))).to.revertedWith(
                 "Ownable: caller is not the owner",
@@ -65,14 +65,14 @@ describe("AuraMinter", () => {
         });
     });
 
-    describe("@method AuraMinter.mint mints when", async () => {
+    describe("@method LiqMinter.mint mints when", async () => {
         it("protects inflation up to 155", async () => {
             await increaseTime(ONE_WEEK.mul(155));
             await expect(minter.connect(deployer).mint(aliceAddress, simpleToExactAmount(1))).to.revertedWith(
                 "Inflation protected for now",
             );
         });
-        it("@method AuraMinter.mint mints tokens", async () => {
+        it("@method LiqMinter.mint mints tokens", async () => {
             await increaseTime(ONE_WEEK.mul(2));
             const beforeBalance = await cvx.balanceOf(aliceAddress);
             const beforeTotalSupply = await cvx.totalSupply();

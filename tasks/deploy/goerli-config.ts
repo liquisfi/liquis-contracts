@@ -9,8 +9,8 @@ import {
 } from "../../scripts/deploySystem";
 import {
     VoterProxy__factory,
-    AuraToken__factory,
-    AuraMinter__factory,
+    LiqToken__factory,
+    LiqMinter__factory,
     Booster__factory,
     BoosterOwner__factory,
     CvxCrvToken__factory,
@@ -111,8 +111,8 @@ const getPhase1 = async (deployer: Signer): Promise<Phase1Deployed> => ({
 
 const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
     ...(await getPhase1(deployer)),
-    cvx: AuraToken__factory.connect("0x8Ef4f64D86016D30266c91cDDbE555B52a3Ce833", deployer),
-    minter: AuraMinter__factory.connect("0x4D790084E4E7a5caCb85156AaA4DD14eDf813bf8", deployer),
+    cvx: LiqToken__factory.connect("0x8Ef4f64D86016D30266c91cDDbE555B52a3Ce833", deployer),
+    minter: LiqMinter__factory.connect("0x4D790084E4E7a5caCb85156AaA4DD14eDf813bf8", deployer),
     booster: Booster__factory.connect("0xA0357552c3e4ACB2f5828D1322D90A22801AD196", deployer),
     boosterOwner: BoosterOwner__factory.connect("0xeAb0b6c2528C54887d5DD3765ed9Bd1884A1d125", deployer),
     factories: {

@@ -20,7 +20,7 @@ import { impersonateAccount } from "../../test-utils/fork";
 import {
     LiqLocker,
     LiqStakingProxy,
-    AuraToken,
+    LiqToken,
     BaseRewardPool,
     Booster,
     CrvDepositor,
@@ -82,7 +82,7 @@ describe("LiqLocker", () => {
     let cvxStakingProxy: LiqStakingProxy;
     let cvxCrvRewards: BaseRewardPool;
     let booster: Booster;
-    let cvx: AuraToken;
+    let cvx: LiqToken;
     let cvxCrv: CvxCrvToken;
     let olit: MockERC20;
     let crvDepositor: CrvDepositor;

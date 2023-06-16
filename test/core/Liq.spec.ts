@@ -3,7 +3,7 @@ import { BigNumberish, Signer } from "ethers";
 import { expect } from "chai";
 import { deployPhase1, deployPhase2, deployPhase3, deployPhase4 } from "../../scripts/deploySystem";
 import { deployMocks, DeployMocksResult, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
-import { Booster, VoterProxy, AuraToken, AuraMinter, AuraToken__factory } from "../../types/generated";
+import { Booster, VoterProxy, LiqToken, LiqMinter, LiqToken__factory } from "../../types/generated";
 import { DEAD_ADDRESS, simpleToExactAmount, ZERO_ADDRESS } from "../../test-utils";
 import { impersonateAccount } from "../../test-utils/fork";
 import { Account } from "types";
@@ -11,11 +11,11 @@ import { Account } from "types";
 const EMISSIONS_MAX_SUPPLY = 50000000;
 const EMISSIONS_INIT_SUPPLY = 50000000;
 
-describe("AuraToken", () => {
+describe("LiqToken", () => {
     let accounts: Signer[];
     let booster: Booster;
-    let cvx: AuraToken;
-    let minter: AuraMinter;
+    let cvx: LiqToken;
+    let minter: LiqMinter;
     let mocks: DeployMocksResult;
     let voterProxy: VoterProxy;
     let deployer: Signer;
@@ -68,7 +68,7 @@ describe("AuraToken", () => {
         expect(await cvx.INIT_MINT_AMOUNT()).to.equal(simpleToExactAmount(EMISSIONS_INIT_SUPPLY));
         expect(await cvx.reductionPerCliff()).to.equal(simpleToExactAmount(EMISSIONS_MAX_SUPPLY).div(500));
     });
-    describe("@method AuraToken.init fails if ", async () => {
+    describe("@method LiqToken.init fails if ", async () => {
         it("caller is not the operator", async () => {
             await expect(cvx.connect(deployer).init(DEAD_ADDRESS, DEAD_ADDRESS)).to.revertedWith("Only operator");
         });
@@ -78,26 +78,26 @@ describe("AuraToken", () => {
             await expect(cvx.connect(operator.signer).init(DEAD_ADDRESS, DEAD_ADDRESS)).to.revertedWith("Only once");
         });
         it("wrong minter address", async () => {
-            const auraToken = await new AuraToken__factory(deployer).deploy(voterProxy.address, "AuraToken", "AURA");
-            const operator = await impersonateAccount(await auraToken.operator());
-            await expect(auraToken.connect(operator.signer).init(DEAD_ADDRESS, ZERO_ADDRESS)).to.revertedWith(
+            const liqToken = await new LiqToken__factory(deployer).deploy(voterProxy.address, "LiqToken", "LIQ");
+            const operator = await impersonateAccount(await liqToken.operator());
+            await expect(liqToken.connect(operator.signer).init(DEAD_ADDRESS, ZERO_ADDRESS)).to.revertedWith(
                 "Invalid minter",
             );
         });
     });
 
-    it("@method AuraToken.updateOperator fails to set new operator", async () => {
+    it("@method LiqToken.updateOperator fails to set new operator", async () => {
         const previousOperator = await cvx.operator();
         expect(previousOperator).eq(booster.address);
         await expect(cvx.connect(deployer).updateOperator()).to.be.revertedWith("!operator");
     });
-    it("@method AuraToken.updateOperator only if it is initialized", async () => {
-        const auraToken = await new AuraToken__factory(deployer).deploy(voterProxy.address, "AuraToken", "AURA");
-        const operator = await impersonateAccount(await auraToken.operator());
-        expect(await auraToken.totalSupply()).to.eq(0);
-        await expect(auraToken.connect(operator.signer).updateOperator()).to.be.revertedWith("!init");
+    it("@method LiqToken.updateOperator only if it is initialized", async () => {
+        const liqToken = await new LiqToken__factory(deployer).deploy(voterProxy.address, "LiqToken", "LIQ");
+        const operator = await impersonateAccount(await liqToken.operator());
+        expect(await liqToken.totalSupply()).to.eq(0);
+        await expect(liqToken.connect(operator.signer).updateOperator()).to.be.revertedWith("!init");
     });
-    it("@method AuraToken.mint does not mint if sender is not the operator", async () => {
+    it("@method LiqToken.mint does not mint if sender is not the operator", async () => {
         const beforeBalance = await cvx.balanceOf(aliceAddress);
         const beforeTotalSupply = await cvx.totalSupply();
         await cvx.mint(aliceAddress, 1000);
@@ -106,12 +106,12 @@ describe("AuraToken", () => {
         expect(beforeBalance, "balance does not change").to.eq(afterBalance);
         expect(beforeTotalSupply, "total supply does not change").to.eq(afterTotalSupply);
     });
-    it("@method AuraToken.minterMint fails if minter is not the caller", async () => {
+    it("@method LiqToken.minterMint fails if minter is not the caller", async () => {
         await expect(cvx.connect(alice).minterMint(aliceAddress, simpleToExactAmount(1))).to.revertedWith(
             "Only minter",
         );
     });
-    it("@method AuraToken.mint mints per BAL yearly schedule ", async () => {
+    it("@method LiqToken.mint mints per BAL yearly schedule ", async () => {
         const beforeTotalSupply = await cvx.totalSupply();
         // Year 1 - BAL emissions
         let tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(4536428.571, 18));
@@ -166,14 +166,14 @@ describe("AuraToken", () => {
             simpleToExactAmount(EMISSIONS_MAX_SUPPLY + EMISSIONS_INIT_SUPPLY),
         );
     });
-    it("@method AuraToken.minterMint mints additional AURA", async () => {
+    it("@method LiqToken.minterMint mints additional LIQ", async () => {
         // It should mint via minter
         const amount = simpleToExactAmount(100);
         const minterAccount = await impersonateAccount(minter.address);
         const tx = await cvx.connect(minterAccount.signer).minterMint(aliceAddress, amount);
         await expect(tx).to.emit(cvx, "Transfer").withArgs(ZERO_ADDRESS, aliceAddress, amount);
     });
-    it("@method AuraToken.mint does not mint additional AURA", async () => {
+    it("@method LiqToken.mint does not mint additional LIQ", async () => {
         // it should does not to mint more tokens via scheduled mints as the max amount has been reached previously,
         const totalSupply = await cvx.totalSupply();
         await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(1, 18));

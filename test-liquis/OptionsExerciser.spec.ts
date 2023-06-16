@@ -5,20 +5,12 @@ import {
     BoosterOwner,
     VoterProxy,
     VoterProxy__factory,
-    AuraToken,
-    AuraMinter,
     LiqStakingProxy,
-    RewardFactory,
-    TokenFactory,
-    ProxyFactory,
-    StashFactoryV2,
-    ExtraRewardStashV3,
     CvxCrvToken,
     CrvDepositor,
     BaseRewardPool,
     CrvDepositorWrapper,
     IERC20Extra,
-    PoolManagerProxy,
     PoolManagerV3,
     OptionsExerciser,
 } from "../types/generated";
@@ -28,17 +20,7 @@ import { ONE_WEEK, ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../test-utils/consta
 import { deployContract, waitForTx } from "../tasks/utils";
 import { impersonateAccount, fullScale } from "../test-utils";
 
-import {
-    deployPhase1,
-    deployPhase2,
-    deployPhase3,
-    deployPhase4,
-    SystemDeployed,
-    Phase1Deployed,
-    Phase2Deployed,
-    MultisigConfig,
-    ExtSystemConfig,
-} from "../scripts/deploySystem";
+import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../scripts/deploySystem";
 import { getMockDistro } from "../scripts/deployMocks";
 import { logContracts } from "../tasks/utils/deploy-utils";
 

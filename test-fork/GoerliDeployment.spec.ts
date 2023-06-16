@@ -68,7 +68,7 @@ describe.skip("Full Deployment", () => {
                 it("Aura Minter has correct config", async () => {
                     const { minter, cvx } = phase2;
                     const { multisigs } = config;
-                    expect(await minter.aura()).eq(cvx.address);
+                    expect(await minter.liq()).eq(cvx.address);
                     expect(await minter.owner()).eq(multisigs.daoMultisig);
                     const time = await getTimestamp();
                     expect(await minter.inflationProtectionTime()).gt(time.add(ONE_WEEK.mul(155)));

@@ -12,8 +12,8 @@ import {
     SiphonToken__factory,
     MasterChefRewardHook__factory,
     VoterProxy__factory,
-    AuraToken__factory,
-    AuraMinter__factory,
+    LiqToken__factory,
+    LiqMinter__factory,
     Booster__factory,
     BoosterOwner__factory,
     CvxCrvToken__factory,
@@ -259,8 +259,8 @@ const getPhase1 = async (deployer: Signer): Promise<Phase1Deployed> => ({
 
 const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
     ...(await getPhase1(deployer)),
-    cvx: AuraToken__factory.connect("0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF", deployer),
-    minter: AuraMinter__factory.connect("0x59A5ccD34943CD0AdCf5ce703EE9F06889E13707", deployer),
+    cvx: LiqToken__factory.connect("0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF", deployer),
+    minter: LiqMinter__factory.connect("0x59A5ccD34943CD0AdCf5ce703EE9F06889E13707", deployer),
     booster: Booster__factory.connect("0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10", deployer),
     boosterOwner: BoosterOwner__factory.connect("0xFa838Af70314135159b309bf27f1DbF1F954eC34", deployer),
     factories: {

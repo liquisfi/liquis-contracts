@@ -11,7 +11,7 @@ import {
     MockERC20__factory,
     ExtraRewardsDistributor,
     LiqLocker,
-    AuraToken,
+    LiqToken,
     BoosterOwner,
     PoolManagerSecondaryProxy,
     PoolManagerV3,
@@ -50,7 +50,7 @@ describe("VoterProxy", () => {
     let extraRewardsDistributor: ExtraRewardsDistributor;
     let mocks: DeployMocksResult;
     let liqLocker: LiqLocker;
-    let cvx: AuraToken;
+    let cvx: LiqToken;
     let poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
     let boosterOwner: BoosterOwner;
     let poolManager: PoolManagerV3;

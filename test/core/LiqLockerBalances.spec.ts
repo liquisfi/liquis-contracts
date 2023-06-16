@@ -5,7 +5,7 @@ import { deployMocks, getMockDistro, getMockMultisigs } from "../../scripts/depl
 import { deployPhase1, deployPhase2, deployPhase3, deployPhase4 } from "../../scripts/deploySystem";
 import { BN, getTimestamp, increaseTime, ONE_WEEK, simpleToExactAmount } from "../../test-utils";
 import { impersonateAccount } from "../../test-utils/fork";
-import { LiqLocker, AuraToken } from "../../types/generated";
+import { LiqLocker, LiqToken } from "../../types/generated";
 import balanceData from "./liqLockerBalanceData.json";
 
 enum UserName {
@@ -47,7 +47,7 @@ interface EpochGroup {
 
 describe("LiqLockerBalances", () => {
     let liqLocker: LiqLocker;
-    let cvx: AuraToken;
+    let cvx: LiqToken;
 
     let alice: Account;
     let bob: Account;
