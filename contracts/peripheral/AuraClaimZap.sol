@@ -5,7 +5,7 @@ import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import { AuraMath } from "../utils/AuraMath.sol";
 import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IRewardStaking } from "../interfaces/IRewardStaking.sol";
 
 /**
@@ -198,7 +198,7 @@ contract AuraClaimZap {
 
         //claim from locker
         if (_checkOption(options, uint256(Options.ClaimLockedCvx))) {
-            IAuraLocker(locker).getReward(msg.sender);
+            ILiqLocker(locker).getReward(msg.sender);
             if (_checkOption(options, uint256(Options.ClaimLockedCvxStake))) {
                 uint256 cvxCrvBalance = IERC20(cvxCrv).balanceOf(msg.sender).sub(removeCvxCrvBalance);
                 cvxCrvBalance = AuraMath.min(cvxCrvBalance, depositCvxCrvMaxAmount);
@@ -240,7 +240,7 @@ contract AuraClaimZap {
             if (cvxBalance > 0) {
                 //pull cvx
                 IERC20(cvx).safeTransferFrom(msg.sender, address(this), cvxBalance);
-                IAuraLocker(locker).lock(msg.sender, cvxBalance);
+                ILiqLocker(locker).lock(msg.sender, cvxBalance);
             }
         }
     }

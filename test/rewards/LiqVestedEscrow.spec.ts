@@ -3,7 +3,7 @@ import { Signer } from "ethers";
 import { expect } from "chai";
 import { deployPhase1, deployPhase2, Phase2Deployed } from "../../scripts/deploySystem";
 import { deployMocks, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
-import { AuraLocker, LiqVestedEscrow, LiqVestedEscrow__factory, ERC20 } from "../../types/generated";
+import { LiqLocker, LiqVestedEscrow, LiqVestedEscrow__factory, ERC20 } from "../../types/generated";
 import { ONE_HOUR, ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
 import { getTimestamp, increaseTime } from "../../test-utils/time";
 import { BN, simpleToExactAmount } from "../../test-utils/math";
@@ -15,7 +15,7 @@ describe("LiqVestedEscrow", () => {
 
     let contracts: Phase2Deployed;
     let aura: ERC20;
-    let auraLocker: AuraLocker;
+    let liqLocker: LiqLocker;
     let vestedEscrow: LiqVestedEscrow;
 
     let deployTime: BN;
@@ -70,13 +70,13 @@ describe("LiqVestedEscrow", () => {
         await contracts.cvx.connect(operatorAccount.signer).transfer(deployerAddress, simpleToExactAmount(1000));
 
         aura = contracts.cvx.connect(deployer) as ERC20;
-        auraLocker = contracts.cvxLocker.connect(deployer);
+        liqLocker = contracts.cvxLocker.connect(deployer);
 
         deployTime = await getTimestamp();
         vestedEscrow = await new LiqVestedEscrow__factory(deployer).deploy(
             aura.address,
             fundAdminAddress,
-            auraLocker.address,
+            liqLocker.address,
             deployTime.add(ONE_WEEK),
             deployTime.add(ONE_WEEK.mul(53)),
         );
@@ -85,7 +85,7 @@ describe("LiqVestedEscrow", () => {
     it("initial configuration is correct", async () => {
         expect(await vestedEscrow.rewardToken()).eq(aura.address);
         expect(await vestedEscrow.admin()).eq(fundAdminAddress);
-        expect(await vestedEscrow.liqLocker()).eq(auraLocker.address);
+        expect(await vestedEscrow.liqLocker()).eq(liqLocker.address);
         expect(await vestedEscrow.startTime()).eq(deployTime.add(ONE_WEEK));
         expect(await vestedEscrow.endTime()).eq(deployTime.add(ONE_WEEK.mul(53)));
         expect(await vestedEscrow.totalTime()).eq(ONE_WEEK.mul(52));
@@ -146,21 +146,21 @@ describe("LiqVestedEscrow", () => {
         expect(await vestedEscrow.liqLocker()).eq(ZERO_ADDRESS);
         await expect(vestedEscrow.connect(alice).claim(true)).to.be.revertedWith("!liqLocker");
         // return original value
-        await vestedEscrow.connect(fundAdmin).setLocker(auraLocker.address);
+        await vestedEscrow.connect(fundAdmin).setLocker(liqLocker.address);
     });
-    // fast forward 1 month, lock in auraLocker
-    it("allows claimers to lock in AuraLocker", async () => {
+    // fast forward 1 month, lock in liqLocker
+    it("allows claimers to lock in LiqLocker", async () => {
         await increaseTime(ONE_WEEK.mul(4));
 
         const aliceAvailable = await vestedEscrow.available(aliceAddress);
         expect(aliceAvailable).lt(simpleToExactAmount(16));
         expect(aliceAvailable).gt(simpleToExactAmount(15));
 
-        const balBefore = await auraLocker.balances(aliceAddress);
+        const balBefore = await liqLocker.balances(aliceAddress);
         expect(balBefore.locked).eq(0);
 
         const tx = await vestedEscrow.connect(alice).claim(true);
-        const balAfter = await auraLocker.balances(aliceAddress);
+        const balAfter = await liqLocker.balances(aliceAddress);
 
         await expect(tx).to.emit(vestedEscrow, "Claim").withArgs(aliceAddress, balAfter.locked, true);
 
@@ -218,7 +218,7 @@ describe("LiqVestedEscrow", () => {
                 new LiqVestedEscrow__factory(deployer).deploy(
                     aura.address,
                     fundAdminAddress,
-                    auraLocker.address,
+                    liqLocker.address,
                     deployTime.sub(ONE_WEEK),
                     deployTime.add(ONE_WEEK.mul(53)),
                 ),
@@ -229,7 +229,7 @@ describe("LiqVestedEscrow", () => {
                 new LiqVestedEscrow__factory(deployer).deploy(
                     aura.address,
                     fundAdminAddress,
-                    auraLocker.address,
+                    liqLocker.address,
                     deployTime.add(ONE_WEEK),
                     deployTime.add(ONE_WEEK),
                 ),
@@ -240,7 +240,7 @@ describe("LiqVestedEscrow", () => {
                 new LiqVestedEscrow__factory(deployer).deploy(
                     aura.address,
                     fundAdminAddress,
-                    auraLocker.address,
+                    liqLocker.address,
                     deployTime.add(ONE_WEEK),
                     deployTime.add(ONE_WEEK.mul(15)),
                 ),

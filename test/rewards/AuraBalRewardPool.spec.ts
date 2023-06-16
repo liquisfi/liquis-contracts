@@ -118,7 +118,7 @@ describe("AuraBalRewardPool", () => {
         expect(await rewards.stakingToken()).eq(cvxCrv.address);
         expect(await rewards.rewardToken()).eq(contracts.cvx.address);
         expect(await rewards.rewardManager()).eq(multisigs.treasuryMultisig);
-        expect(await rewards.auraLocker()).eq(contracts.cvxLocker.address);
+        expect(await rewards.liqLocker()).eq(contracts.cvxLocker.address);
         expect(await rewards.penaltyForwarder()).eq(contracts.penaltyForwarder.address);
         const currentTime = await getTimestamp();
         expect(await rewards.startTime()).gt(currentTime.add(ONE_DAY.mul(6)));
@@ -266,10 +266,10 @@ describe("AuraBalRewardPool", () => {
             const treasuryBalAfter = await contracts.cvx.balanceOf(treasuryAddress);
             expect(treasuryBalAfter).eq(treasuryBal.add(contractBal));
         });
-        it("allows admin to update auraLocker address", async () => {
+        it("allows admin to update liqLocker address", async () => {
             await expect(rewards.connect(deployer).setLocker(DEAD_ADDRESS)).to.be.revertedWith("!auth");
             await rewards.connect(accounts[7]).setLocker(DEAD_ADDRESS);
-            expect(await rewards.auraLocker()).eq(DEAD_ADDRESS);
+            expect(await rewards.liqLocker()).eq(DEAD_ADDRESS);
         });
     });
     describe("fails", () => {
@@ -349,7 +349,7 @@ describe("AuraBalRewardPool", () => {
                     contracts.penaltyForwarder.address,
                     ONE_WEEK,
                 ),
-                "Wrong _auraLocker",
+                "Wrong _liqLocker",
             ).revertedWith("!locker");
             await expect(
                 new AuraBalRewardPool__factory(deployer).deploy(

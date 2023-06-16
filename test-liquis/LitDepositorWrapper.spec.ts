@@ -11,7 +11,7 @@ import {
     CrvDepositorWrapper,
     IERC20Extra,
     PoolManagerV3,
-    AuraLocker,
+    LiqLocker,
     LiqStakingProxy,
 } from "../types/generated";
 import { Contract, Signer } from "ethers";
@@ -89,7 +89,7 @@ describe("Booster", () => {
     let crvDepositorWrapper: CrvDepositorWrapper;
     let poolManager: PoolManagerV3;
 
-    let cvxLocker: AuraLocker;
+    let cvxLocker: LiqLocker;
     let cvxCrvStaking: BaseRewardPool;
     let cvxStakingProxy: LiqStakingProxy;
     let cvxCrv: CvxCrvToken;

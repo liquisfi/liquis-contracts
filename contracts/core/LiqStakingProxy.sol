@@ -5,7 +5,7 @@ import { Address } from "@openzeppelin/contracts-0.8/utils/Address.sol";
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import { SafeMath } from "@openzeppelin/contracts-0.8/utils/math/SafeMath.sol";
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 
 /**
  * @title   AuraStakingProxy
@@ -135,7 +135,7 @@ contract LiqStakingProxy {
             IERC20(crv).safeTransfer(msg.sender, incentiveAmount);
 
             //update rewards
-            IAuraLocker(rewards).queueNewRewards(crv, crvBal);
+            ILiqLocker(rewards).queueNewRewards(crv, crvBal);
 
             emit RewardsDistributed(crv, crvBal);
         }
@@ -161,7 +161,7 @@ contract LiqStakingProxy {
             _token.safeApprove(rewards, type(uint256).max);
 
             //update rewards
-            IAuraLocker(rewards).queueNewRewards(address(_token), bal);
+            ILiqLocker(rewards).queueNewRewards(address(_token), bal);
 
             emit RewardsDistributed(address(_token), bal);
         }

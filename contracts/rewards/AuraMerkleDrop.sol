@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 import { MerkleProof } from "@openzeppelin/contracts-0.8/utils/cryptography/MerkleProof.sol";
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { AuraMath } from "../utils/AuraMath.sol";
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
@@ -14,7 +14,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts-0.8/security/Reentrancy
  *            - solc 0.8.11 & OpenZeppelin MerkleDrop
  *            - Delayed start w/ trigger
  *            - EndTime for withdrawal to treasuryDAO
- *            - Penalty on claim & AuraLocker lock (only if address(auraLocker) != 0)
+ *            - Penalty on claim & LiqLocker lock (only if address(liqLocker) != 0)
  *            - Non custodial (cannot change root)
  */
 contract AuraMerkleDrop {
@@ -24,7 +24,7 @@ contract AuraMerkleDrop {
     bytes32 public merkleRoot;
 
     IERC20 public immutable aura;
-    IAuraLocker public auraLocker;
+    ILiqLocker public liqLocker;
 
     address public immutable penaltyForwarder;
     uint256 public pendingPenalty = 0;
@@ -48,7 +48,7 @@ contract AuraMerkleDrop {
      * @param _dao              The Aura Dao
      * @param _merkleRoot       Merkle root
      * @param _aura             Aura token
-     * @param _auraLocker       Aura locker contract
+     * @param _liqLocker       Liq locker contract
      * @param _penaltyForwarder PenaltyForwarded contract
      * @param _startDelay       Delay until claim is live
      * @param _expiresAfter     Timestamp claim expires
@@ -57,7 +57,7 @@ contract AuraMerkleDrop {
         address _dao,
         bytes32 _merkleRoot,
         address _aura,
-        address _auraLocker,
+        address _liqLocker,
         address _penaltyForwarder,
         uint256 _startDelay,
         uint256 _expiresAfter
@@ -67,7 +67,7 @@ contract AuraMerkleDrop {
         merkleRoot = _merkleRoot;
         require(_aura != address(0), "!aura");
         aura = IERC20(_aura);
-        auraLocker = IAuraLocker(_auraLocker);
+        liqLocker = ILiqLocker(_liqLocker);
 
         penaltyForwarder = _penaltyForwarder;
         deployTime = block.timestamp;
@@ -110,7 +110,7 @@ contract AuraMerkleDrop {
 
     function setLocker(address _newLocker) external {
         require(msg.sender == dao, "!auth");
-        auraLocker = IAuraLocker(_newLocker);
+        liqLocker = ILiqLocker(_newLocker);
         emit LockerSet(_newLocker);
     }
 
@@ -145,12 +145,12 @@ contract AuraMerkleDrop {
         hasClaimed[msg.sender] = true;
 
         if (_lock) {
-            aura.safeApprove(address(auraLocker), 0);
-            aura.safeApprove(address(auraLocker), _amount);
-            auraLocker.lock(msg.sender, _amount);
+            aura.safeApprove(address(liqLocker), 0);
+            aura.safeApprove(address(liqLocker), _amount);
+            liqLocker.lock(msg.sender, _amount);
         } else {
-            // If there is an address for auraLocker, and not locking, apply 20% penalty
-            uint256 penalty = address(penaltyForwarder) == address(0) || address(auraLocker) == address(0)
+            // If there is an address for liqLocker, and not locking, apply 20% penalty
+            uint256 penalty = address(penaltyForwarder) == address(0) || address(liqLocker) == address(0)
                 ? 0
                 : (_amount * 3) / 10;
             pendingPenalty += penalty;

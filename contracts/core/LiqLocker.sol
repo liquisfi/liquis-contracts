@@ -6,18 +6,18 @@ import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC
 import { Ownable } from "@openzeppelin/contracts-0.8/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts-0.8/security/ReentrancyGuard.sol";
 import { AuraMath, AuraMath32, AuraMath112, AuraMath224 } from "../utils/AuraMath.sol";
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IRewardStaking } from "../interfaces/IRewardStaking.sol";
 
 /**
- * @title   AuraLocker
+ * @title   LiqLocker
  * @author  ConvexFinance
  * @notice  Effectively allows for rolling 16 week lockups of CVX, and provides balances available
  *          at each epoch (1 week). Also receives cvxCrv from `CvxStakingProxy` and redistributes
  *          to depositors.
  * @dev     Individual and delegatee vote power lookups both use independent accounting mechanisms.
  */
-contract AuraLocker is ReentrancyGuard, Ownable, IAuraLocker {
+contract LiqLocker is ReentrancyGuard, Ownable, ILiqLocker {
     using AuraMath for uint256;
     using AuraMath224 for uint224;
     using AuraMath112 for uint112;

@@ -20,7 +20,7 @@ import {
     CrvDepositor__factory,
     CrvDepositorWrapper__factory,
     AuraBalRewardPool__factory,
-    AuraLocker__factory,
+    LiqLocker__factory,
     AuraMerkleDrop__factory,
     AuraPenaltyForwarder__factory,
     LiqStakingProxy__factory,
@@ -285,7 +285,7 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         "0xdc274F4854831FED60f9Eca12CaCbD449134cF67",
         deployer,
     ),
-    cvxLocker: AuraLocker__factory.connect("0x3Fa73f1E5d8A792C80F426fc8F84FBF7Ce9bBCAC", deployer),
+    cvxLocker: LiqLocker__factory.connect("0x3Fa73f1E5d8A792C80F426fc8F84FBF7Ce9bBCAC", deployer),
     cvxStakingProxy: LiqStakingProxy__factory.connect("0xd9e863B7317a66fe0a4d2834910f604Fd6F89C6c", deployer),
     chef: ConvexMasterChef__factory.connect("0x1ab80F7Fb46B25b7e0B2cfAC23Fc88AC37aaf4e9", deployer),
     vestedEscrows: [

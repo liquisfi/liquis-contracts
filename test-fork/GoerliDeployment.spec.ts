@@ -183,7 +183,7 @@ describe.skip("Full Deployment", () => {
                     expect(await initialCvxCrvStaking.stakingToken()).eq(cvxCrv.address);
                     expect(await initialCvxCrvStaking.duration()).eq(ONE_WEEK.mul(2));
                     expect(await initialCvxCrvStaking.rewardManager()).eq(multisigs.treasuryMultisig);
-                    expect(await initialCvxCrvStaking.auraLocker()).eq(cvxLocker.address);
+                    expect(await initialCvxCrvStaking.liqLocker()).eq(cvxLocker.address);
                     expect(await initialCvxCrvStaking.penaltyForwarder()).eq(penaltyForwarder.address);
                     expect(await initialCvxCrvStaking.pendingPenalty()).eq(0);
 
@@ -284,7 +284,7 @@ describe.skip("Full Deployment", () => {
                 });
                 it("extraRewardsDistributor has correct config", async () => {
                     const { extraRewardsDistributor, cvxLocker } = phase2;
-                    expect(await extraRewardsDistributor.auraLocker()).eq(cvxLocker.address);
+                    expect(await extraRewardsDistributor.liqLocker()).eq(cvxLocker.address);
                     expect(await extraRewardsDistributor.owner()).eq(config.multisigs.daoMultisig);
                 });
             });

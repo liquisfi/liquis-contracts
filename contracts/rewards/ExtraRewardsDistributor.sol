@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IExtraRewardsDistributor } from "../interfaces/IExtraRewardsDistributor.sol";
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
@@ -11,12 +11,12 @@ import { ReentrancyGuard } from "@openzeppelin/contracts-0.8/security/Reentrancy
 /**
  * @title   ExtraRewardsDistributor
  * @author  adapted from ConvexFinance
- * @notice  Allows anyone to distribute rewards to the AuraLocker at a given epoch.
+ * @notice  Allows anyone to distribute rewards to the LiqLocker at a given epoch.
  */
 contract ExtraRewardsDistributor is ReentrancyGuard, IExtraRewardsDistributor, Ownable {
     using SafeERC20 for IERC20;
 
-    IAuraLocker public immutable auraLocker;
+    ILiqLocker public immutable liqLocker;
 
     // user -> canAdd
     mapping(address => bool) public canAddReward;
@@ -36,10 +36,10 @@ contract ExtraRewardsDistributor is ReentrancyGuard, IExtraRewardsDistributor, O
 
     /**
      * @dev Simple constructor
-     * @param _auraLocker Aura Locker address
+     * @param _liqLocker Liq Locker address
      */
-    constructor(address _auraLocker) Ownable() {
-        auraLocker = IAuraLocker(_auraLocker);
+    constructor(address _liqLocker) Ownable() {
+        liqLocker = ILiqLocker(_liqLocker);
     }
 
     /* ========== ADD WHITELIST ========== */
@@ -57,9 +57,9 @@ contract ExtraRewardsDistributor is ReentrancyGuard, IExtraRewardsDistributor, O
      * @param _amount   Amount of reward tokenπ
      */
     function addReward(address _token, uint256 _amount) external {
-        auraLocker.checkpointEpoch();
+        liqLocker.checkpointEpoch();
 
-        uint256 latestEpoch = auraLocker.epochCount() - 1;
+        uint256 latestEpoch = liqLocker.epochCount() - 1;
         _addReward(_token, _amount, latestEpoch);
     }
 
@@ -74,9 +74,9 @@ contract ExtraRewardsDistributor is ReentrancyGuard, IExtraRewardsDistributor, O
         uint256 _amount,
         uint256 _epoch
     ) external {
-        auraLocker.checkpointEpoch();
+        liqLocker.checkpointEpoch();
 
-        uint256 latestEpoch = auraLocker.epochCount() - 1;
+        uint256 latestEpoch = liqLocker.epochCount() - 1;
         require(_epoch <= latestEpoch, "Cannot assign to the future");
 
         if (_epoch == latestEpoch) {
@@ -108,7 +108,7 @@ contract ExtraRewardsDistributor is ReentrancyGuard, IExtraRewardsDistributor, O
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
         //convert to reward per token
-        uint256 supply = auraLocker.totalSupplyAtEpoch(_epoch);
+        uint256 supply = liqLocker.totalSupplyAtEpoch(_epoch);
         uint256 rPerT = (_amount * 1e20) / supply;
         rewardData[_token][_epoch] += rPerT;
 
@@ -225,7 +225,7 @@ contract ExtraRewardsDistributor is ReentrancyGuard, IExtraRewardsDistributor, O
         address _token,
         uint256 _startIndex
     ) internal view returns (uint256, uint256) {
-        uint256 latestEpoch = auraLocker.epochCount() - 1;
+        uint256 latestEpoch = liqLocker.epochCount() - 1;
         // e.g. tokenEpochs = 31, 21
         uint256 tokenEpochs = rewardEpochs[_token].length;
 
@@ -263,7 +263,7 @@ contract ExtraRewardsDistributor is ReentrancyGuard, IExtraRewardsDistributor, O
         uint256 _epoch
     ) internal view returns (uint256) {
         //get balance and calc share
-        uint256 balance = auraLocker.balanceAtEpochOf(_epoch, _account);
+        uint256 balance = liqLocker.balanceAtEpochOf(_epoch, _account);
         return (balance * rewardData[_token][_epoch]) / 1e20;
     }
 

@@ -4,7 +4,7 @@ pragma solidity 0.8.11;
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 
 /**
  * @title   AuraBalRewardPool
@@ -15,15 +15,15 @@ import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
  *            - Remove child reward contracts
  *            - Penalty on claim at 20%
  */
-contract MockAuraLocker {
+contract MockLiqLocker {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable aura;
-    IAuraLocker public immutable locker;
+    ILiqLocker public immutable locker;
 
     constructor(address _aura, address _locker) {
         aura = IERC20(_aura);
-        locker = IAuraLocker(_locker);
+        locker = ILiqLocker(_locker);
     }
 
     function lock(uint256 _amount) external {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts-0.8/security/ReentrancyGuard.sol";
@@ -25,7 +25,7 @@ contract LiqVestedEscrow is ReentrancyGuard {
 
     address public admin;
     address public immutable funder;
-    IAuraLocker public liqLocker;
+    ILiqLocker public liqLocker;
 
     uint256 public immutable startTime;
     uint256 public immutable endTime;
@@ -60,7 +60,7 @@ contract LiqVestedEscrow is ReentrancyGuard {
         rewardToken = IERC20(rewardToken_);
         admin = admin_;
         funder = msg.sender;
-        liqLocker = IAuraLocker(liqLocker_);
+        liqLocker = ILiqLocker(liqLocker_);
 
         startTime = startTime_;
         endTime = endTime_;
@@ -87,7 +87,7 @@ contract LiqVestedEscrow is ReentrancyGuard {
      */
     function setLocker(address _liqLocker) external {
         require(msg.sender == admin, "!auth");
-        liqLocker = IAuraLocker(_liqLocker);
+        liqLocker = ILiqLocker(_liqLocker);
     }
 
     /**

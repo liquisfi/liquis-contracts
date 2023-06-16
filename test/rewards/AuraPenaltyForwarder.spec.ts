@@ -98,7 +98,7 @@ describe("AuraPenaltyForwarder", () => {
             const distributorBalanceBefore = await cvx.balanceOf(distributor.address);
             const penaltyForwarderBalanceBefore = await cvx.balanceOf(penaltyForwarder.address);
 
-            // Increase time to avoid dividing by zero at ExtraRewardsDistributor._addReward , auraLocker.totalSupplyAtEpoch
+            // Increase time to avoid dividing by zero at ExtraRewardsDistributor._addReward , liqLocker.totalSupplyAtEpoch
             await increaseTime(ONE_WEEK);
 
             expect(penaltyForwarderBalanceBefore, "penalty forwarder balance").to.gt(0);

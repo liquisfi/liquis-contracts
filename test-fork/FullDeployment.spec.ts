@@ -291,7 +291,7 @@ xdescribe("Full Deployment", () => {
                     expect(await initialCvxCrvStaking.stakingToken()).eq(cvxCrv.address);
                     expect(await initialCvxCrvStaking.duration()).eq(ONE_WEEK.mul(2));
                     expect(await initialCvxCrvStaking.rewardManager()).eq(multisigs.treasuryMultisig);
-                    expect(await initialCvxCrvStaking.auraLocker()).eq(cvxLocker.address);
+                    expect(await initialCvxCrvStaking.liqLocker()).eq(cvxLocker.address);
                     expect(await initialCvxCrvStaking.penaltyForwarder()).eq(penaltyForwarder.address);
                     expect(await initialCvxCrvStaking.pendingPenalty()).eq(0);
 
@@ -475,7 +475,7 @@ xdescribe("Full Deployment", () => {
                     expect(await drop.dao()).eq(multisigs.treasuryMultisig);
                     expect(await drop.merkleRoot()).eq(rootHashOne);
                     expect(await drop.aura()).eq(phase2.cvx.address);
-                    expect(await drop.auraLocker()).eq(phase2.cvxLocker.address);
+                    expect(await drop.liqLocker()).eq(phase2.cvxLocker.address);
                     expect(await drop.penaltyForwarder()).eq(phase2.penaltyForwarder.address);
                     expect(await drop.pendingPenalty()).eq(0);
                     expect(await drop.startTime()).gt(phase2Timestamp.add(ONE_WEEK).sub(5400));
@@ -488,7 +488,7 @@ xdescribe("Full Deployment", () => {
                     expect(await drop1.dao()).eq(multisigs.treasuryMultisig);
                     expect(await drop1.merkleRoot()).eq(rootHashTwo);
                     expect(await drop1.aura()).eq(phase2.cvx.address);
-                    expect(await drop1.auraLocker()).eq(phase2.cvxLocker.address);
+                    expect(await drop1.liqLocker()).eq(phase2.cvxLocker.address);
                     expect(await drop1.penaltyForwarder()).eq(phase2.penaltyForwarder.address);
                     expect(await drop1.pendingPenalty()).eq(0);
                     expect(await drop1.startTime()).gt(phase2Timestamp.add(ONE_WEEK.mul(26)).sub(5400));
@@ -550,7 +550,7 @@ xdescribe("Full Deployment", () => {
                 });
                 it("extraRewardsDistributor has correct config", async () => {
                     const { extraRewardsDistributor, cvxLocker } = phase2;
-                    expect(await extraRewardsDistributor.auraLocker()).eq(cvxLocker.address);
+                    expect(await extraRewardsDistributor.liqLocker()).eq(cvxLocker.address);
                     expect(await extraRewardsDistributor.owner()).eq(config.multisigs.daoMultisig);
                 });
             });
@@ -1816,7 +1816,7 @@ xdescribe("Full Deployment", () => {
             // alice lock time = 1.5
             // alice unlock > 18 weeks
             // end = 18.5
-            it("allows users to unlock from auraLocker", async () => {
+            it("allows users to unlock from liqLocker", async () => {
                 const { cvxLocker } = phase4;
                 const alice = await impersonateAccount(testAccounts.alice);
 
@@ -1886,7 +1886,7 @@ xdescribe("Full Deployment", () => {
             // swapper lock time = 0.5
             // swapper unlock > 17 weeks
             // swapper kick  > 20 weeks
-            it("allows users to be kicked for a fee from auraLocker", async () => {
+            it("allows users to be kicked for a fee from liqLocker", async () => {
                 const { cvxLocker } = phase4;
                 const swapper = await impersonateAccount(testAccounts.swapper);
 

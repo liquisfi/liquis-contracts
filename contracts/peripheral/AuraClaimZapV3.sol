@@ -5,7 +5,7 @@ import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import { AuraMath } from "../utils/AuraMath.sol";
 import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IRewardStaking } from "../interfaces/IRewardStaking.sol";
 import { IRewardPool4626 } from "../interfaces/IRewardPool4626.sol";
 
@@ -184,7 +184,7 @@ contract AuraClaimZapV3 {
 
         //claim from locker
         if (options.claimLockedCvx) {
-            IAuraLocker(locker).getReward(msg.sender);
+            ILiqLocker(locker).getReward(msg.sender);
         }
 
         // deposit/lock/stake
@@ -262,7 +262,7 @@ contract AuraClaimZapV3 {
                 removeCvxBalance, 
                 amounts.depositCvxMaxAmount
             );
-            if(continued){IAuraLocker(locker).lock(msg.sender, cvxBalance);}
+            if(continued){ILiqLocker(locker).lock(msg.sender, cvxBalance);}
         }
     }
 

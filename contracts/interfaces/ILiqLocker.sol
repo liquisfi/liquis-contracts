@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-interface IAuraLocker {
+interface ILiqLocker {
     function lock(address _account, uint256 _amount) external;
 
     function checkpointEpoch() external;

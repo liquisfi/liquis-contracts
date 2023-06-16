@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 import { MerkleProof } from "@openzeppelin/contracts-0.8/utils/cryptography/MerkleProof.sol";
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { AuraMath } from "../utils/AuraMath.sol";
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
@@ -22,7 +22,7 @@ contract LiqMerkleDrop {
     bytes32 public merkleRoot;
 
     IERC20 public immutable aura;
-    IAuraLocker public auraLocker;
+    ILiqLocker public liqLocker;
 
     uint256 public startTime;
     uint256 public immutable expiryTime;
@@ -54,7 +54,7 @@ contract LiqMerkleDrop {
      * @param _dao                  The Aura Dao
      * @param _merkleRoot           Merkle root
      * @param _aura                 Aura token
-     * @param _auraLocker           Aura locker contract
+     * @param _liqLocker            Liq locker contract
      * @param _startDelay           Delay until claim is live
      * @param _expiresAfter         Timestamp claim expires
      * @param _totalClaims          Number of eligible accounts
@@ -64,7 +64,7 @@ contract LiqMerkleDrop {
         address _dao,
         bytes32 _merkleRoot,
         address _aura,
-        address _auraLocker,
+        address _liqLocker,
         uint256 _startDelay,
         uint256 _expiresAfter,
         uint256 _totalClaims,
@@ -75,7 +75,7 @@ contract LiqMerkleDrop {
         merkleRoot = _merkleRoot;
         require(_aura != address(0), "!aura");
         aura = IERC20(_aura);
-        auraLocker = IAuraLocker(_auraLocker);
+        liqLocker = ILiqLocker(_liqLocker);
 
         deployTime = block.timestamp;
         startTime = block.timestamp + _startDelay;
@@ -125,7 +125,7 @@ contract LiqMerkleDrop {
 
     function setLocker(address _newLocker) external {
         require(msg.sender == dao, "!auth");
-        auraLocker = IAuraLocker(_newLocker);
+        liqLocker = ILiqLocker(_newLocker);
         emit LockerSet(_newLocker);
     }
 
@@ -162,9 +162,9 @@ contract LiqMerkleDrop {
         uint256 adjustedAmount = _applyAdjustment(_amount);
 
         if (_lock) {
-            aura.safeApprove(address(auraLocker), 0);
-            aura.safeApprove(address(auraLocker), adjustedAmount);
-            auraLocker.lock(msg.sender, adjustedAmount);
+            aura.safeApprove(address(liqLocker), 0);
+            aura.safeApprove(address(liqLocker), adjustedAmount);
+            liqLocker.lock(msg.sender, adjustedAmount);
         } else {
             aura.safeTransfer(msg.sender, adjustedAmount);
         }

@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { MerkleTree } from "merkletreejs";
 import { deployPhase1, deployPhase2, DistroList, Phase2Deployed } from "../../scripts/deploySystem";
 import { deployMocks, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
-import { AuraLocker, ERC20, LiqMerkleDrop__factory, LiqMerkleDrop } from "../../types/generated";
+import { LiqLocker, ERC20, LiqMerkleDrop__factory, LiqMerkleDrop } from "../../types/generated";
 import { ONE_WEEK, ZERO_ADDRESS, ZERO, e18, ONE_DAY } from "../../test-utils/constants";
 import { getTimestamp, increaseTime, increaseTimeTo } from "../../test-utils/time";
 import { BN, simpleToExactAmount } from "../../test-utils/math";
@@ -49,7 +49,7 @@ describe("LiqMerkleDrop", () => {
 
     let contracts: Phase2Deployed;
     let aura: ERC20;
-    let auraLocker: AuraLocker;
+    let liqLocker: LiqLocker;
     let merkleDrop: LiqMerkleDrop;
 
     let deployTime: BN;
@@ -102,7 +102,7 @@ describe("LiqMerkleDrop", () => {
         paul = accounts[5];
 
         aura = contracts.cvx.connect(deployer) as ERC20;
-        auraLocker = contracts.cvxLocker.connect(deployer);
+        liqLocker = contracts.cvxLocker.connect(deployer);
 
         const operatorAccount = await impersonateAccount(contracts.booster.address);
         await contracts.cvx
@@ -132,7 +132,7 @@ describe("LiqMerkleDrop", () => {
                     adminAddress,
                     tree.getHexRoot(),
                     aura.address,
-                    auraLocker.address,
+                    liqLocker.address,
                     ONE_WEEK,
                     ONE_WEEK.mul(2),
                     users.length,
@@ -146,7 +146,7 @@ describe("LiqMerkleDrop", () => {
                     ZERO_ADDRESS,
                     tree.getHexRoot(),
                     aura.address,
-                    auraLocker.address,
+                    liqLocker.address,
                     ONE_WEEK,
                     ONE_WEEK.mul(3),
                     users.length,
@@ -159,7 +159,7 @@ describe("LiqMerkleDrop", () => {
                     adminAddress,
                     tree.getHexRoot(),
                     ZERO_ADDRESS,
-                    auraLocker.address,
+                    liqLocker.address,
                     ONE_WEEK,
                     ONE_WEEK.mul(3),
                     users.length,
@@ -184,7 +184,7 @@ describe("LiqMerkleDrop", () => {
                 adminAddress,
                 tree.getHexRoot(),
                 aura.address,
-                auraLocker.address,
+                liqLocker.address,
                 ONE_WEEK,
                 ONE_WEEK.mul(16),
                 users.length,
@@ -197,7 +197,7 @@ describe("LiqMerkleDrop", () => {
             expect(await merkleDrop.dao(), "dao").to.eq(adminAddress);
             expect(await merkleDrop.merkleRoot(), "merkleRoot").to.eq(tree.getHexRoot());
             expect(await merkleDrop.aura(), "aura").to.eq(aura.address);
-            expect(await merkleDrop.auraLocker(), "auraLocker").to.eq(auraLocker.address);
+            expect(await merkleDrop.liqLocker(), "liqLocker").to.eq(liqLocker.address);
             assertBNClose(await merkleDrop.startTime(), deployTime.add(ONE_WEEK), 5);
             assertBNClose(await merkleDrop.expiryTime(), deployTime.add(ONE_WEEK.mul(17)), 5);
             expect(await aura.balanceOf(merkleDrop.address), "aura balance").to.eq(dropAmount);
@@ -207,7 +207,7 @@ describe("LiqMerkleDrop", () => {
             const amount = users[2].amount;
             const lock = true;
             const aliceAuraBalanceBefore = await aura.balanceOf(aliceAddress);
-            const aliceBalanceBefore = await auraLocker.balances(aliceAddress);
+            const aliceBalanceBefore = await liqLocker.balances(aliceAddress);
             expect(await merkleDrop.hasClaimed(aliceAddress), "user  has not claimed").to.eq(false);
 
             const [adjustedAmount, tx] = await Promise.all([
@@ -232,7 +232,7 @@ describe("LiqMerkleDrop", () => {
 
             await expect(tx).to.emit(merkleDrop, "Claimed").withArgs(aliceAddress, amountClaimed, lock);
             expect(await aura.balanceOf(aliceAddress), "alice aura balance").to.eq(aliceAuraBalanceBefore);
-            expect((await auraLocker.balances(aliceAddress)).locked, "alice aura locked balance").to.eq(
+            expect((await liqLocker.balances(aliceAddress)).locked, "alice aura locked balance").to.eq(
                 aliceBalanceBefore.locked.add(amountClaimed),
             );
             expect(await merkleDrop.hasClaimed(aliceAddress), "user claimed").to.eq(true);
@@ -242,7 +242,7 @@ describe("LiqMerkleDrop", () => {
             const amount = users[3].amount;
             const lock = false;
             const userAuraBalanceBefore = await aura.balanceOf(bobAddress);
-            const userBalanceBefore = await auraLocker.balances(bobAddress);
+            const userBalanceBefore = await liqLocker.balances(bobAddress);
             expect(await merkleDrop.hasClaimed(bobAddress), "user  has not claimed").to.eq(false);
 
             const [adjustedAmount, tx] = await Promise.all([
@@ -269,7 +269,7 @@ describe("LiqMerkleDrop", () => {
             expect(await aura.balanceOf(bobAddress), "user aura balance").to.eq(
                 userAuraBalanceBefore.add(amountClaimed),
             );
-            expect((await auraLocker.balances(bobAddress)).locked, "user aura locked balance").to.eq(
+            expect((await liqLocker.balances(bobAddress)).locked, "user aura locked balance").to.eq(
                 userBalanceBefore.locked,
             );
             expect(await merkleDrop.hasClaimed(bobAddress), "user claimed").to.eq(true);
@@ -279,7 +279,7 @@ describe("LiqMerkleDrop", () => {
             const amount = users[4].amount;
             const lock = false;
             const userAuraBalanceBefore = await aura.balanceOf(daveAddress);
-            const userBalanceBefore = await auraLocker.balances(daveAddress);
+            const userBalanceBefore = await liqLocker.balances(daveAddress);
             expect(await merkleDrop.hasClaimed(daveAddress), "user has not claimed").to.eq(false);
 
             const failingTx = merkleDrop
@@ -311,7 +311,7 @@ describe("LiqMerkleDrop", () => {
             expect(await aura.balanceOf(daveAddress), "user aura balance").to.eq(
                 userAuraBalanceBefore.add(amountClaimed),
             );
-            expect((await auraLocker.balances(daveAddress)).locked, "user aura locked balance").to.eq(
+            expect((await liqLocker.balances(daveAddress)).locked, "user aura locked balance").to.eq(
                 userBalanceBefore.locked,
             );
             expect(await merkleDrop.hasClaimed(daveAddress), "user claimed").to.eq(true);
@@ -325,7 +325,7 @@ describe("LiqMerkleDrop", () => {
             const paulAddress = users[5].address;
             const lock = false;
             const userAuraBalanceBefore = await aura.balanceOf(paulAddress);
-            const userBalanceBefore = await auraLocker.balances(paulAddress);
+            const userBalanceBefore = await liqLocker.balances(paulAddress);
             expect(await merkleDrop.hasClaimed(paulAddress), "user has not claimed").to.eq(false);
 
             const [adjustedAmount, tx] = await Promise.all([
@@ -354,7 +354,7 @@ describe("LiqMerkleDrop", () => {
             expect(await aura.balanceOf(paulAddress), "user aura balance").to.eq(
                 userAuraBalanceBefore.add(amountClaimed),
             );
-            expect((await auraLocker.balances(paulAddress)).locked, "user aura locked balance").to.eq(
+            expect((await liqLocker.balances(paulAddress)).locked, "user aura locked balance").to.eq(
                 userBalanceBefore.locked,
             );
             expect(await merkleDrop.hasClaimed(paulAddress), "user claimed").to.eq(true);
@@ -447,9 +447,9 @@ describe("LiqMerkleDrop", () => {
             const amount = users[3].amount;
             const lock = false;
             const userAuraBalanceBefore = await aura.balanceOf(bobAddress);
-            const userBalanceBefore = await auraLocker.balances(bobAddress);
+            const userBalanceBefore = await liqLocker.balances(bobAddress);
             expect(await merkleDrop.hasClaimed(bobAddress), "user  has not claimed").to.eq(false);
-            expect(await merkleDrop.auraLocker(), "auraLocker not set").to.eq(ZERO_ADDRESS);
+            expect(await merkleDrop.liqLocker(), "liqLocker not set").to.eq(ZERO_ADDRESS);
 
             const [adjustedAmount, tx] = await Promise.all([
                 merkleDrop.calculateAdjustedAmount(amount),
@@ -475,7 +475,7 @@ describe("LiqMerkleDrop", () => {
             expect(await aura.balanceOf(bobAddress), "user aura balance").to.eq(
                 userAuraBalanceBefore.add(amountClaimed),
             );
-            expect((await auraLocker.balances(bobAddress)).locked, "user aura locked balance").to.eq(
+            expect((await liqLocker.balances(bobAddress)).locked, "user aura locked balance").to.eq(
                 userBalanceBefore.locked,
             );
             expect(await merkleDrop.hasClaimed(bobAddress), "user claimed").to.eq(true);
@@ -517,7 +517,7 @@ describe("LiqMerkleDrop", () => {
                 adminAddress,
                 tree.getHexRoot(),
                 aura.address,
-                auraLocker.address,
+                liqLocker.address,
                 ONE_WEEK,
                 ONE_WEEK.mul(16),
                 users.length,
@@ -539,7 +539,7 @@ describe("LiqMerkleDrop", () => {
                 adminAddress,
                 ethers.constants.HashZero,
                 aura.address,
-                auraLocker.address,
+                liqLocker.address,
                 ONE_WEEK,
                 ONE_WEEK.mul(16),
                 users.length,
@@ -581,7 +581,7 @@ describe("LiqMerkleDrop", () => {
         it("set a new locker", async () => {
             const tx = await merkleDrop.connect(admin).setLocker(bobAddress);
             await expect(tx).to.emit(merkleDrop, "LockerSet").withArgs(bobAddress);
-            expect(await merkleDrop.auraLocker()).to.eq(bobAddress);
+            expect(await merkleDrop.liqLocker()).to.eq(bobAddress);
         });
         it("fails to rescue rewards one week after deployment", async () => {
             await expect(merkleDrop.connect(admin).rescueReward()).to.be.revertedWith("too late");

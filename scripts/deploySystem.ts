@@ -45,8 +45,8 @@ import {
     IBalancerPool__factory,
     IBalancerVault__factory,
     ConvexMasterChef,
-    AuraLocker,
-    AuraLocker__factory,
+    LiqLocker,
+    LiqLocker__factory,
     LiqStakingProxy,
     LiqStakingProxy__factory,
     AuraToken,
@@ -227,7 +227,7 @@ interface Phase2Deployed extends Phase1Deployed {
     poolManager: PoolManagerV3;
     poolManagerProxy: PoolManagerProxy;
     poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
-    cvxLocker: AuraLocker;
+    cvxLocker: LiqLocker;
     cvxStakingProxy: LiqStakingProxy;
     chef: ConvexMasterChef;
     vestedEscrows: LiqVestedEscrow[];
@@ -565,10 +565,10 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    const cvxLocker = await deployContract<AuraLocker>(
+    const cvxLocker = await deployContract<LiqLocker>(
         hre,
-        new AuraLocker__factory(deployer),
-        "AuraLocker",
+        new LiqLocker__factory(deployer),
+        "LiqLocker",
         [naming.vlCvxName, naming.vlCvxSymbol, cvx.address, cvxCrv.address, cvxCrvRewards.address],
         {},
         debug,

@@ -4,7 +4,7 @@ pragma solidity 0.8.11;
 import { AuraMath } from "../utils/AuraMath.sol";
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 
 /**
  * @title   AuraBalRewardPool
@@ -25,7 +25,7 @@ contract AuraBalRewardPool {
 
     address public immutable rewardManager;
 
-    IAuraLocker public auraLocker;
+    ILiqLocker public liqLocker;
     address public immutable penaltyForwarder;
     uint256 public pendingPenalty = 0;
     uint256 public immutable startTime;
@@ -52,14 +52,14 @@ contract AuraBalRewardPool {
      * @param _stakingToken  Pool LP token
      * @param _rewardToken   $AURA
      * @param _rewardManager Depositor
-     * @param _auraLocker    $AURA lock contract
+     * @param _liqLocker     $LIQ lock contract
      * @param _penaltyForwarder Address to which penalties are sent
      */
     constructor(
         address _stakingToken,
         address _rewardToken,
         address _rewardManager,
-        address _auraLocker,
+        address _liqLocker,
         address _penaltyForwarder,
         uint256 _startDelay
     ) {
@@ -68,8 +68,8 @@ contract AuraBalRewardPool {
         rewardToken = IERC20(_rewardToken);
         require(_rewardManager != address(0), "!manager");
         rewardManager = _rewardManager;
-        require(_auraLocker != address(0), "!locker");
-        auraLocker = IAuraLocker(_auraLocker);
+        require(_liqLocker != address(0), "!locker");
+        liqLocker = ILiqLocker(_liqLocker);
         require(_penaltyForwarder != address(0), "!forwarder");
         penaltyForwarder = _penaltyForwarder;
 
@@ -177,8 +177,8 @@ contract AuraBalRewardPool {
         if (reward > 0) {
             rewards[msg.sender] = 0;
             if (_lock) {
-                rewardToken.safeIncreaseAllowance(address(auraLocker), reward);
-                auraLocker.lock(msg.sender, reward);
+                rewardToken.safeIncreaseAllowance(address(liqLocker), reward);
+                liqLocker.lock(msg.sender, reward);
             } else {
                 uint256 penalty = (reward * 3) / 10;
                 pendingPenalty += penalty;
@@ -217,7 +217,7 @@ contract AuraBalRewardPool {
      */
     function setLocker(address _newLocker) external {
         require(msg.sender == rewardManager, "!auth");
-        auraLocker = IAuraLocker(_newLocker);
+        liqLocker = ILiqLocker(_newLocker);
     }
 
     /**

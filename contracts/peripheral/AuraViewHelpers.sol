@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 import { IBalancerPool, IBalancerVault } from "../interfaces/balancer/IBalancerCore.sol";
-import { AuraLocker } from "../core/AuraLocker.sol";
+import { LiqLocker } from "../core/LiqLocker.sol";
 import { IBooster } from "../interfaces/IBooster.sol";
 
 /**
@@ -73,8 +73,8 @@ contract AuraViewHelpers {
         uint128 rewards;
         address delegate;
         uint256 votes;
-        AuraLocker.LockedBalance[] lockData;
-        AuraLocker.EarnedData[] claimableRewards;
+        LiqLocker.LockedBalance[] lockData;
+        LiqLocker.EarnedData[] claimableRewards;
     }
 
     struct RewardsData {
@@ -144,9 +144,9 @@ contract AuraViewHelpers {
     }
 
     function getLocker(address _locker) external view returns (Locker memory locker) {
-        AuraLocker auraLocker = AuraLocker(_locker);
-        address rewardToken = auraLocker.cvxCrv();
-        (uint32 periodFinish, uint32 lastUpdateTime, uint96 rewardRate, uint96 rewardPerTokenStored) = auraLocker
+        LiqLocker liqLocker = LiqLocker(_locker);
+        address rewardToken = liqLocker.cvxCrv();
+        (uint32 periodFinish, uint32 lastUpdateTime, uint96 rewardRate, uint96 rewardPerTokenStored) = liqLocker
             .rewardData(rewardToken);
 
         RewardsData memory rewardsData = RewardsData({
@@ -154,13 +154,13 @@ contract AuraViewHelpers {
             rewardPerTokenStored: uint256(rewardPerTokenStored),
             periodFinish: uint256(periodFinish),
             lastUpdateTime: uint256(lastUpdateTime),
-            queuedRewards: auraLocker.queuedRewards(rewardToken)
+            queuedRewards: liqLocker.queuedRewards(rewardToken)
         });
 
         locker = Locker({
-            epoch: auraLocker.epochCount(),
-            totalSupply: auraLocker.totalSupply(),
-            lockedSupply: auraLocker.lockedSupply(),
+            epoch: liqLocker.epochCount(),
+            totalSupply: liqLocker.totalSupply(),
+            lockedSupply: liqLocker.lockedSupply(),
             rewardsData: rewardsData
         });
     }
@@ -170,11 +170,11 @@ contract AuraViewHelpers {
         view
         returns (LockerAccount memory lockerAccount)
     {
-        AuraLocker auraLocker = AuraLocker(_locker);
-        address cvxCrv = auraLocker.cvxCrv();
-        (, uint112 nextUnlockIndex) = auraLocker.balances(_account);
-        (uint128 rewardPerTokenPaid, uint128 rewards) = auraLocker.userData(cvxCrv, _account);
-        (uint256 total, uint256 unlockable, uint256 locked, AuraLocker.LockedBalance[] memory lockData) = auraLocker
+        LiqLocker liqLocker = LiqLocker(_locker);
+        address cvxCrv = liqLocker.cvxCrv();
+        (, uint112 nextUnlockIndex) = liqLocker.balances(_account);
+        (uint128 rewardPerTokenPaid, uint128 rewards) = liqLocker.userData(cvxCrv, _account);
+        (uint256 total, uint256 unlockable, uint256 locked, LiqLocker.LockedBalance[] memory lockData) = liqLocker
             .lockedBalances(_account);
 
         lockerAccount = LockerAccount({
@@ -186,9 +186,9 @@ contract AuraViewHelpers {
             nextUnlockIndex: uint256(nextUnlockIndex),
             rewardPerTokenPaid: rewardPerTokenPaid,
             rewards: rewards,
-            delegate: auraLocker.delegates(_account),
-            votes: auraLocker.balanceOf(_account),
-            claimableRewards: auraLocker.claimableRewards(_account)
+            delegate: liqLocker.delegates(_account),
+            votes: liqLocker.balanceOf(_account),
+            claimableRewards: liqLocker.claimableRewards(_account)
         });
     }
 

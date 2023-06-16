@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 import { MerkleProof } from "@openzeppelin/contracts-0.8/utils/cryptography/MerkleProof.sol";
-import { IAuraLocker } from "../interfaces/IAuraLocker.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { AuraMath } from "../utils/AuraMath.sol";
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
@@ -21,7 +21,7 @@ contract AuraMerkleDropV2 {
     bytes32 public merkleRoot;
 
     IERC20 public immutable aura;
-    IAuraLocker public auraLocker;
+    ILiqLocker public liqLocker;
 
     uint256 public immutable deployTime;
     uint256 public startTime;
@@ -42,7 +42,7 @@ contract AuraMerkleDropV2 {
      * @param _dao              The Aura Dao
      * @param _merkleRoot       Merkle root
      * @param _aura             Aura token
-     * @param _auraLocker       Aura locker contract
+     * @param _liqLocker       Aura locker contract
      * @param _startDelay       Delay until claim is live
      * @param _expiresAfter     Timestamp claim expires
      */
@@ -50,7 +50,7 @@ contract AuraMerkleDropV2 {
         address _dao,
         bytes32 _merkleRoot,
         address _aura,
-        address _auraLocker,
+        address _liqLocker,
         uint256 _startDelay,
         uint256 _expiresAfter
     ) {
@@ -59,7 +59,7 @@ contract AuraMerkleDropV2 {
         merkleRoot = _merkleRoot;
         require(_aura != address(0), "!aura");
         aura = IERC20(_aura);
-        auraLocker = IAuraLocker(_auraLocker);
+        liqLocker = ILiqLocker(_liqLocker);
 
         deployTime = block.timestamp;
         startTime = block.timestamp + _startDelay;
@@ -103,7 +103,7 @@ contract AuraMerkleDropV2 {
 
     function setLocker(address _newLocker) external {
         require(msg.sender == dao, "!auth");
-        auraLocker = IAuraLocker(_newLocker);
+        liqLocker = ILiqLocker(_newLocker);
         emit LockerSet(_newLocker);
     }
 
@@ -138,9 +138,9 @@ contract AuraMerkleDropV2 {
         hasClaimed[msg.sender] = true;
 
         if (_lock) {
-            aura.safeApprove(address(auraLocker), 0);
-            aura.safeApprove(address(auraLocker), _amount);
-            auraLocker.lock(msg.sender, _amount);
+            aura.safeApprove(address(liqLocker), 0);
+            aura.safeApprove(address(liqLocker), _amount);
+            liqLocker.lock(msg.sender, _amount);
         } else {
             aura.safeTransfer(msg.sender, _amount);
         }
