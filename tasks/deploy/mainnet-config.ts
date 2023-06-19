@@ -66,7 +66,8 @@ import { ONE_WEEK, ZERO_ADDRESS, ZERO_KEY } from "../../test-utils/constants";
 
 const addresses: ExtSystemConfig = {
     token: "0xba100000625a3754423978a60c9317c58a424e3D",
-    tokenBpt: "0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56",
+    lit: "0xfd0205066521550D7d7AB19DA8F72bb004b4C341",
+    tokenBpt: "0x9232a548DD9E81BaC65500b5e0d918F8Ba93675C",
     tokenWhale: "0xC128a9954e6c874eA3d62ce62B468bA073093F25",
     minter: "0x239e55F427D44C3cc793f49bFB507ebe76638a2b",
     votingEscrow: "0xC128a9954e6c874eA3d62ce62B468bA073093F25",
@@ -121,7 +122,7 @@ const addresses: ExtSystemConfig = {
         "0xAF50825B010Ae4839Ac444f6c12D44b96819739B",
     ],
     balancerVault: "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
-    balancerPoolId: "0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014",
+    balancerPoolId: "0x9232a548dd9e81bac65500b5e0d918f8ba93675c000200000000000000000423",
     balancerMinOutBps: "9950",
     balancerPoolOwner: "0xBA1BA1ba1BA1bA1bA1Ba1BA1ba1BA1bA1ba1ba1B",
     balancerPoolFactories: {
@@ -254,7 +255,7 @@ const naming = {
 };
 
 const getPhase1 = async (deployer: Signer): Promise<Phase1Deployed> => ({
-    voterProxy: VoterProxy__factory.connect("0xaF52695E1bB01A16D33D7194C28C42b10e0Dbec2", deployer),
+    voterProxy: VoterProxy__factory.connect("0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d", deployer),
 });
 
 const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
