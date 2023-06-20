@@ -7,8 +7,8 @@ import {
     ClaimFeesHelper__factory,
     IERC20,
     IERC20__factory,
-    IFeeDistributor,
-    IFeeDistributor__factory,
+    MockFeeDistributor,
+    MockFeeDistributor__factory,
     VoterProxy,
 } from "../types/generated";
 import { impersonateAccount, increaseTime, ONE_WEEK, simpleToExactAmount } from "../test-utils";
@@ -22,7 +22,7 @@ const balWhaleAddress = "0xcEacc82ddCdB00BFE19A9D3458db3e6b8aEF542B";
 xdescribe("FeeDistroUpdate", () => {
     let protocolDao: Signer;
     let boosterOwner: BoosterOwner;
-    let distributor: IFeeDistributor;
+    let distributor: MockFeeDistributor;
     let voterProxy: VoterProxy;
     let bal: IERC20;
     let feeToken: IERC20;
@@ -48,7 +48,7 @@ xdescribe("FeeDistroUpdate", () => {
         voterProxy = phase2.voterProxy;
         booster = phase2.booster;
 
-        distributor = IFeeDistributor__factory.connect(newFeeDistro, protocolDao);
+        distributor = MockFeeDistributor__factory.connect(newFeeDistro, protocolDao);
         bal = IERC20__factory.connect(config.addresses.token, protocolDao);
         feeToken = IERC20__factory.connect(config.addresses.feeToken, protocolDao);
     }
