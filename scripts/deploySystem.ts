@@ -228,7 +228,6 @@ interface Phase2Deployed extends Phase1Deployed {
     poolManagerProxy: PoolManagerProxy;
     poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
     cvxLocker: LiqLocker;
-    cvxStakingProxy: LiqStakingProxy;
     chef: ConvexMasterChef;
     vestedEscrows: LiqVestedEscrow[];
     drops: AuraMerkleDrop[];
@@ -599,15 +598,6 @@ async function deployPhase2(
         );
     }
 
-    const cvxStakingProxy = await deployContract<LiqStakingProxy>(
-        hre,
-        new LiqStakingProxy__factory(deployer),
-        "LiqStakingProxy",
-        [cvxLocker.address, config.token, cvx.address],
-        {},
-        debug,
-        waitForBlocks,
-    );
     const extraRewardsDistributor = await deployContract<ExtraRewardsDistributor>(
         hre,
         new ExtraRewardsDistributor__factory(deployer),
@@ -627,7 +617,7 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    let tx = await cvxLocker.addReward(token, cvxStakingProxy.address);
+    let tx = await cvxLocker.addReward(token, booster.address);
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await cvxLocker.setApprovals();
@@ -637,20 +627,6 @@ async function deployPhase2(
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await cvxLocker.transferOwnership(multisigs.daoMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await cvxStakingProxy.setApprovals();
-    await waitForTx(tx, debug, waitForBlocks);
-
-    if (!!config.keeper && config.keeper != ZERO_ADDRESS) {
-        tx = await cvxStakingProxy.setKeeper(config.keeper);
-        await waitForTx(tx, debug, waitForBlocks);
-    }
-
-    tx = await cvxStakingProxy.setPendingOwner(multisigs.daoMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await cvxStakingProxy.applyPendingOwner();
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await voterProxy.setOperator(booster.address);
@@ -685,7 +661,7 @@ async function deployPhase2(
     tx = await crvDepositor.setFeeManager(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await booster.setRewardContracts(cvxCrvRewards.address, cvxStakingProxy.address);
+    tx = await booster.setRewardContracts(cvxCrvRewards.address, cvxLocker.address);
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await booster.setPoolManager(poolManagerProxy.address);
@@ -1041,7 +1017,6 @@ async function deployPhase2(
         crvDepositorWrapper,
         poolManager,
         cvxLocker,
-        cvxStakingProxy,
         chef,
         vestedEscrows,
         drops,
@@ -1346,16 +1321,7 @@ async function deployPhase6(
 
     const { token, gaugeController, voteOwnership, voteParameter, feeDistribution } = extConfig;
 
-    const {
-        arbitratorVault,
-        booster: boosterV1,
-        cvxLocker,
-        voterProxy,
-        cvx,
-        cvxCrv,
-        cvxStakingProxy,
-        crvDepositorWrapper,
-    } = deployment;
+    const { arbitratorVault, booster: boosterV1, cvxLocker, voterProxy, cvx, cvxCrv, crvDepositorWrapper } = deployment;
 
     let tx: ContractTransaction;
 
@@ -1525,7 +1491,7 @@ async function deployPhase6(
     tx = await claimZap.setApprovals();
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await booster.setRewardContracts(cvxCrvRewards.address, cvxStakingProxy.address);
+    tx = await booster.setRewardContracts(cvxCrvRewards.address, cvxLocker.address);
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await booster.setPoolManager(poolManagerProxy.address);
