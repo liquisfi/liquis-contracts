@@ -854,13 +854,12 @@ contract LiqLocker is ReentrancyGuard, Ownable, ILiqLocker {
                 REWARD FUNDING
     ****************************************/
 
+    /// @notice no pull method, rewards are first transferred and subsequently call queueNewRewards
     function queueNewRewards(address _rewardsToken, uint256 _rewards) external nonReentrant {
         require(rewardDistributors[_rewardsToken][msg.sender], "!authorized");
         require(_rewards > 0, "No reward");
 
         RewardData storage rdata = rewardData[_rewardsToken];
-
-        IERC20(_rewardsToken).safeTransferFrom(msg.sender, address(this), _rewards);
 
         _rewards = _rewards.add(queuedRewards[_rewardsToken]);
         require(_rewards < 1e25, "!rewards");

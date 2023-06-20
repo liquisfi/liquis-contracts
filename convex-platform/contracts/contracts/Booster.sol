@@ -673,6 +673,7 @@ contract Booster is ReentrancyGuard {
 
             //send stakers's share of crv to reward contract
             IERC20(crv).safeTransfer(stakerRewards, _stakerIncentive);
+            ILocker(stakerRewards).queueNewRewards(crv, _stakerIncentive);
         }
     }
 
@@ -760,6 +761,7 @@ contract Booster is ReentrancyGuard {
 
         //send stakers's share of crv to reward contract
         IERC20(crv).safeTransferFrom(bridgeDelegate, stakerRewards, _stakerIncentive);
+        ILocker(stakerRewards).queueNewRewards(crv, _stakerIncentive);
 
         // Mint CVX to bridge delegate
         ITokenMinter(minter).mint(bridgeDelegate, eligibleForMint);
