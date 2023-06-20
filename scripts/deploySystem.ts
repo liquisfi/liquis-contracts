@@ -76,8 +76,6 @@ import {
     GaugeMigrator__factory,
     UniswapMigrator,
     UniswapMigrator__factory,
-    CrvDepositorWrapperWithFee,
-    CrvDepositorWrapperWithFee__factory,
     MasterChefRewardHook,
     MasterChefRewardHook__factory,
     SiphonToken,
@@ -255,7 +253,6 @@ interface Phase5Deployed extends Phase4Deployed {
     boosterHelper: BoosterHelper;
     gaugeMigrator: GaugeMigrator;
     uniswapMigrator: UniswapMigrator;
-    crvDepositorWrapperWithFee: CrvDepositorWrapperWithFee;
 }
 
 interface Phase6Deployed {
@@ -1225,7 +1222,7 @@ async function deployPhase5(
         sushiswapRouter,
         balancerPoolOwner,
     } = config;
-    const { booster, crvDepositor, voterProxy } = deployment;
+    const { booster } = deployment;
 
     // -----------------------------
     // 5. Helpers
@@ -1268,27 +1265,8 @@ async function deployPhase5(
         debug,
         waitForBlocks,
     );
-    const crvDepositorWrapperWithFee = await deployContract<CrvDepositorWrapperWithFee>(
-        hre,
-        new CrvDepositorWrapperWithFee__factory(deployer),
-        "CrvDepositorWrapperWithFee",
-        [
-            crvDepositor.address,
-            config.balancerVault,
-            config.token,
-            config.weth,
-            config.balancerPoolId,
-            booster.address,
-            voterProxy.address,
-            multisigs.daoMultisig,
-        ],
-        {},
-        debug,
-        waitForBlocks,
-    );
-    const tx = await crvDepositorWrapperWithFee.setApprovals();
-    await waitForTx(tx, debug, waitForBlocks);
-    return { ...deployment, boosterHelper, gaugeMigrator, uniswapMigrator, crvDepositorWrapperWithFee };
+
+    return { ...deployment, boosterHelper, gaugeMigrator, uniswapMigrator };
 }
 
 // -----------------------------

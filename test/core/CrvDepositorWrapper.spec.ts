@@ -16,7 +16,7 @@ import {
     VoterProxy,
     CvxCrvToken,
     ERC20,
-    CrvDepositorWrapperWithFee,
+    CrvDepositorWrapper,
     BaseRewardPool,
 } from "../../types/generated";
 import { getTimestamp, increaseTime } from "../../test-utils/time";
@@ -25,7 +25,7 @@ import { BN, simpleToExactAmount } from "../../test-utils/math";
 import { assertBNClose } from "../../test-utils";
 
 // This is no longer used
-xdescribe("CrvDepositorWrapperWithFee", () => {
+describe("CrvDepositorWrapper", () => {
     let accounts: Signer[];
     let mocks: DeployMocksResult;
     let crvDepositor: CrvDepositor;
@@ -37,7 +37,7 @@ xdescribe("CrvDepositorWrapperWithFee", () => {
     let aliceAddress: string;
     let multisigs: MultisigConfig;
     let crv: ERC20;
-    let crvDepositorWrapperWithFee: CrvDepositorWrapperWithFee;
+    let crvDepositorWrapper: CrvDepositorWrapper;
     let cvxCrvStaking: BaseRewardPool;
     let contracts: Phase5Deployed;
 
@@ -77,9 +77,9 @@ xdescribe("CrvDepositorWrapperWithFee", () => {
 
         crvDepositor = contracts.crvDepositor.connect(alice);
         cvxCrv = contracts.cvxCrv.connect(alice);
-        crv = mocks.crv.connect(alice);
+        crv = mocks.lit.connect(alice);
         voterProxy = contracts.voterProxy;
-        crvDepositorWrapperWithFee = contracts.crvDepositorWrapperWithFee.connect(alice);
+        crvDepositorWrapper = contracts.crvDepositorWrapper.connect(alice);
         cvxCrvStaking = contracts.cvxCrvRewards;
 
         const tx = await mocks.crvBpt.connect(alice).approve(crvDepositor.address, ethers.constants.MaxUint256);
@@ -96,8 +96,8 @@ xdescribe("CrvDepositorWrapperWithFee", () => {
         it("locks up for a year initially", async () => {
             const unlockTime = await mocks.votingEscrow.lockTimes(voterProxy.address);
             const now = await getTimestamp();
-            expect(unlockTime).gt(now.add(ONE_WEEK.mul(51)));
-            expect(unlockTime).lt(now.add(ONE_WEEK.mul(53)));
+            expect(unlockTime).gt(now.add(ONE_WEEK.mul(51 * 4)));
+            expect(unlockTime).lt(now.add(ONE_WEEK.mul(53 * 4)));
         });
 
         it("deposit", async () => {
@@ -125,72 +125,58 @@ xdescribe("CrvDepositorWrapperWithFee", () => {
             expect(unlockTimeAfter).gt(unlockTimeBefore);
 
             const after = await getTimestamp();
-            expect(unlockTimeAfter).gt(after.add(ONE_WEEK.mul(51)));
-            expect(unlockTimeAfter).lt(after.add(ONE_WEEK.mul(53)));
+            expect(unlockTimeAfter).gt(after.add(ONE_WEEK.mul(51 * 4)));
+            expect(unlockTimeAfter).lt(after.add(ONE_WEEK.mul(53 * 4)));
         });
     });
 
     describe("depositing via wrapper", () => {
-        const fees = [0, 5000]; // 50%
-        const applyFee = (input: BN, feeRatio: BN): { newInput: BN; feeAmount: BN } => {
-            const feeAmount = input.mul(feeRatio).div(10000);
-            const newInput = input.sub(feeAmount);
-            return { newInput, feeAmount };
-        };
+        it("allows the sender to deposit crv, wrap to crvBpt and deposit", async () => {
+            const lock = true;
+            const stakeAddress = "0x0000000000000000000000000000000000000000";
+            const balance = await crv.balanceOf(aliceAddress);
+            const amount = balance.mul(10).div(100);
 
-        fees.forEach(fee => {
-            it(`allows the sender to deposit crv, wrap to crvBpt and deposit, fee ${fee}`, async () => {
-                const lock = true;
-                const stakeAddress = "0x0000000000000000000000000000000000000000";
-                const balance = await crv.balanceOf(aliceAddress);
-                const amount = balance.mul(10).div(100);
+            const cvxCrvBalanceBefore = await cvxCrv.balanceOf(aliceAddress);
 
-                const cvxCrvBalanceBefore = await cvxCrv.balanceOf(aliceAddress);
+            const feeDistro = await contracts.booster.feeTokens(crv.address);
+            const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
 
-                const feeDistro = await contracts.booster.feeTokens(crv.address);
-                const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
-                await crvDepositorWrapperWithFee.setFeeRatio(fee);
-                const feeRatio = await crvDepositorWrapperWithFee.feeRatio();
-                const { feeAmount } = applyFee(amount, feeRatio);
-                const minOut = await crvDepositorWrapperWithFee.getMinOut(amount, "10000");
-                const minOutFees = applyFee(minOut, feeRatio);
+            const minOut = await crvDepositorWrapper.getMinOut(amount, "10000");
 
-                await crv.approve(crvDepositorWrapperWithFee.address, amount);
-                await crvDepositorWrapperWithFee.deposit(amount, minOut, lock, stakeAddress);
+            await crv.approve(crvDepositorWrapper.address, amount);
+            await crvDepositorWrapper.deposit(amount, minOut, lock, stakeAddress);
 
-                const cvxCrvBalanceAfter = await cvxCrv.balanceOf(aliceAddress);
-                const cvxCrvBalanceDelta = cvxCrvBalanceAfter.sub(cvxCrvBalanceBefore);
-                const feeCrvBalanceAfter = await crv.balanceOf(feeDistro.rewards);
+            const cvxCrvBalanceAfter = await cvxCrv.balanceOf(aliceAddress);
+            const cvxCrvBalanceDelta = cvxCrvBalanceAfter.sub(cvxCrvBalanceBefore);
+            const feeCrvBalanceAfter = await crv.balanceOf(feeDistro.rewards);
 
-                expect(cvxCrvBalanceDelta).to.equal(minOutFees.newInput);
-                assertBNClose(feeCrvBalanceBefore.add(feeAmount), feeCrvBalanceAfter, simpleToExactAmount(1), "fees");
-            });
+            expect(cvxCrvBalanceDelta).to.equal(minOut);
+            assertBNClose(feeCrvBalanceBefore, feeCrvBalanceAfter, simpleToExactAmount(1), "fees");
+        });
 
-            it(`stakes on behalf of user , fee ${fee}`, async () => {
-                const lock = true;
-                const stakeAddress = cvxCrvStaking.address;
-                const balance = await crv.balanceOf(aliceAddress);
-                const amount = balance.mul(10).div(100);
+        it("stakes on behalf of user", async () => {
+            const lock = true;
+            const stakeAddress = cvxCrvStaking.address;
+            const balance = await crv.balanceOf(aliceAddress);
+            const amount = balance.mul(10).div(100);
 
-                const stakedBalanceBefore = await cvxCrvStaking.balanceOf(aliceAddress);
-                const feeRatio = await crvDepositorWrapperWithFee.feeRatio();
-                const feeDistro = await contracts.booster.feeTokens(crv.address);
-                const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
+            const stakedBalanceBefore = await cvxCrvStaking.balanceOf(aliceAddress);
 
-                const { feeAmount } = applyFee(amount, feeRatio);
-                const minOut = await crvDepositorWrapperWithFee.getMinOut(amount, "10000");
-                const minOutFees = applyFee(minOut, feeRatio);
+            const feeDistro = await contracts.booster.feeTokens(crv.address);
+            const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
 
-                await crv.approve(crvDepositorWrapperWithFee.address, amount);
-                await crvDepositorWrapperWithFee.deposit(amount, minOut, lock, stakeAddress);
+            const minOut = await crvDepositorWrapper.getMinOut(amount, "10000");
 
-                const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
-                const feeCrvBalanceAfter = await crv.balanceOf(feeDistro.rewards);
+            await crv.approve(crvDepositorWrapper.address, amount);
+            await crvDepositorWrapper.deposit(amount, minOut, lock, stakeAddress);
 
-                expect(stakedBalanceAfter.sub(stakedBalanceBefore)).to.equal(minOutFees.newInput);
+            const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
+            const feeCrvBalanceAfter = await crv.balanceOf(feeDistro.rewards);
 
-                assertBNClose(feeCrvBalanceBefore.add(feeAmount), feeCrvBalanceAfter, simpleToExactAmount(1), "fees");
-            });
+            expect(stakedBalanceAfter.sub(stakedBalanceBefore)).to.equal(minOut);
+
+            assertBNClose(feeCrvBalanceBefore, feeCrvBalanceAfter, simpleToExactAmount(1), "no fees");
         });
     });
     describe("calling depositFor", () => {
@@ -257,22 +243,6 @@ xdescribe("CrvDepositorWrapperWithFee", () => {
         it("fails to set feeManager if not feeManager", async () => {
             const tx = crvDepositor.connect(accounts[4]).setFeeManager(multisigs.treasuryMultisig);
             await expect(tx).to.revertedWith("!auth");
-        });
-        it("allows feeManager to set feeManager", async () => {
-            expect(await crvDepositorWrapperWithFee.owner()).eq(multisigs.daoMultisig);
-            const daoMultisig = await ethers.getSigner(multisigs.daoMultisig);
-            const feeRatio = 0;
-            await crvDepositorWrapperWithFee.connect(daoMultisig).setFeeRatio(feeRatio);
-            expect(await crvDepositorWrapperWithFee.feeRatio()).eq(feeRatio);
-        });
-        it("fails to set setFeeRatio if it is not the owner", async () => {
-            const tx = crvDepositorWrapperWithFee.connect(accounts[4]).setFeeRatio(multisigs.treasuryMultisig);
-            await expect(tx).to.revertedWith("Ownable: caller is not the owner");
-        });
-        it("fails to set setFeeRatio if it is too high", async () => {
-            const daoMultisig = await ethers.getSigner(multisigs.daoMultisig);
-            const tx = crvDepositorWrapperWithFee.connect(daoMultisig).setFeeRatio(10000);
-            await expect(tx).to.revertedWith("Invalid ratio");
         });
     });
 });
