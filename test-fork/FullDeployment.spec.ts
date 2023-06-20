@@ -186,7 +186,7 @@ xdescribe("Full Deployment", () => {
                         booster,
                         cvx,
                         voterProxy,
-                        cvxStakingProxy,
+                        cvxLocker,
                         cvxCrvRewards,
                         arbitratorVault,
                         factories,
@@ -216,7 +216,7 @@ xdescribe("Full Deployment", () => {
                     expect(await booster.rewardArbitrator()).eq(arbitratorVault.address);
                     expect(await booster.voteDelegate()).eq(multisigs.daoMultisig);
                     expect(await booster.treasury()).eq(ZERO_ADDRESS);
-                    expect(await booster.stakerRewards()).eq(cvxStakingProxy.address);
+                    expect(await booster.stakerRewards()).eq(cvxLocker.address);
                     expect(await booster.lockRewards()).eq(cvxCrvRewards.address);
 
                     expect(await booster.isShutdown()).eq(false);
@@ -345,12 +345,12 @@ xdescribe("Full Deployment", () => {
                     expect(await poolManager.protectAddPool()).eq(true);
                 });
                 it("Aura Locker has correct config", async () => {
-                    const { cvxLocker, cvxCrv, cvxStakingProxy, cvx, cvxCrvRewards } = phase2;
+                    const { cvxLocker, cvxCrv, booster, cvx, cvxCrvRewards } = phase2;
                     const { naming, multisigs } = config;
                     expect(await cvxLocker.rewardTokens(0)).eq(cvxCrv.address);
                     await expect(cvxLocker.rewardTokens(1)).to.be.reverted;
                     expect(await cvxLocker.queuedRewards(cvxCrv.address)).eq(0);
-                    expect(await cvxLocker.rewardDistributors(cvxCrv.address, cvxStakingProxy.address)).eq(true);
+                    expect(await cvxLocker.rewardDistributors(cvxCrv.address, booster.address)).eq(true);
                     expect(await cvxLocker.lockedSupply()).eq(0);
                     expect(await cvxLocker.stakingToken()).eq(cvx.address);
                     expect(await cvxLocker.cvxCrv()).eq(cvxCrv.address);
@@ -358,16 +358,6 @@ xdescribe("Full Deployment", () => {
                     expect(await cvxLocker.name()).eq(naming.vlCvxName);
                     expect(await cvxLocker.symbol()).eq(naming.vlCvxSymbol);
                     expect(await cvxLocker.owner()).eq(multisigs.daoMultisig);
-                });
-                it("Aura staking proxy has correct config", async () => {
-                    const { cvxLocker, cvxStakingProxy, cvx } = phase2;
-                    const { multisigs, addresses } = config;
-                    expect(await cvxStakingProxy.crv()).eq(addresses.token);
-                    expect(await cvxStakingProxy.cvx()).eq(cvx.address);
-                    expect(await cvxStakingProxy.keeper()).eq(!addresses.keeper ? ZERO_ADDRESS : addresses.keeper);
-                    expect(await cvxStakingProxy.rewards()).eq(cvxLocker.address);
-                    expect(await cvxStakingProxy.owner()).eq(multisigs.daoMultisig);
-                    expect(await cvxStakingProxy.pendingOwner()).eq(ZERO_ADDRESS);
                 });
                 it("Chef has correct config", async () => {
                     const { cvx, chef } = phase2;
@@ -1527,22 +1517,10 @@ xdescribe("Full Deployment", () => {
                     expect(crvBalance).gte(earned);
                     expect(cvxBalance).gt(0);
                 });
-                it("allows conversion of rewards via LiqStakingProxy", async () => {
+                it("oLIT rewards get distributed to liqLocker", async () => {
                     const crv = MockERC20__factory.connect(config.addresses.token, deployer);
-                    const crvBalance = await crv.balanceOf(phase4.cvxStakingProxy.address);
+                    const crvBalance = await crv.balanceOf(phase4.cvxLocker.address);
                     expect(crvBalance).gt(0);
-
-                    const keeper = await impersonateAccount(config.addresses.keeper);
-
-                    const callerCvxCrvBalanceBefore = await phase4.cvxCrv.balanceOf(keeper.address);
-                    const cvxLockerCvxCrvBalanceBefore = await phase4.cvxCrv.balanceOf(phase4.cvxLocker.address);
-
-                    await phase4.cvxStakingProxy.connect(keeper.signer)["distribute()"]();
-                    const callerCvxCrvBalanceAfter = await phase4.cvxCrv.balanceOf(keeper.address);
-                    const cvxLockerCvxCrvBalanceAfter = await phase4.cvxCrv.balanceOf(phase4.cvxLocker.address);
-
-                    expect(callerCvxCrvBalanceAfter).gt(callerCvxCrvBalanceBefore);
-                    expect(cvxLockerCvxCrvBalanceAfter).gt(cvxLockerCvxCrvBalanceBefore);
                 });
             });
             describe("admin etc", () => {
@@ -1748,9 +1726,6 @@ xdescribe("Full Deployment", () => {
                     const cvxCrvBalanceBefore = await phase4.cvxCrv.balanceOf(stakerAddress);
                     await getCrv(phase4.booster.address, simpleToExactAmount(1));
                     await phase4.booster.earmarkRewards(0);
-
-                    const keeper = await impersonateAccount(config.addresses.keeper);
-                    await phase4.cvxStakingProxy.connect(keeper.signer)["distribute()"]();
 
                     await increaseTime(ONE_HOUR);
                     const rewards = await phase4.cvxLocker.claimableRewards(stakerAddress);

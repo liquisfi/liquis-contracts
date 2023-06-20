@@ -635,17 +635,22 @@ describe("Full Migration", () => {
             const balanceAfter = await feeToken.balanceOf(feeInfo.rewards);
             expect(balanceAfter).gt(balanceBefore);
         });
-        it("allows earmarking of rewards", async () => {
+        it("allows earmarking of rewards, locker oLIT increases", async () => {
             const poolInfo = await boosterV2.poolInfo(sta3BalV2Pid);
             const crvRewards = BaseRewardPool__factory.connect(poolInfo.crvRewards, deployer);
             const crv = MockERC20__factory.connect(config.addresses.token, deployer);
             const balanceBefore = await crv.balanceOf(crvRewards.address);
+
+            const cvxLockerOLITBalanceBefore = await phase2.cvxCrv.balanceOf(phase2.cvxLocker.address);
 
             await increaseTime(ONE_HOUR);
             await boosterV2.earmarkRewards(sta3BalV2Pid);
 
             const balanceAfter = await crv.balanceOf(crvRewards.address);
             expect(balanceAfter).gt(balanceBefore);
+
+            const cvxLockerOLITBalanceAfter = await phase2.cvxCrv.balanceOf(phase2.cvxLocker.address);
+            expect(cvxLockerOLITBalanceAfter).gt(cvxLockerOLITBalanceBefore);
         });
         it("pays out a premium to the caller", async () => {
             const crv = ERC20__factory.connect(config.addresses.token, deployer);
@@ -671,24 +676,6 @@ describe("Full Migration", () => {
 
             expect(crvBalance).gte(earned);
             expect(cvxBalance).gt(0);
-        });
-        it("allows conversion of rewards via StakingProxy", async () => {
-            const crv = MockERC20__factory.connect(config.addresses.token, deployer);
-            const crvBalance = await crv.balanceOf(phase2.cvxStakingProxy.address);
-            expect(crvBalance).gt(0);
-
-            const keeps = await phase2.cvxStakingProxy.keeper();
-            const keeper = await impersonateAccount(keeps);
-
-            const callerCvxCrvBalanceBefore = await phase2.cvxCrv.balanceOf(keeper.address);
-            const cvxLockerCvxCrvBalanceBefore = await phase2.cvxCrv.balanceOf(phase2.cvxLocker.address);
-
-            await phase2.cvxStakingProxy.connect(keeper.signer)["distribute()"]();
-            const callerCvxCrvBalanceAfter = await phase2.cvxCrv.balanceOf(keeper.address);
-            const cvxLockerCvxCrvBalanceAfter = await phase2.cvxCrv.balanceOf(phase2.cvxLocker.address);
-
-            expect(callerCvxCrvBalanceAfter).gt(callerCvxCrvBalanceBefore);
-            expect(cvxLockerCvxCrvBalanceAfter).gt(cvxLockerCvxCrvBalanceBefore);
         });
         it("allows claim rewards via claim Zapper v1 on shutdown pools", async () => {
             const stakerAddress = "0x285b7EEa81a5B66B62e7276a24c1e0F83F7409c1";

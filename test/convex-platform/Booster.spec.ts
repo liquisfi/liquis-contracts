@@ -6,6 +6,8 @@ import { deployMocks, DeployMocksResult, getMockDistro, getMockMultisigs } from 
 import {
     Booster,
     BoosterOwner,
+    LiqToken,
+    LiqLocker,
     ERC20__factory,
     BaseRewardPool__factory,
     MockFeeDistributor__factory,
@@ -14,6 +16,7 @@ import {
 } from "../../types/generated";
 import { Signer } from "ethers";
 import { getTimestamp, increaseTime, increaseTimeTo } from "../../test-utils/time";
+import { impersonateAccount } from "../../test-utils";
 import { simpleToExactAmount } from "../../test-utils/math";
 import { DEAD_ADDRESS, ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
 import { deployContract } from "../../tasks/utils";
@@ -37,6 +40,9 @@ describe("Booster", () => {
     let pool: Pool;
     let contracts: SystemDeployed;
     let daoSigner: Signer;
+
+    let cvx: LiqToken;
+    let cvxLocker: LiqLocker;
 
     let deployer: Signer;
     let deployerAddress: string;
@@ -65,7 +71,7 @@ describe("Booster", () => {
         await phase3.boosterOwner.connect(daoSigner).setFeeInfo(mocks.crv.address, mocks.feeDistribution.address);
         contracts = await deployPhase4(hre, deployer, phase3, mocks.addresses);
 
-        ({ booster, boosterOwner } = contracts);
+        ({ booster, boosterOwner, cvx, cvxLocker } = contracts);
 
         pool = await booster.poolInfo(0);
 
@@ -80,6 +86,21 @@ describe("Booster", () => {
 
         alice = accounts[1];
         aliceAddress = await alice.getAddress();
+
+        // need to make an initial lock require(lockedSupply >= 1e20, "!balance");
+        const operatorAccount = await impersonateAccount(booster.address);
+        let tx = await cvx.connect(operatorAccount.signer).mint(operatorAccount.address, simpleToExactAmount(101, 18));
+        await tx.wait();
+
+        const cvxAmount = simpleToExactAmount(101);
+        tx = await cvx.connect(operatorAccount.signer).transfer(aliceAddress, cvxAmount);
+        await tx.wait();
+
+        tx = await cvx.connect(alice).approve(cvxLocker.address, cvxAmount);
+        await tx.wait();
+
+        tx = await cvxLocker.connect(alice).lock(aliceAddress, cvxAmount);
+        await tx.wait();
     };
 
     before(async () => {

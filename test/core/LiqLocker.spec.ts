@@ -19,11 +19,9 @@ import {
 import { impersonateAccount } from "../../test-utils/fork";
 import {
     LiqLocker,
-    LiqStakingProxy,
     LiqToken,
     BaseRewardPool,
     Booster,
-    CrvDepositor,
     CvxCrvToken,
     MockLiqLocker,
     MockLiqLocker__factory,
@@ -79,13 +77,11 @@ interface SnapshotData {
 describe("LiqLocker", () => {
     let accounts: Signer[];
     let liqLocker: LiqLocker;
-    let cvxStakingProxy: LiqStakingProxy;
     let cvxCrvRewards: BaseRewardPool;
     let booster: Booster;
     let cvx: LiqToken;
     let cvxCrv: CvxCrvToken;
     let olit: MockERC20;
-    let crvDepositor: CrvDepositor;
     let mocks: DeployMocksResult;
 
     let deployer: Signer;
@@ -243,12 +239,10 @@ describe("LiqLocker", () => {
 
         booster = contracts.booster;
         liqLocker = contracts.cvxLocker;
-        cvxStakingProxy = contracts.cvxStakingProxy;
         cvxCrvRewards = contracts.cvxCrvRewards;
         cvx = contracts.cvx;
         cvxCrv = contracts.cvxCrv;
         olit = mocks.crv;
-        crvDepositor = contracts.crvDepositor;
 
         const operatorAccount = await impersonateAccount(booster.address);
         let tx = await cvx
@@ -264,20 +258,18 @@ describe("LiqLocker", () => {
         await tx.wait();
     };
     async function distributeRewardsFromBooster(): Promise<BN> {
+        const initStakingCrvBalance = await mocks.crv.balanceOf(liqLocker.address);
+
         await booster.earmarkRewards(boosterPoolId);
         await increaseTime(ONE_DAY);
 
         const incentive = await booster.stakerIncentive();
         const rate = await mocks.crvMinter.rate();
-        const stakingCrvBalance = await mocks.crv.balanceOf(cvxStakingProxy.address);
+        const stakingCrvBalance = await mocks.crv.balanceOf(liqLocker.address);
 
-        expect(stakingCrvBalance).to.equal(rate.mul(incentive).div(10000));
+        expect(stakingCrvBalance.sub(initStakingCrvBalance)).to.equal(rate.mul(incentive).div(10000));
 
-        const tx = await cvxStakingProxy["distribute()"]();
-        const receipt = await tx.wait();
-        const event = receipt.events.find(e => e.event === "RewardsDistributed");
-
-        return event.args[1];
+        return stakingCrvBalance.sub(initStakingCrvBalance);
     }
     before(async () => {
         accounts = await ethers.getSigners();
@@ -392,15 +384,8 @@ describe("LiqLocker", () => {
 
             const incentive = await booster.stakerIncentive();
             const rate = await mocks.crvMinter.rate();
-            const stakingCrvBalance = await olit.balanceOf(cvxStakingProxy.address);
+            const stakingCrvBalance = await olit.balanceOf(liqLocker.address);
             expect(stakingCrvBalance).to.equal(rate.mul(incentive).div(10000));
-
-            const balBefore = await olit.balanceOf(liqLocker.address);
-            const tx = await cvxStakingProxy["distribute()"]();
-            await tx.wait();
-
-            const balAfter = await olit.balanceOf(liqLocker.address);
-            expect(balAfter).gt(balBefore.add(stakingCrvBalance.div(3)));
         });
 
         it("can't process locks that haven't expired", async () => {
@@ -450,6 +435,8 @@ describe("LiqLocker", () => {
 
             const tx = await liqLocker.connect(distributor).queueNewRewards(mockToken.address, amount);
             await expect(tx).to.emit(liqLocker, "RewardAdded").withArgs(mockToken.address, amount);
+
+            await mockToken.connect(distributor).transfer(liqLocker.address, amount);
             expect(await mockToken.balanceOf(liqLocker.address)).to.equal(amount);
         });
 
@@ -929,11 +916,11 @@ describe("LiqLocker", () => {
     });
 
     context("queueing new rewards", () => {
-        let cvxStakingProxyAccount: Account;
+        let boosterAccount: Account;
         // t = 0.5, Lock, delegate to self, wait 15 weeks (1.5 weeks before lockup)
         beforeEach(async () => {
             await setup();
-            cvxStakingProxyAccount = await impersonateAccount(cvxStakingProxy.address);
+            boosterAccount = await impersonateAccount(booster.address);
 
             await cvx.connect(alice).approve(liqLocker.address, simpleToExactAmount(1000));
         });
@@ -946,20 +933,8 @@ describe("LiqLocker", () => {
         it("fails if the amount of rewards is 0", async () => {
             // Only the rewardsDistributor can queue cvxCRV rewards
             await expect(
-                liqLocker.connect(cvxStakingProxyAccount.signer).queueNewRewards(olit.address, simpleToExactAmount(0)),
+                liqLocker.connect(boosterAccount.signer).queueNewRewards(olit.address, simpleToExactAmount(0)),
             ).revertedWith("No reward");
-        });
-        it("fails if balance is too low", async () => {
-            await booster.earmarkRewards(boosterPoolId);
-            await increaseTime(ONE_DAY);
-
-            const incentive = await booster.stakerIncentive();
-            const rate = await mocks.crvMinter.rate();
-            const stakingCrvBalance = await mocks.crv.balanceOf(cvxStakingProxy.address);
-
-            expect(stakingCrvBalance).to.equal(rate.mul(incentive).div(10000));
-
-            await expect(cvxStakingProxy["distribute()"]()).to.be.revertedWith("!balance");
         });
         it("distribute rewards from the booster", async () => {
             await liqLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(100));
@@ -1026,11 +1001,9 @@ describe("LiqLocker", () => {
             // Second distribution of an small amount, without notification as the ratio is not reached.
             await increaseTime(ONE_DAY);
             // rewards = await distributeRewardsFromBooster();
-            await olit.transfer(cvxStakingProxy.address, e15.mul(10));
-            let tx = await cvxStakingProxy["distribute()"]();
-            const receipt = await tx.wait();
-            const event = receipt.events.find(e => e.event === "RewardsDistributed");
-            rewards = event.args[1];
+            await olit.transfer(liqLocker.address, e15.mul(10));
+            await liqLocker.connect(boosterAccount.signer).queueNewRewards(olit.address, e15.mul(10));
+            rewards = e15.mul(10);
 
             const olitLockerBalance2 = await olit.balanceOf(liqLocker.address);
             const queuedOLitRewards2 = await liqLocker.queuedRewards(olit.address);
@@ -1070,7 +1043,7 @@ describe("LiqLocker", () => {
             const userOLitData = await liqLocker.userData(aliceAddress, olit.address);
             const olitAliceBalance3 = await olit.balanceOf(aliceAddress);
 
-            tx = await liqLocker["getReward(address)"](aliceAddress);
+            const tx = await liqLocker["getReward(address)"](aliceAddress);
             await expect(tx)
                 .to.emit(liqLocker, "RewardPaid")
                 .withArgs(aliceAddress, olit.address, userOLitData.rewards);
@@ -1147,9 +1120,6 @@ describe("LiqLocker", () => {
             await tx.wait();
 
             tx = await booster.earmarkRewards(boosterPoolId);
-            await tx.wait();
-
-            tx = await cvxStakingProxy["distribute()"]();
             await tx.wait();
 
             const lock = await liqLocker.userLocks(aliceAddress, 0);

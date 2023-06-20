@@ -91,7 +91,6 @@ describe("Booster", () => {
 
     let cvxLocker: LiqLocker;
     let cvxCrvStaking: BaseRewardPool;
-    let cvxStakingProxy: LiqStakingProxy;
     let cvxCrv: CvxCrvToken;
     let cvx: LiqToken;
 
@@ -199,7 +198,7 @@ describe("Booster", () => {
         );
         logContracts(phase2 as unknown as { [key: string]: { address: string } });
 
-        ({ booster, cvxCrv, crvDepositor, crvDepositorWrapper, cvxLocker, cvxStakingProxy, poolManager } = phase2);
+        ({ booster, cvxCrv, crvDepositor, crvDepositorWrapper, cvxLocker, poolManager } = phase2);
 
         console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
         console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);

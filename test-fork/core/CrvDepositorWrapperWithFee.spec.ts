@@ -7,7 +7,6 @@ import {
     ERC20__factory,
     ERC20,
     CrvDepositorWrapperWithFee__factory,
-    LiqStakingProxy,
 } from "../../types/generated";
 import { impersonate, impersonateAccount } from "../../test-utils";
 import { deployContract } from "../../tasks/utils";
@@ -21,12 +20,9 @@ const keeperAddress = "0xcc247cde79624801169475c9ba1f716db3959b8f";
 describe("CrvDepositorWrapperWithFee", () => {
     let protocolDao: Signer;
     let eoa: Signer;
-    let keeper: Signer;
 
     let system: SystemDeployed;
-    let bal: ERC20;
 
-    let stakingProxy: LiqStakingProxy;
     let crvDepositorWrapperWithFee: CrvDepositorWrapperWithFee;
 
     before(async () => {
@@ -49,11 +45,8 @@ describe("CrvDepositorWrapperWithFee", () => {
         eoa = await impersonate(balWhaleAddress);
 
         await impersonateAccount(keeperAddress);
-        keeper = await impersonate(keeperAddress);
 
         system = await config.getPhase4(protocolDao);
-        bal = ERC20__factory.connect(config.addresses.token, eoa);
-        stakingProxy = system.cvxStakingProxy.connect(keeper);
     });
 
     it("deploy CrvDepositorWrapperWithFee", async () => {
@@ -77,10 +70,6 @@ describe("CrvDepositorWrapperWithFee", () => {
         await crvDepositorWrapperWithFee.setApprovals();
     });
 
-    it("updates StakingProxy", async () => {
-        await system.cvxStakingProxy.setApprovals();
-    });
-
     it("updates overall fees", async () => {
         await system.booster.connect(protocolDao).setFees(1500, 950, 50, 0);
     });
@@ -98,31 +87,5 @@ describe("CrvDepositorWrapperWithFee", () => {
 
         const feeRatio = await crvDepositorWrapperWithFee.feeRatio();
         expect(feeRatio).eq(5789);
-    });
-
-    it("allows calls to distribute to pass", async () => {
-        const balBefore = await bal.balanceOf(stakingProxy.address);
-        await stakingProxy.connect(keeper)["distribute()"]();
-        const balAfter = await bal.balanceOf(stakingProxy.address);
-        expect(balBefore).gt(0);
-        expect(balAfter).eq(0);
-
-        expect(await bal.balanceOf(crvDepositorWrapperWithFee.address)).eq(0);
-    });
-
-    it("distributes 57.89% to fee contract", async () => {
-        const balReward = await system.booster.feeTokens(bal.address);
-
-        await bal.transfer(stakingProxy.address, simpleToExactAmount(1000));
-
-        const auraBal = system.cvxCrv;
-        const auraBalBefore = await auraBal.balanceOf(system.cvxLocker.address);
-        const balBefore = await bal.balanceOf(balReward.rewards);
-        await stakingProxy.connect(keeper)["distribute()"]();
-        const auraBalAfter = await auraBal.balanceOf(system.cvxLocker.address);
-        const balAfter = await bal.balanceOf(balReward.rewards);
-
-        expect(auraBalAfter).gt(auraBalBefore);
-        expect(balAfter.sub(balBefore)).eq(simpleToExactAmount(578.9));
     });
 });

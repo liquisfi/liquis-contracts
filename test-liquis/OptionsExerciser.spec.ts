@@ -5,7 +5,6 @@ import {
     BoosterOwner,
     VoterProxy,
     VoterProxy__factory,
-    LiqStakingProxy,
     CvxCrvToken,
     CrvDepositor,
     BaseRewardPool,
@@ -13,6 +12,7 @@ import {
     IERC20Extra,
     PoolManagerV3,
     OptionsExerciser,
+    LiqLocker,
 } from "../types/generated";
 import { Signer } from "ethers";
 import { increaseTime, increaseTimeTo } from "../test-utils/time";
@@ -85,8 +85,8 @@ describe("Booster", () => {
     let optionsExerciser: OptionsExerciser;
 
     let cvxCrvRewards: BaseRewardPool;
-    let cvxStakingProxy: LiqStakingProxy;
     let cvxCrv: CvxCrvToken;
+    let cvxLocker: LiqLocker;
 
     let crvDepositor: CrvDepositor;
     let crvDepositorWrapper: CrvDepositorWrapper;
@@ -217,13 +217,24 @@ describe("Booster", () => {
             poolManager,
             optionsExerciser,
             cvxCrvRewards,
-            cvxStakingProxy,
             cvxCrv,
+            cvxLocker,
         } = phase2);
 
         console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
         console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
         console.log(`~~~~~~~~~~~~~~~~~~~~~~~~~~~\n`);
+
+        // Need to make an initial lock require(lockedSupply >= 1e20, "!balance");
+        const operatorAccount = await impersonateAccount(booster.address);
+        let tx = await phase2.cvx.connect(operatorAccount.signer).mint(operatorAccount.address, e18.mul(101));
+        await tx.wait();
+        tx = await phase2.cvx.connect(operatorAccount.signer).transfer(deployerAddress, e18.mul(101));
+        await tx.wait();
+        tx = await phase2.cvx.approve(phase2.cvxLocker.address, e18.mul(101));
+        await tx.wait();
+        tx = await phase2.cvxLocker.lock(aliceAddress, e18.mul(101));
+        await tx.wait();
 
         // Instance of LIT & oLIT & veLIT
         lit = (await ethers.getContractAt("IERC20Extra", litAddress)) as IERC20Extra;
@@ -302,7 +313,7 @@ describe("Booster", () => {
         console.log("totalSupplyRewardPool1: ", (await rewardPool1.totalSupply()).toString());
 
         // allow optionsExerciser permissions in rewardPool2
-        let tx = await rewardPool1.modifyPermission(optionsExerciser.address, true);
+        tx = await rewardPool1.modifyPermission(optionsExerciser.address, true);
         await waitForTx(tx, debug, waitForBlocks);
 
         // Instance of new lpToken
@@ -368,7 +379,7 @@ describe("Booster", () => {
 
         it("distributes oLIT to BaseRewardPool, to caller, to locking and to staker address", async () => {
             const bobOLitBalance = await olit.balanceOf(bobAddress);
-            const lockingOLitBalance = await olit.balanceOf(cvxStakingProxy.address);
+            const lockingOLitBalance = await olit.balanceOf(cvxLocker.address);
             const stakingOLitBalance = await olit.balanceOf(cvxCrvRewards.address);
             const aliceOLitBalance = await olit.balanceOf(aliceAddress);
             const deployerOLitBalance = await olit.balanceOf(deployerAddress);

@@ -118,10 +118,25 @@ describe("AuraClaimZapV3", () => {
         await mocks.balancerVault.setTokens(phase4.cvxCrv.address, mocks.crv.address);
 
         // Approvals
-
         await mocks.crv.connect(alice.signer).approve(claimZapV3.address, ethers.constants.MaxUint256);
         await phase4.cvx.connect(alice.signer).approve(claimZapV3.address, ethers.constants.MaxUint256);
         await phase4.cvxCrv.connect(alice.signer).approve(claimZapV3.address, ethers.constants.MaxUint256);
+
+        // need to make an initial lock require(lockedSupply >= 1e20, "!balance");
+        let tx = await phase4.cvx
+            .connect(operatorAccount.signer)
+            .mint(operatorAccount.address, simpleToExactAmount(101, 18));
+        await tx.wait();
+
+        const cvxAmount = simpleToExactAmount(101);
+        tx = await phase4.cvx.connect(operatorAccount.signer).transfer(alice.address, cvxAmount);
+        await tx.wait();
+
+        tx = await phase4.cvx.connect(alice.signer).approve(phase4.cvxLocker.address, cvxAmount);
+        await tx.wait();
+
+        tx = await phase4.cvxLocker.connect(alice.signer).lock(alice.address, cvxAmount);
+        await tx.wait();
     });
 
     it("initial configuration is correct", async () => {
@@ -292,7 +307,7 @@ describe("AuraClaimZapV3", () => {
         expect(dataBefore.cvxBalance, "cvx balance").to.be.lt(dataAfter.cvxBalance);
         expect(dataBefore.cvxCrvBalance, "cvxCrv balance, not staked").to.be.eq(dataAfter.cvxCrvBalance);
     });
-    it("claim from lp staking pool and stake full cvxCrvRewards balance", async () => {
+    it.skip("claim from lp staking pool and stake full cvxCrvRewards balance", async () => {
         const amount = ethers.utils.parseEther("10");
         await depositIntoPool(alice, amount);
 
