@@ -17,7 +17,9 @@ contract MockBalInvestor is BalInvestor {
     }
 
     function getBptPrice() external view returns (uint256) {
-        return _getPairPrice();
+        uint256 bptOraclePrice = _getBptPrice(); // e.g bptOraclePrice = 3.52e14
+        uint256 pairOraclePrice = _getPairPrice(); // e.g pairOraclePrice = 0.56e14
+        return (bptOraclePrice * 1e18) / pairOraclePrice; // e.g bptOraclePriceInLit = 6.28e18
     }
 
     function getMinOut(uint256 _amount, uint256 _outputBps) public view returns (uint256) {
