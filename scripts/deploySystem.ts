@@ -47,8 +47,6 @@ import {
     ConvexMasterChef,
     LiqLocker,
     LiqLocker__factory,
-    LiqStakingProxy,
-    LiqStakingProxy__factory,
     LiqToken,
     LiqToken__factory,
     LiqMinter,
@@ -74,8 +72,6 @@ import {
     BoosterHelper__factory,
     GaugeMigrator,
     GaugeMigrator__factory,
-    UniswapMigrator,
-    UniswapMigrator__factory,
     MasterChefRewardHook,
     MasterChefRewardHook__factory,
     SiphonToken,
@@ -252,7 +248,6 @@ type Phase4Deployed = SystemDeployed;
 interface Phase5Deployed extends Phase4Deployed {
     boosterHelper: BoosterHelper;
     gaugeMigrator: GaugeMigrator;
-    uniswapMigrator: UniswapMigrator;
 }
 
 interface Phase6Deployed {
@@ -1213,15 +1208,7 @@ async function deployPhase5(
 ): Promise<Phase5Deployed> {
     const deployer = signer;
 
-    const {
-        token,
-        balancerPoolFactories,
-        balancerVault,
-        balancerGaugeFactory,
-        uniswapRouter,
-        sushiswapRouter,
-        balancerPoolOwner,
-    } = config;
+    const { token } = config;
     const { booster } = deployment;
 
     // -----------------------------
@@ -1249,24 +1236,8 @@ async function deployPhase5(
         debug,
         waitForBlocks,
     );
-    const uniswapMigrator = await deployContract<UniswapMigrator>(
-        hre,
-        new UniswapMigrator__factory(deployer),
-        "UniswapMigrator",
-        [
-            balancerPoolFactories.weightedPool,
-            balancerVault,
-            balancerGaugeFactory,
-            uniswapRouter,
-            sushiswapRouter,
-            balancerPoolOwner,
-        ],
-        {},
-        debug,
-        waitForBlocks,
-    );
 
-    return { ...deployment, boosterHelper, gaugeMigrator, uniswapMigrator };
+    return { ...deployment, boosterHelper, gaugeMigrator };
 }
 
 // -----------------------------
