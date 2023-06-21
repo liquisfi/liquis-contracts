@@ -3,7 +3,7 @@ import hre, { ethers, network } from "hardhat";
 import { BigNumber } from "ethers";
 
 import { ONE_DAY } from "../../test-utils/constants";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { impersonateAccount } from "../../test-utils/fork";
 import { increaseTime, getTimestamp } from "../../test-utils";
 import { deployFeeScheduler } from "../../scripts/deployPeripheral";

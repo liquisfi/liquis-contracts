@@ -31,7 +31,7 @@ import {
     increaseTime,
 } from "../../test-utils";
 import { ZERO_ADDRESS, DEAD_ADDRESS, ONE_DAY, ONE_WEEK, ZERO } from "../../test-utils/constants";
-import { config as mainnetConfig } from "../../tasks/deploy/mainnet-config";
+import { config as mainnetConfig } from "../mainnet-config";
 import { config as goerliConfig } from "../../tasks/deploy/goerli-config";
 import { deployContract } from "../../tasks/utils";
 import { WeightedPoolEncoder } from "@balancer-labs/balancer-js";

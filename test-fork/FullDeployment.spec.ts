@@ -38,7 +38,7 @@ import { deployContract, waitForTx } from "../tasks/utils";
 import { getTimestamp, latestBlock, increaseTime, advanceBlock } from "./../test-utils/time";
 import { deployPhase3, deployPhase4, Phase2Deployed, Phase3Deployed, SystemDeployed } from "../scripts/deploySystem";
 import { Account } from "./../types/common";
-import { config } from "../tasks/deploy/mainnet-config";
+import { config } from "./mainnet-config";
 import { AssetHelpers, SwapKind, WeightedPoolExitKind } from "@balancer-labs/balancer-js";
 import { ethers } from "ethers";
 

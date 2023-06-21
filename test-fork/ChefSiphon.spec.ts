@@ -16,7 +16,7 @@ import {
 } from "../types/generated";
 import { advanceBlock, impersonateAccount, simpleToExactAmount, ZERO_ADDRESS } from "../test-utils";
 import { deployContract } from "../tasks/utils";
-import { config } from "../tasks/deploy/mainnet-config";
+import { config } from "./mainnet-config";
 import { Phase2Deployed } from "scripts/deploySystem";
 
 const debug = false;

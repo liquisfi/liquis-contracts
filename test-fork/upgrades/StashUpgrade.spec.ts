@@ -18,7 +18,7 @@ import {
     Booster__factory,
 } from "../../types";
 import { impersonateAccount } from "../../test-utils";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { Phase6Deployed } from "../../scripts/deploySystem";
 import { deployContract } from "../../tasks/utils";
 import { ZERO_ADDRESS } from "../../test-utils";

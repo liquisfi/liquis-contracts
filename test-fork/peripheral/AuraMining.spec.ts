@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { AuraMining, AuraMining__factory } from "../../types/generated";
 import { impersonateAccount, ZERO_ADDRESS } from "../../test-utils";
 import { Signer } from "ethers";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { Phase2Deployed } from "scripts/deploySystem";
 import { Account } from "types/common";
 

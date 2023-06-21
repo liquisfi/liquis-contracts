@@ -10,7 +10,7 @@ import { impersonateAccount, increaseTime } from "../../test-utils";
 import { ZERO_ADDRESS, ZERO, ONE_WEEK } from "../../test-utils/constants";
 import { ClaimRewardsAmountsStruct, OptionsStruct } from "../../types/generated/AuraClaimZapV3";
 import { BaseRewardPool__factory } from "../../types/generated";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 
 // Constants
 const FORK_BLOCK = 16982384;

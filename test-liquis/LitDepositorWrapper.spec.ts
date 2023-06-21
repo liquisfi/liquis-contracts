@@ -12,7 +12,6 @@ import {
     IERC20Extra,
     PoolManagerV3,
     LiqLocker,
-    LiqStakingProxy,
 } from "../types/generated";
 import { Contract, Signer } from "ethers";
 import { increaseTime } from "../test-utils/time";

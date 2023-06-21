@@ -7,7 +7,7 @@ import { parseEther } from "ethers/lib/utils";
 import { Account, IERC20, IERC20__factory, VeBalGrant, VeBalGrant__factory } from "../../../types";
 import { impersonate, impersonateAccount, increaseTime } from "../../../test-utils";
 import { ZERO_ADDRESS, ONE_WEEK } from "../../../test-utils/constants";
-import { config } from "../../../tasks/deploy/mainnet-config";
+import { config } from "../../mainnet-config";
 
 // Constants
 const FORK_BLOCK = 16983460;

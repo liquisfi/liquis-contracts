@@ -13,7 +13,7 @@ import {
 } from "../types/generated";
 import { impersonateAccount, increaseTime, ONE_WEEK, simpleToExactAmount } from "../test-utils";
 import { Signer } from "ethers";
-import { config } from "../tasks/deploy/mainnet-config";
+import { config } from "./mainnet-config";
 import { _TypedDataEncoder } from "ethers/lib/utils";
 
 const newFeeDistro = "0xD3cf852898b21fc233251427c2DC93d3d604F3BB";

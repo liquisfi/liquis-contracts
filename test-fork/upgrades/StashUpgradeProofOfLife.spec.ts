@@ -13,7 +13,7 @@ import {
     VirtualBalanceRewardPool__factory,
 } from "../../types";
 import { impersonateAccount, increaseTime, ONE_WEEK, simpleToExactAmount } from "../../test-utils";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 
 const PID = 58;
 

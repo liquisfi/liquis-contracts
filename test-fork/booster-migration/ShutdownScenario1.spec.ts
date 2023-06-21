@@ -4,7 +4,7 @@ import { formatEther } from "ethers/lib/utils";
 
 import { deployContract } from "../../tasks/utils";
 import { Phase2Deployed } from "scripts/deploySystem";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { impersonateAccount, ZERO } from "../../test-utils";
 import {
     Account,

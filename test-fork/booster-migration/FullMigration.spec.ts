@@ -33,7 +33,7 @@ import {
 } from "../../scripts/deploySystem";
 import { Contract, ethers, Signer } from "ethers";
 import { waitForTx } from "../../tasks/utils";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 
 const debug = false;
 const sta3BalV2Pid = 12;

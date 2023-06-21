@@ -12,7 +12,7 @@ import {
     CvxCrvToken__factory,
 } from "../../types";
 import { deployAuraBalStaker } from "../../scripts/deployPeripheral";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { assertBNClosePercent, impersonateAccount } from "../../test-utils";
 import { Phase2Deployed } from "../../scripts/deploySystem";
 

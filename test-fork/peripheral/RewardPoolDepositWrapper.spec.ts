@@ -5,7 +5,7 @@ import { impersonate, impersonateAccount, simpleToExactAmount } from "../../test
 import { Signer } from "ethers";
 import { waitForTx } from "../../tasks/utils";
 import { deployPhase3, deployPhase4, Phase2Deployed, Phase3Deployed, SystemDeployed } from "../../scripts/deploySystem";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { expect } from "chai";
 import { JoinPoolRequestStruct } from "types/generated/IBalancerVault";
 
