@@ -254,7 +254,7 @@ const naming = {
 };
 
 const getPhase1 = async (deployer: Signer): Promise<Phase1Deployed> => ({
-    voterProxy: VoterProxy__factory.connect("0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d", deployer),
+    voterProxy: VoterProxy__factory.connect("0x447786d977Ea11Ad0600E193b2d07A06EfB53e5F", deployer),
 });
 
 const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({

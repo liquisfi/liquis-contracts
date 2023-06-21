@@ -21,6 +21,11 @@ export default {
             allowUnlimitedContractSize: false,
             timeout: 1000 * 60,
         },
+        tenderly: {
+            // tenderly network used for running tests
+            chainId: Number.parseInt(process.env.TENDERLY_FORK_CHAINID || "SET ME"),
+            url: process.env.TENDERLY_FORK_URL || "SET ME",
+        },
     },
     mocha: {
         timeout: 480000, // 4 min timeout

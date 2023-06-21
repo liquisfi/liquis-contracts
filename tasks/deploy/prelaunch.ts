@@ -27,7 +27,7 @@ task("deploy:voterProxy:mainnet").setAction(async function (_: TaskArguments, hr
     // ~~~ PHASE 1 ~~~
     // ~~~~~~~~~~~~~~~
 
-    const phase1 = await deployPhase1(hre, deployer, config.addresses, false, true, 3);
+    const phase1 = await deployPhase1(hre, deployer, config.addresses, false, true /*, 3 */);
     logContracts(phase1 as unknown as { [key: string]: { address: string } });
 });
 
@@ -50,7 +50,7 @@ task("deploy:prelaunch:mainnet").setAction(async function (_: TaskArguments, hre
         [phase1.voterProxy.address, config.naming.cvxName, config.naming.cvxSymbol],
         {},
         debug,
-        waitForBlocks,
+        // waitForBlocks,
     );
 
     const litConvertor = await deployContract<LitConvertor>(
@@ -60,7 +60,7 @@ task("deploy:prelaunch:mainnet").setAction(async function (_: TaskArguments, hre
         [config.addresses.balancerVault, config.addresses.lit, config.addresses.weth, config.addresses.balancerPoolId],
         {},
         debug,
-        waitForBlocks,
+        // waitForBlocks,
     );
 
     const prelaunchRewardsPool = await deployContract<PrelaunchRewardsPool>(
@@ -70,7 +70,7 @@ task("deploy:prelaunch:mainnet").setAction(async function (_: TaskArguments, hre
         [config.addresses.tokenBpt, liq.address, litConvertor.address, config.addresses.lit],
         {},
         debug,
-        waitForBlocks,
+        // waitForBlocks,
     );
 
     const phase2: Phase2Deployed = { liq, litConvertor, prelaunchRewardsPool };

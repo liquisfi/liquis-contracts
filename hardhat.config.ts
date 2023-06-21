@@ -7,6 +7,9 @@ import "solidity-coverage";
 import "@nomiclabs/hardhat-etherscan";
 import "./tasks/coverage";
 import "solidity-docgen";
+import * as tenderly from "@tenderly/hardhat-tenderly";
+
+tenderly.setup({ automaticVerifications: true });
 
 import { resolve } from "path";
 
@@ -58,6 +61,16 @@ const config: HardhatUserConfig = {
             allowUnlimitedContractSize: true,
             timeout: 1000 * 60,
         },
+        tenderly: {
+            // tenderly network used for running tests
+            chainId: Number.parseInt(process.env.TENDERLY_FORK_CHAINID || "SET ME"),
+            url: process.env.TENDERLY_FORK_URL || "SET ME",
+        },
+    },
+    tenderly: {
+        project: process.env.TENDERLY_PROJECT_SLUG,
+        username: process.env.TENDERLY_USERNAME,
+        privateVerification: true,
     },
     paths: {
         artifacts: "./artifacts",
