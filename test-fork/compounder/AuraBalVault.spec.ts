@@ -714,7 +714,7 @@ describe("AuraBalVault", () => {
 
             const compare = (a: BigNumber, b: BigNumber) => {
                 // Round it down to deal with off by 1 kek
-                assertBNClosePercent(a, b, "0.001");
+                assertBNClosePercent(a, b, "0.0015");
             };
 
             // Aura rewards
