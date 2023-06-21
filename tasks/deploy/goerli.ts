@@ -16,14 +16,7 @@ import {
 } from "../../scripts/deploySystem";
 import { getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
 import { simpleToExactAmount } from "./../../test-utils/math";
-import {
-    VoterProxy__factory,
-    ERC20__factory,
-    UniswapMigrator,
-    UniswapMigrator__factory,
-    GaugeMigrator,
-    GaugeMigrator__factory,
-} from "../../types/generated";
+import { VoterProxy__factory, ERC20__factory, GaugeMigrator, GaugeMigrator__factory } from "../../types/generated";
 import { ZERO_ADDRESS } from "../../test-utils/constants";
 import { config } from "./goerli-config";
 import { deployVault } from "../../scripts/deployVault";
@@ -179,29 +172,6 @@ task("deploy:goerli:gaugeMigrator").setAction(async function (taskArguments: Tas
     );
 
     console.log("update gaugeMigrator address to:", gaugeMigrator.address);
-});
-task("deploy:goerli:uniswapMigrator").setAction(async function (taskArguments: TaskArguments, hre) {
-    const deployer = await getSigner(hre);
-    const { addresses } = config;
-    const constructorArguments = [
-        addresses.balancerPoolFactories.weightedPool,
-        addresses.balancerVault,
-        addresses.balancerGaugeFactory,
-        addresses.uniswapRouter,
-        addresses.sushiswapRouter,
-        addresses.balancerPoolOwner,
-    ];
-    const uniswapMigrator = await deployContract<UniswapMigrator>(
-        hre,
-        new UniswapMigrator__factory(deployer),
-        "UniswapMigrator",
-        constructorArguments,
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    console.log("update uniswapMigrator address to:", uniswapMigrator.address);
 });
 
 task("deploy:goerli:vault")

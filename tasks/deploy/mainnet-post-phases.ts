@@ -8,8 +8,6 @@ import { Phase2Deployed } from "../../scripts/deploySystem";
 import { config } from "./mainnet-config";
 import { config as goerliConfig } from "./goerli-config";
 import {
-    UniswapMigrator,
-    UniswapMigrator__factory,
     BoosterHelper,
     BoosterHelper__factory,
     ClaimFeesHelper,
@@ -91,30 +89,6 @@ task("deploy:mainnet:gaugeMigrator").setAction(async function (taskArguments: Ta
     );
 
     console.log("update gaugeMigrator address to:", gaugeMigrator.address);
-});
-
-task("deploy:mainnet:uniswapMigrator").setAction(async function (taskArguments: TaskArguments, hre) {
-    const deployer = await getSigner(hre);
-    const { addresses } = config;
-    const constructorArguments = [
-        addresses.balancerPoolFactories.weightedPool,
-        addresses.balancerVault,
-        addresses.balancerGaugeFactory,
-        addresses.uniswapRouter,
-        addresses.sushiswapRouter,
-        addresses.balancerPoolOwner,
-    ];
-    const uniswapMigrator = await deployContract<UniswapMigrator>(
-        hre,
-        new UniswapMigrator__factory(deployer),
-        "UniswapMigrator",
-        constructorArguments,
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    console.log("update uniswapMigrator address to:", uniswapMigrator.address);
 });
 
 task("deploy:mainnet:boosterSecondary").setAction(async function (_: TaskArguments, hre) {
