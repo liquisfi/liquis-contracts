@@ -185,14 +185,14 @@ contract PrelaunchRewardsPool {
     }
 
     /**
-     * @dev Called by a staker to convert their staked BPT balance to liqLIT (if target address set)
+     * @dev Called by a staker to convert all their staked BPT balance to liqLIT (if target address set)
      */
     function convertStakeToLiqLit() external updateReward(msg.sender) onlyIfAddressExists(crvDepositor) {
         uint256 userStake = balanceOf(msg.sender);
 
         // update state variables
         _totalSupply = _totalSupply - userStake;
-        _balances[msg.sender] = _balances[msg.sender] - userStake;
+        _balances[msg.sender] = 0;
 
         // deposit to crvDepositor for the user, liqLit is sent directly to the user
         ICrvDepositor(crvDepositor).depositFor(msg.sender, userStake, true, address(0));
@@ -212,12 +212,7 @@ contract PrelaunchRewardsPool {
         _withdraw(_balances[msg.sender]);
     }
 
-    function _withdraw(uint256 amount)
-        internal
-        updateReward(msg.sender)
-        onlyAfterDate(START_WITHDRAWALS)
-        returns (bool)
-    {
+    function _withdraw(uint256 amount) internal updateReward(msg.sender) onlyAfterDate(START_WITHDRAWALS) {
         require(crvDepositor == address(0), "Target address is set");
         require(amount > 0, "Cannot withdraw 0");
 
@@ -233,8 +228,6 @@ contract PrelaunchRewardsPool {
         emit Withdrawn(msg.sender, amount);
 
         emit Transfer(msg.sender, address(0), amount);
-
-        return true;
     }
 
     // ----- Vesting Functions ----- //
@@ -307,7 +300,7 @@ contract PrelaunchRewardsPool {
 
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external {
         require(msg.sender == owner, "!auth");
-        require(tokenAddress != address(stakingToken) || tokenAddress != address(rewardToken), "Not valid token");
+        require(tokenAddress != address(stakingToken) && tokenAddress != address(rewardToken), "Not valid token");
         IERC20(tokenAddress).safeTransfer(owner, tokenAmount);
 
         emit Recovered(tokenAddress, tokenAmount);
