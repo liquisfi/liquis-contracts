@@ -62,9 +62,11 @@ contract PrelaunchRewardsPool {
     event RewardsDistributorUpdated(address indexed newRewardDistributor);
 
     /**
-     * @dev This is called directly from RewardFactory
+     * @dev Initializes variables, approves lit and sets target dates.
      * @param stakingToken_  BPT token BAL 20-80 WETH/LIT
      * @param rewardToken_   LIQ
+     * @param litConvertor_  Contract that converts LIT into BPT
+     * @param lit_           LIT
      */
     constructor(
         address stakingToken_,
@@ -186,6 +188,7 @@ contract PrelaunchRewardsPool {
 
     /**
      * @dev Called by a staker to convert all their staked BPT balance to liqLIT (if target address set)
+     * Note crvDepositor address should be populated after rewards have ended
      */
     function convertStakeToLiqLit() external updateReward(msg.sender) onlyIfAddressExists(crvDepositor) {
         uint256 userStake = balanceOf(msg.sender);
@@ -333,7 +336,7 @@ contract PrelaunchRewardsPool {
     /**
      * @dev Allows the owner to pull the renounced balances from people that withdrew
      */
-    function recoverRenouncedLiq() external onlyAfterDate(START_WITHDRAWALS) {
+    function recoverRenouncedLiq() external {
         require(msg.sender == owner, "!auth");
         uint256 _totalRenounced = totalRenounced;
 
