@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-0.8/utils/Address.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 
 import { IBooster } from "../interfaces/IBooster.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IBaseRewardPool } from "../interfaces/IBaseRewardPool.sol";
 import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
 import { IBalancerVault, IAsset, IBalancerTwapOracle } from "../interfaces/balancer/BalancerV2.sol";
@@ -125,6 +126,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
     address public immutable liqLit;
     address public immutable crvDepositorWrapper;
     address public immutable lockerRewards;
+    address public immutable liqLocker;
 
     address public immutable balVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
     address public immutable lit = 0xfd0205066521550D7d7AB19DA8F72bb004b4C341;
@@ -161,17 +163,20 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _operator Booster main deposit contract; keeps track of pool info & user deposits; distributes rewards.
      * @param _crvDepositorWrapper Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor.
      * @param _lockerRewards BaseRewardPool where staking token is liqLIT
+     * @param _liqLocker LiqLocker contract address
      */
     constructor(
         address _liqLit,
         address _operator,
         address _crvDepositorWrapper,
-        address _lockerRewards
+        address _lockerRewards,
+        address _liqLocker
     ) {
         liqLit = _liqLit;
         operator = _operator;
         crvDepositorWrapper = _crvDepositorWrapper;
         lockerRewards = _lockerRewards;
+        liqLocker = _liqLocker;
 
         owner = msg.sender;
 
@@ -217,10 +222,19 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
     /**
      * @notice User claims their olit from liqLit staking, converts into lit and sends it back to the user
+     * @param _option Option == 1 claim from liqLit staking, 2 claim from liqLocker, anything else claim from both
      */
-    function claimAndExerciseLocker() external {
-        // claim all the rewards, only olit is sent here, the rest directly to sender
-        uint256 olitAmount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+    function claimAndExercise(uint8 _option) external {
+        uint256 olitAmount = 0;
+
+        if (_option == 1) {
+            olitAmount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        } else if (_option == 2) {
+            olitAmount = ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        } else {
+            olitAmount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+            olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        }
 
         _exerciseOptions(olitAmount);
 
@@ -231,9 +245,14 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
     /**
      * @notice User claims their olit from different pools, converts into lit and sends it back to the user
      * @param _pids Booster pools ids array to claim rewards from
-     * @param _locker Boolean that indicates if the user is staking in lockerRewards
+     * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
+     * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      */
-    function claimAndExerciseMultiple(uint256[] memory _pids, bool _locker) external {
+    function claimAndExerciseMultiple(
+        uint256[] memory _pids,
+        bool _locker,
+        bool _liqLocker
+    ) external {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _pids.length; i++) {
             IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
@@ -243,6 +262,10 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
         if (_locker) {
             olitAmount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_liqLocker) {
+            olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
         _exerciseOptions(olitAmount);
@@ -262,9 +285,23 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
      * @notice User claims their olit from liqLit staking, converts into liqLit and sends it back to the user
      * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
      * @param _stake Stake liqLit into the liqLit staking rewards pool
+     * @param _option Option == 1 claim from liqLit staking, 2 claim from liqLocker, anything else claim from both
      */
-    function claimAndLockLocker(uint256 _outputBps, bool _stake) external {
-        uint256 olitAmount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+    function claimAndLock(
+        uint256 _outputBps,
+        bool _stake,
+        uint8 _option
+    ) external {
+        uint256 olitAmount = 0;
+
+        if (_option == 1) {
+            olitAmount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        } else if (_option == 2) {
+            olitAmount = ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        } else {
+            olitAmount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+            olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        }
 
         _exerciseOptions(olitAmount);
 
@@ -275,13 +312,15 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
     /**
      * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
      * @param _pids Booster pools ids array to claim rewards from
-     * @param _locker Boolean that indicates if the user is staking in lockerRewards
+     * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
+     * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
      * @param _stake Stake liqLit into the liqLit staking rewards pool
      */
     function claimAndLockMultiple(
         uint256[] memory _pids,
         bool _locker,
+        bool _liqLocker,
         uint256 _outputBps,
         bool _stake
     ) external {
@@ -293,6 +332,10 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
         if (_locker) {
             olitAmount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_liqLocker) {
+            olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
         _exerciseOptions(olitAmount);
