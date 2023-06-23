@@ -559,7 +559,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            await optionsExerciser.claimAndExerciseMultiple([0], true);
+            await optionsExerciser.claimAndExerciseMultiple([0], true, false);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -591,7 +591,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            await optionsExerciser.claimAndLockMultiple([0], true, 9800, false);
+            await optionsExerciser.claimAndLockMultiple([0], true, false, 9800, false);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -626,7 +626,7 @@ describe("Booster", () => {
 
             await cvxCrvRewards.connect(olitWhale).modifyPermission(optionsExerciser.address, true);
 
-            await optionsExerciser.connect(olitWhale).claimAndLockLocker(9900, true);
+            await optionsExerciser.connect(olitWhale).claimAndLock(9900, true, 1);
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -665,7 +665,7 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            await optionsExerciser.connect(alice).claimAndLockMultiple([0, 1], false, 9800, false);
+            await optionsExerciser.connect(alice).claimAndLockMultiple([0, 1], false, false, 9800, false);
 
             const liqLitAliceBalAfter = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalAfter: ", liqLitAliceBalAfter.toString());
@@ -699,7 +699,7 @@ describe("Booster", () => {
             const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
             expect(earnedOLitInLiqLitRewards).gt(ZERO);
 
-            await optionsExerciser.connect(olitWhale).claimAndExerciseLocker();
+            await optionsExerciser.connect(olitWhale).claimAndExercise(1);
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -743,7 +743,7 @@ describe("Booster", () => {
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
 
-            await optionsExerciser.connect(alice).claimAndExerciseMultiple([0, 1], true);
+            await optionsExerciser.connect(alice).claimAndExerciseMultiple([0, 1], true, false);
 
             const oLitEarnedAliceInLiqLitPoolAfter = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolAfter).lt(oLitEarnedAliceInLiqLitPoolBefore);
