@@ -8,6 +8,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts-0.8/security/Reentrancy
 import { AuraMath, AuraMath32, AuraMath112, AuraMath224 } from "../utils/AuraMath.sol";
 import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IRewardStaking } from "../interfaces/IRewardStaking.sol";
+import { Permission } from "../utils/Permission.sol";
 
 /**
  * @title   LiqLocker
@@ -17,7 +18,7 @@ import { IRewardStaking } from "../interfaces/IRewardStaking.sol";
  *          to depositors.
  * @dev     Individual and delegatee vote power lookups both use independent accounting mechanisms.
  */
-contract LiqLocker is ReentrancyGuard, Ownable, ILiqLocker {
+contract LiqLocker is ReentrancyGuard, Ownable, Permission, ILiqLocker {
     using AuraMath for uint256;
     using AuraMath224 for uint224;
     using AuraMath112 for uint112;
@@ -105,6 +106,8 @@ contract LiqLocker is ReentrancyGuard, Ownable, ILiqLocker {
     uint256 public constant denominator = 10000;
     //     Staking cvxCrv
     address public immutable cvxcrvStaking;
+    //     olit address
+    address public immutable olit;
     //     Incentives
     uint256 public kickRewardPerEpoch = 100;
     uint256 public kickRewardEpochDelay = 3;
@@ -142,13 +145,15 @@ contract LiqLocker is ReentrancyGuard, Ownable, ILiqLocker {
      * @param _stakingToken     CVX (0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B)
      * @param _cvxCrv           cvxCRV (0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7)
      * @param _cvxCrvStaking    cvxCRV rewards (0x3Fe65692bfCD0e6CF84cB1E7d24108E434A7587e)
+     * @param _olit             olit token (0x627fee87d0D9D2c55098A06ac805Db8F98B158Aa)
      */
     constructor(
         string memory _nameArg,
         string memory _symbolArg,
         address _stakingToken,
         address _cvxCrv,
-        address _cvxCrvStaking
+        address _cvxCrvStaking,
+        address _olit
     ) Ownable() {
         _name = _nameArg;
         _symbol = _symbolArg;
@@ -157,6 +162,7 @@ contract LiqLocker is ReentrancyGuard, Ownable, ILiqLocker {
         stakingToken = IERC20(_stakingToken);
         cvxCrv = _cvxCrv;
         cvxcrvStaking = _cvxCrvStaking;
+        olit = _olit;
 
         uint256 currentEpoch = block.timestamp.div(rewardsDuration).mul(rewardsDuration);
         epochs.push(Epoch({ supply: 0, date: uint32(currentEpoch) }));
@@ -351,6 +357,31 @@ contract LiqLocker is ReentrancyGuard, Ownable, ILiqLocker {
             if (reward > 0) {
                 userData[_account][_rewardsToken].rewards = 0;
                 IERC20(_rewardsToken).safeTransfer(_account, reward);
+                emit RewardPaid(_account, _rewardsToken, reward);
+            }
+        }
+    }
+
+    /**
+     * @dev Sends oLIT to OptionsExerciser for converting it to LIT or liqLit, LIQ and extra rewards are sent to the user
+     * @param _account      Account for which to claim
+     * @return rewardAmount oLIT amount claimed as reward
+     */
+    function getRewardFor(address _account) public nonReentrant updateReward(_account) returns (uint256 rewardAmount) {
+        require(hasPermission(_account, msg.sender), "permission not granted");
+
+        uint256 rewardTokensLength = rewardTokens.length;
+        for (uint256 i; i < rewardTokensLength; i++) {
+            address _rewardsToken = rewardTokens[i];
+            uint256 reward = userData[_account][_rewardsToken].rewards;
+            if (reward > 0) {
+                userData[_account][_rewardsToken].rewards = 0;
+                if (_rewardsToken == olit) {
+                    IERC20(_rewardsToken).safeTransfer(msg.sender, reward);
+                    rewardAmount = reward; // return oLIT amount claimed
+                } else {
+                    IERC20(_rewardsToken).safeTransfer(_account, reward);
+                }
                 emit RewardPaid(_account, _rewardsToken, reward);
             }
         }

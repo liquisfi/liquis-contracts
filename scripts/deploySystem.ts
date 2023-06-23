@@ -560,7 +560,7 @@ async function deployPhase2(
         hre,
         new LiqLocker__factory(deployer),
         "LiqLocker",
-        [naming.vlCvxName, naming.vlCvxSymbol, cvx.address, cvxCrv.address, cvxCrvRewards.address],
+        [naming.vlCvxName, naming.vlCvxSymbol, cvx.address, cvxCrv.address, cvxCrvRewards.address, token],
         {},
         debug,
         waitForBlocks,
