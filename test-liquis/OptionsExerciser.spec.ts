@@ -513,6 +513,40 @@ describe("Booster", () => {
             expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
         });
 
+        it("exerciseAndLock function works with 200k oLIT", async () => {
+            const olitWhaleBalBefore = await olit.balanceOf(olitHolderAddress);
+            const liqLitWhaleBalBefore = await cvxCrv.balanceOf(olitHolderAddress);
+
+            const stakingBalBefore = await cvxCrvRewards.balanceOf(olitHolderAddress);
+            console.log("stakingBalBefore: ", stakingBalBefore.toString());
+
+            await impersonateAccount(olitHolderAddress, true);
+            const olitWhale = await ethers.getSigner(olitHolderAddress);
+
+            await olit.connect(olitWhale).approve(optionsExerciser.address, e18.mul(200000));
+            await optionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(200000), 9800, true);
+
+            const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
+            const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
+
+            expect(olitWhaleBalAfter).lt(olitWhaleBalBefore);
+            expect(liqLitWhaleBalAfter).eq(liqLitWhaleBalBefore);
+
+            const stakingBalAfter = await cvxCrvRewards.balanceOf(olitHolderAddress);
+            expect(stakingBalAfter.sub(stakingBalBefore)).gt(ZERO); // staking bal increases
+            console.log("stakingBalAfter: ", stakingBalAfter.toString());
+
+            // Check that no funds are left in the contract
+            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
+            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            expect(litContractBalAfter).eq(ZERO);
+            expect(olitContractBalAfter).eq(ZERO);
+            expect(liqLitContractBalAfter).eq(ZERO);
+
+            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+        });
+
         it("claimAndExercise function works properly, lit balance increases", async () => {
             await increaseTime(60 * 60 * 24 * 1);
             await booster.connect(bob).earmarkRewards(0);
@@ -630,9 +664,9 @@ describe("Booster", () => {
 
             await expect(optionsExerciser.connect(randomUser).setOwner(randomUserAddress)).to.be.revertedWith("!auth");
             await expect(optionsExerciser.connect(randomUser).setOracleParams(100, 10)).to.be.revertedWith("!auth");
-            await expect(
-                optionsExerciser.connect(randomUser).setOperationalParams(1000, 100, "0x00"),
-            ).to.be.revertedWith("!auth");
+            await expect(optionsExerciser.connect(randomUser).setOperationalParams(1000, 10)).to.be.revertedWith(
+                "!auth",
+            );
         });
 
         it("random user has no permission in BaseRewardPools", async () => {

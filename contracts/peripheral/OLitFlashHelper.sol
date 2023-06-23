@@ -137,7 +137,6 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
     uint256 public secs;
     uint256 public ago;
     uint256 public maxSlippage;
-    uint256 public maxDelta;
     uint16 internal referralCode; // Aave referral code
 
     uint256 public constant basisOne = 10000;
@@ -155,7 +154,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
     event OwnerUpdated(address newOwner);
     event SetParams(uint256 secs, uint256 ago);
-    event SetOperationalParams(uint256 maxSlippage, uint256 maxDelta);
+    event SetOperationalParams(uint256 maxSlippage, uint16 referralCode);
 
     /**
      * @param _liqLit ERC20 token minted when locking LIT to veLIT in VoterProxy through crvDepositor.
@@ -178,8 +177,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
         secs = 1800;
         ago = 0;
-        maxSlippage = 1000;
-        maxDelta = 100;
+        maxSlippage = 500;
 
         IERC20(weth).safeApprove(olit, type(uint256).max);
         IERC20(lit).safeApprove(balVault, type(uint256).max);
@@ -374,9 +372,8 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
     function _exerciseOptions(uint256 _olitAmount) internal {
         if (_olitAmount == 0) return;
 
-        // amount of weth needed to process the olit
-        uint256 maxPaymentAmount = _olitAmount.mul(IOracle(olitOracle).getPrice()).div(1e18);
-        uint256 amount = maxPaymentAmount.mul(basisOne.add(maxDelta)).div(basisOne);
+        // amount of weth needed to process the olit, rounded up
+        uint256 amount = (_olitAmount * IOracle(olitOracle).getPrice()) / 1e18 + 1;
 
         // encode _olitAmount to avoid an extra balanceOf call in next function
         bytes memory userData = abi.encode(_olitAmount);
@@ -448,18 +445,12 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
     /**
      * @param _maxSlippage Max slippage allowed in Balancer swap.
-     * @param _maxDelta Extra amount borrowed in order to exercise oLIT.
      * @param _referralCode The referral code for Aave Protocol.
      */
-    function setOperationalParams(
-        uint256 _maxSlippage,
-        uint256 _maxDelta,
-        uint16 _referralCode
-    ) external {
+    function setOperationalParams(uint256 _maxSlippage, uint16 _referralCode) external {
         require(msg.sender == owner, "!auth");
         maxSlippage = _maxSlippage;
-        maxDelta = _maxDelta;
         referralCode = _referralCode;
-        emit SetOperationalParams(_maxSlippage, _maxDelta);
+        emit SetOperationalParams(_maxSlippage, _referralCode);
     }
 }
