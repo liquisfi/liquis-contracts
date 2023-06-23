@@ -17,4 +17,6 @@ interface ILiqLocker {
     function getReward(address _account, bool _stake) external;
 
     function getReward(address _account) external;
+
+    function getRewardFor(address _account) external returns (uint256 rewardAmount);
 }

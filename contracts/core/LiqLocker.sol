@@ -367,7 +367,12 @@ contract LiqLocker is ReentrancyGuard, Ownable, Permission, ILiqLocker {
      * @param _account      Account for which to claim
      * @return rewardAmount oLIT amount claimed as reward
      */
-    function getRewardFor(address _account) public nonReentrant updateReward(_account) returns (uint256 rewardAmount) {
+    function getRewardFor(address _account)
+        external
+        nonReentrant
+        updateReward(_account)
+        returns (uint256 rewardAmount)
+    {
         require(hasPermission(_account, msg.sender), "permission not granted");
 
         uint256 rewardTokensLength = rewardTokens.length;
