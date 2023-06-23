@@ -28,7 +28,20 @@ task("deploy:voterProxy:mainnet").setAction(async function (_: TaskArguments, hr
     // ~~~~~~~~~~~~~~~
 
     const phase1 = await deployPhase1(hre, deployer, config.addresses, false, true /*, 3 */);
+
+    console.log("PersistArtifacts VoterProxy (deployed at " + phase1.voterProxy.address + ")");
+
+    await hre.tenderly.persistArtifacts({
+        name: "VoterProxy",
+        address: phase1.voterProxy.address,
+    });
+
     logContracts(phase1 as unknown as { [key: string]: { address: string } });
+
+    await hre.tenderly.verify({
+        name: "VoterProxy",
+        address: phase1.voterProxy.address,
+    });
 });
 
 task("deploy:prelaunch:mainnet").setAction(async function (_: TaskArguments, hre) {

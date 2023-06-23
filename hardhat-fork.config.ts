@@ -22,9 +22,14 @@ export default {
             timeout: 1000 * 60,
         },
         tenderly: {
-            // tenderly network used for running tests
+            // tenderly fork
             chainId: Number.parseInt(process.env.TENDERLY_FORK_CHAINID || "SET ME"),
             url: process.env.TENDERLY_FORK_URL || "SET ME",
+        },
+        devnet: {
+            // tenderly devnet
+            chainId: Number.parseInt(process.env.TENDERLY_FORK_CHAINID || "SET ME"),
+            url: process.env.DEVNET_RPC_URL || "SET ME",
         },
     },
     mocha: {
