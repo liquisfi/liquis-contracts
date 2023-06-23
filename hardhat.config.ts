@@ -9,7 +9,7 @@ import "./tasks/coverage";
 import "solidity-docgen";
 import * as tenderly from "@tenderly/hardhat-tenderly";
 
-tenderly.setup({ automaticVerifications: true });
+tenderly.setup({ automaticVerifications: false });
 
 import { resolve } from "path";
 
