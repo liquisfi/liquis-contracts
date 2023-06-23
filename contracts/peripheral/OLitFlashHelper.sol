@@ -124,6 +124,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
     address public immutable operator;
     address public immutable liqLit;
     address public immutable crvDepositorWrapper;
+    address public immutable lockerRewards;
 
     address public immutable balVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
     address public immutable lit = 0xfd0205066521550D7d7AB19DA8F72bb004b4C341;
@@ -160,15 +161,18 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _liqLit ERC20 token minted when locking LIT to veLIT in VoterProxy through crvDepositor.
      * @param _operator Booster main deposit contract; keeps track of pool info & user deposits; distributes rewards.
      * @param _crvDepositorWrapper Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor.
+     * @param _lockerRewards BaseRewardPool where staking token is liqLIT
      */
     constructor(
         address _liqLit,
         address _operator,
-        address _crvDepositorWrapper
+        address _crvDepositorWrapper,
+        address _lockerRewards
     ) {
         liqLit = _liqLit;
         operator = _operator;
         crvDepositorWrapper = _crvDepositorWrapper;
+        lockerRewards = _lockerRewards;
 
         owner = msg.sender;
 
@@ -196,23 +200,28 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
     }
 
     /**
-     * @notice User converts their olit into liqLit and sends it back to the user
+     * @notice User converts their olit into liqLit, sends it back to the user or stakes it in liqLit staking
      * @param _outputBps Multiplier where 100% == 10000, 99.5% == 9950 and 98% == 9800
+     * @param _stake Stake liqLit into the liqLit staking rewards pool
      */
-    function exerciseAndLock(uint256 _amount, uint256 _outputBps) external {
+    function exerciseAndLock(
+        uint256 _amount,
+        uint256 _outputBps,
+        bool _stake
+    ) external {
         IERC20(olit).safeTransferFrom(msg.sender, address(this), _amount);
 
         _exerciseOptions(_amount);
 
-        // convert lit to liqLit and send it to sender
-        _convertLitToLiqLit(_outputBps);
+        // convert lit to liqLit, send it to sender or stake it in liqLit staking
+        _convertLitToLiqLit(_outputBps, _stake);
     }
 
     /**
      * @notice User claims their olit from pool, converts into lit and sends it back to the user
-     * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
+     * @param _pid Id of the Booster pool to claim rewards from
      */
-    function claimAndExercise(uint256 _pid, uint256 _outputBps) external {
+    function claimAndExercise(uint256 _pid) external {
         IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pid);
         // claim all the rewards, only olit is sent here, the rest directly to sender
         uint256 olitAmount = IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
@@ -220,6 +229,46 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
         _exerciseOptions(olitAmount);
 
         // send lit to sender
+        _transferLitToSender();
+    }
+
+    /**
+     * @notice User claims their olit from liqLit staking, converts into lit and sends it back to the user
+     */
+    function claimAndExerciseLocker() external {
+        // claim all the rewards, only olit is sent here, the rest directly to sender
+        uint256 olitAmount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+
+        _exerciseOptions(olitAmount);
+
+        // send lit to sender
+        _transferLitToSender();
+    }
+
+    /**
+     * @notice User claims their olit from different pools, converts into lit and sends it back to the user
+     * @param _pids Booster pools ids array to claim rewards from
+     * @param _locker Boolean that indicates if the user is staking in lockerRewards
+     */
+    function claimAndExerciseMultiple(uint256[] memory _pids, bool _locker) external {
+        uint256 olitAmount = 0;
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+            // claim all the rewards, only olit is sent here, the rest directly to sender
+            olitAmount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_locker) {
+            olitAmount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        }
+
+        _exerciseOptions(olitAmount);
+
+        // send lit to sender
+        _transferLitToSender();
+    }
+
+    function _transferLitToSender() internal {
         uint256 litBal = IERC20(lit).balanceOf(address(this));
         if (litBal > 0) {
             IERC20(lit).safeTransfer(msg.sender, litBal);
@@ -228,23 +277,74 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
     /**
      * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
+     * @param _pid Id of the Booster pool to claim rewards from
      * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
+     * @param _stake Stake liqLit into the liqLit staking rewards pool
      */
-    function claimAndLock(uint256 _pid, uint256 _outputBps) external {
+    function claimAndLock(
+        uint256 _pid,
+        uint256 _outputBps,
+        bool _stake
+    ) external {
         IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pid);
         uint256 olitAmount = IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
 
         _exerciseOptions(olitAmount);
 
-        // convert lit to liqLit and send it to sender
-        _convertLitToLiqLit(_outputBps);
+        // convert lit to liqLit, send it to sender or stake it in liqLit staking
+        _convertLitToLiqLit(_outputBps, _stake);
     }
 
-    function _convertLitToLiqLit(uint256 _outputBps) internal {
+    /**
+     * @notice User claims their olit from liqLit staking, converts into liqLit and sends it back to the user
+     * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
+     * @param _stake Stake liqLit into the liqLit staking rewards pool
+     */
+    function claimAndLockLocker(uint256 _outputBps, bool _stake) external {
+        uint256 olitAmount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+
+        _exerciseOptions(olitAmount);
+
+        // convert lit to liqLit, send it to sender or stake it in liqLit staking
+        _convertLitToLiqLit(_outputBps, _stake);
+    }
+
+    /**
+     * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
+     * @param _pids Booster pools ids array to claim rewards from
+     * @param _locker Boolean that indicates if the user is staking in lockerRewards
+     * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
+     * @param _stake Stake liqLit into the liqLit staking rewards pool
+     */
+    function claimAndLockMultiple(
+        uint256[] memory _pids,
+        bool _locker,
+        uint256 _outputBps,
+        bool _stake
+    ) external {
+        uint256 olitAmount = 0;
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+            olitAmount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_locker) {
+            olitAmount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        }
+
+        _exerciseOptions(olitAmount);
+
+        // convert lit to liqLit, send it to sender or stake it in liqLit staking
+        _convertLitToLiqLit(_outputBps, _stake);
+    }
+
+    function _convertLitToLiqLit(uint256 _outputBps, bool _stake) internal {
         uint256 litBal = IERC20(lit).balanceOf(address(this));
         if (litBal > 0) {
             uint256 minOut = ICrvDepositorWrapper(crvDepositorWrapper).getMinOut(litBal, _outputBps);
-            ICrvDepositorWrapper(crvDepositorWrapper).depositFor(msg.sender, litBal, minOut, true, address(0));
+            _stake == true
+                ? ICrvDepositorWrapper(crvDepositorWrapper).depositFor(msg.sender, litBal, minOut, true, lockerRewards)
+                : ICrvDepositorWrapper(crvDepositorWrapper).depositFor(msg.sender, litBal, minOut, true, address(0));
         }
     }
 

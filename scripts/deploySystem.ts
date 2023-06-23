@@ -583,7 +583,7 @@ async function deployPhase2(
             hre,
             new OptionsExerciser__factory(deployer),
             "OptionsExerciser",
-            [cvxCrv.address, booster.address, crvDepositorWrapper.address],
+            [cvxCrv.address, booster.address, crvDepositorWrapper.address, cvxCrvRewards.address],
             {},
             debug,
             waitForBlocks,
