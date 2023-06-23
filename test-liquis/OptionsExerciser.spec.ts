@@ -314,7 +314,8 @@ describe("Booster", () => {
         console.log("deployerRewardPool1TokenBalance: ", (await rewardPool1.balanceOf(deployerAddress)).toString());
         console.log("totalSupplyRewardPool1: ", (await rewardPool1.totalSupply()).toString());
 
-        // allow optionsExerciser permissions in rewardPool2
+        // allow optionsExerciser permissions in rewardPools
+        tx = await cvxCrvRewards.modifyPermission(optionsExerciser.address, true);
         tx = await rewardPool1.modifyPermission(optionsExerciser.address, true);
         await waitForTx(tx, debug, waitForBlocks);
 
@@ -346,6 +347,7 @@ describe("Booster", () => {
         // allow optionsExerciser permissions in rewardPools
         tx = await rewardPool1.connect(alice).modifyPermission(optionsExerciser.address, true);
         tx = await rewardPool2.connect(alice).modifyPermission(optionsExerciser.address, true);
+        tx = await cvxCrvRewards.connect(alice).modifyPermission(optionsExerciser.address, true);
         await waitForTx(tx, debug, waitForBlocks);
 
         await booster.connect(bob).earmarkRewards(0); // Bob will receive some tokens for being the caller
@@ -557,7 +559,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            await optionsExerciser.claimAndExercise(0);
+            await optionsExerciser.claimAndExerciseMultiple([0], true);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -589,7 +591,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            await optionsExerciser.claimAndLock(0, 9800, false);
+            await optionsExerciser.claimAndLockMultiple([0], true, 9800, false);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -609,7 +611,45 @@ describe("Booster", () => {
             expect(liqLitContractBalAfter).eq(ZERO);
         });
 
-        it("claimAndLockMultiple function works properly, locker false", async () => {
+        it("whale claimAndLockLocker from liqLit staking rewards pool", async () => {
+            const olitWhaleBalBefore = await olit.balanceOf(olitHolderAddress);
+            const liqLitWhaleBalBefore = await cvxCrv.balanceOf(olitHolderAddress);
+
+            const stakingBalBefore = await cvxCrvRewards.balanceOf(olitHolderAddress);
+            console.log("stakingBalBefore: ", stakingBalBefore.toString());
+
+            await impersonateAccount(olitHolderAddress, true);
+            const olitWhale = await ethers.getSigner(olitHolderAddress);
+
+            const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
+            expect(earnedOLitInLiqLitRewards).gt(ZERO);
+
+            await cvxCrvRewards.connect(olitWhale).modifyPermission(optionsExerciser.address, true);
+
+            await optionsExerciser.connect(olitWhale).claimAndLockLocker(9900, true);
+
+            const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
+            const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
+
+            expect(olitWhaleBalAfter).eq(olitWhaleBalBefore);
+            expect(liqLitWhaleBalAfter).eq(liqLitWhaleBalBefore);
+
+            const stakingBalAfter = await cvxCrvRewards.balanceOf(olitHolderAddress);
+            expect(stakingBalAfter.sub(stakingBalBefore)).gt(ZERO); // staking bal increases
+            console.log("stakingBalAfter: ", stakingBalAfter.toString());
+
+            // Check that no funds are left in the contract
+            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
+            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            expect(litContractBalAfter).eq(ZERO);
+            expect(olitContractBalAfter).eq(ZERO);
+            expect(liqLitContractBalAfter).eq(ZERO);
+
+            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+        });
+
+        it("claimAndLockMultiple function works properly for 2 pools, locker false", async () => {
             await increaseTime(60 * 60 * 24 * 1);
             await booster.connect(bob).earmarkRewards(0);
             await booster.connect(bob).earmarkRewards(1);
@@ -631,6 +671,88 @@ describe("Booster", () => {
             console.log("liqLitAliceBalAfter: ", liqLitAliceBalAfter.toString());
 
             expect(liqLitAliceBalAfter).gt(liqLitAliceBalBefore);
+
+            // Check that no funds are left in the contract
+            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
+            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            expect(litContractBalAfter).eq(ZERO);
+            expect(olitContractBalAfter).eq(ZERO);
+            expect(liqLitContractBalAfter).eq(ZERO);
+
+            const liqLitAliceBal = await cvxCrv.balanceOf(aliceAddress);
+            await cvxCrv.connect(alice).approve(cvxCrvRewards.address, liqLitAliceBal);
+            await cvxCrvRewards.connect(alice).stakeAll();
+        });
+
+        it("whale claimAndExerciseLocker from liqLit staking rewards pool", async () => {
+            const olitWhaleBalBefore = await olit.balanceOf(olitHolderAddress);
+            const litWhaleBalBefore = await lit.balanceOf(olitHolderAddress);
+            const liqLitWhaleBalBefore = await cvxCrv.balanceOf(olitHolderAddress);
+            console.log("litWhaleBalBefore: ", litWhaleBalBefore.toString());
+
+            const stakingBalBefore = await cvxCrvRewards.balanceOf(olitHolderAddress);
+
+            await impersonateAccount(olitHolderAddress, true);
+            const olitWhale = await ethers.getSigner(olitHolderAddress);
+
+            const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
+            expect(earnedOLitInLiqLitRewards).gt(ZERO);
+
+            await optionsExerciser.connect(olitWhale).claimAndExerciseLocker();
+
+            const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
+            const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
+            const litWhaleBalAfter = await lit.balanceOf(olitHolderAddress);
+
+            expect(olitWhaleBalAfter).eq(olitWhaleBalBefore);
+            expect(litWhaleBalAfter).gt(litWhaleBalBefore);
+            expect(liqLitWhaleBalAfter).eq(liqLitWhaleBalBefore);
+
+            const stakingBalAfter = await cvxCrvRewards.balanceOf(olitHolderAddress);
+            expect(stakingBalAfter.sub(stakingBalBefore)).eq(ZERO); // staking bal constant
+            console.log("litWhaleBalAfter: ", litWhaleBalAfter.toString());
+
+            // Check that no funds are left in the contract
+            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
+            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            expect(litContractBalAfter).eq(ZERO);
+            expect(olitContractBalAfter).eq(ZERO);
+            expect(liqLitContractBalAfter).eq(ZERO);
+
+            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+        });
+
+        it("claimAndExerciseMultiple function works properly for 2 pools, locker false", async () => {
+            await increaseTime(60 * 60 * 24 * 1);
+            await booster.connect(bob).earmarkRewards(0);
+            await booster.connect(bob).earmarkRewards(1);
+            await increaseTime(60 * 60 * 24 * 1);
+
+            const earnedAlice0 = await rewardPool1.earned(aliceAddress);
+            const earnedAlice1 = await rewardPool2.earned(aliceAddress);
+
+            // Alice has rewards from both pools
+            expect(earnedAlice0).gt(ZERO);
+            expect(earnedAlice1).gt(ZERO);
+
+            const litAliceBalBefore = await lit.balanceOf(aliceAddress);
+            console.log("litAliceBalBefore: ", litAliceBalBefore.toString());
+
+            const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
+            expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
+
+            await optionsExerciser.connect(alice).claimAndExerciseMultiple([0, 1], true);
+
+            const oLitEarnedAliceInLiqLitPoolAfter = await cvxCrvRewards.earned(aliceAddress);
+            expect(oLitEarnedAliceInLiqLitPoolAfter).lt(oLitEarnedAliceInLiqLitPoolBefore);
+            expect(oLitEarnedAliceInLiqLitPoolAfter).lt(e15); // rewards dust due to block mining with tx
+
+            const litAliceBalAfter = await lit.balanceOf(aliceAddress);
+            console.log("litAliceBalAfter: ", litAliceBalAfter.toString());
+
+            expect(litAliceBalAfter).gt(litAliceBalBefore);
 
             // Check that no funds are left in the contract
             const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
