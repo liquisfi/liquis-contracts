@@ -177,7 +177,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
         secs = 1800;
         ago = 0;
-        maxSlippage = 500;
+        maxSlippage = 300;
 
         IERC20(weth).safeApprove(olit, type(uint256).max);
         IERC20(lit).safeApprove(balVault, type(uint256).max);
@@ -213,21 +213,6 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
         _convertLitToLiqLit(_outputBps, _stake);
-    }
-
-    /**
-     * @notice User claims their olit from pool, converts into lit and sends it back to the user
-     * @param _pid Id of the Booster pool to claim rewards from
-     */
-    function claimAndExercise(uint256 _pid) external {
-        IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pid);
-        // claim all the rewards, only olit is sent here, the rest directly to sender
-        uint256 olitAmount = IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
-
-        _exerciseOptions(olitAmount);
-
-        // send lit to sender
-        _transferLitToSender();
     }
 
     /**
@@ -271,26 +256,6 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
         if (litBal > 0) {
             IERC20(lit).safeTransfer(msg.sender, litBal);
         }
-    }
-
-    /**
-     * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
-     * @param _pid Id of the Booster pool to claim rewards from
-     * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
-     * @param _stake Stake liqLit into the liqLit staking rewards pool
-     */
-    function claimAndLock(
-        uint256 _pid,
-        uint256 _outputBps,
-        bool _stake
-    ) external {
-        IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pid);
-        uint256 olitAmount = IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
-
-        _exerciseOptions(olitAmount);
-
-        // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        _convertLitToLiqLit(_outputBps, _stake);
     }
 
     /**
