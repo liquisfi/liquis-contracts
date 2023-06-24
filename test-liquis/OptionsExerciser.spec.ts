@@ -802,5 +802,67 @@ describe("Booster", () => {
             assert.isFalse(hasPermission1);
             assert.isFalse(hasPermission2);
         });
+
+        it("users that lock earned oLIT in LiqLocker", async () => {
+            const accounts = await ethers.getSigners();
+            const randomUser = accounts[14];
+            const randomUserAddress = await randomUser.getAddress();
+
+            const randomUserEarnedOLit = await cvxLocker.claimableRewards(randomUserAddress);
+            expect(randomUserEarnedOLit[0].amount).eq(ZERO);
+            expect(randomUserEarnedOLit[0].token).eq(olitAddress);
+
+            const deployerEarnedOLit = await cvxLocker.claimableRewards(deployerAddress);
+            expect(deployerEarnedOLit[0].amount).gt(ZERO);
+
+            const aliceEarnedOLit = await cvxLocker.claimableRewards(aliceAddress);
+            expect(aliceEarnedOLit[0].amount).gt(ZERO);
+        });
+
+        it("users have no permission in LiqLocker", async () => {
+            const hasPermission1 = await cvxLocker.hasPermission(deployerAddress, optionsExerciser.address);
+            const hasPermission2 = await cvxLocker.hasPermission(aliceAddress, optionsExerciser.address);
+
+            assert.isFalse(hasPermission1);
+            assert.isFalse(hasPermission2);
+
+            await expect(optionsExerciser.connect(alice).claimAndExercise(2)).to.be.revertedWith(
+                "permission not granted",
+            );
+            await expect(optionsExerciser.claimAndExercise(2)).to.be.revertedWith("permission not granted");
+
+            // Modify permissions for next test
+            await cvxLocker.connect(alice).modifyPermission(optionsExerciser.address, true);
+            await cvxLocker.modifyPermission(optionsExerciser.address, true);
+        });
+
+        it("claimAndExercise for LiqLocker function works properly, lit balance increases", async () => {
+            const deployerEarnedOLit = await cvxLocker.claimableRewards(deployerAddress);
+            expect(deployerEarnedOLit[0].amount).gt(ZERO);
+
+            const litDeployerBalBefore = await lit.balanceOf(deployerAddress);
+            const olitDeployerBalBefore = await olit.balanceOf(deployerAddress);
+            const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
+            console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
+
+            await optionsExerciser.claimAndExercise(2);
+
+            const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
+            const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
+            const liqLitDeployerBalAfter = await cvxCrv.balanceOf(deployerAddress);
+            console.log("litDeployerBalAfter: ", litDeployerBalAfter.toString());
+
+            expect(litDeployerBalAfter).gt(litDeployerBalBefore);
+            expect(olitDeployerBalAfter).eq(olitDeployerBalBefore);
+            expect(liqLitDeployerBalAfter).eq(liqLitDeployerBalBefore);
+
+            // Check that no funds are left in the contract
+            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
+            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            expect(litContractBalAfter).eq(ZERO);
+            expect(olitContractBalAfter).eq(ZERO);
+            expect(liqLitContractBalAfter).eq(ZERO);
+        });
     });
 });
