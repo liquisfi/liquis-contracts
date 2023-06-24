@@ -11,14 +11,14 @@ import {
     CrvDepositorWrapper,
     IERC20Extra,
     PoolManagerV3,
-    OptionsExerciser,
+    OLitFlashHelper,
     LiqLocker,
 } from "../types/generated";
 import { Signer } from "ethers";
-import { increaseTime, increaseTimeTo } from "../test-utils/time";
-import { ONE_WEEK, ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../test-utils/constants";
+import { increaseTime } from "../test-utils/time";
+import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../test-utils/constants";
 import { deployContract, waitForTx } from "../tasks/utils";
-import { impersonateAccount, fullScale } from "../test-utils";
+import { impersonateAccount } from "../test-utils";
 
 import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../scripts/deploySystem";
 import { getMockDistro } from "../scripts/deployMocks";
@@ -27,7 +27,7 @@ import { logContracts } from "../tasks/utils/deploy-utils";
 import smartWalletCheckerABI from "../abi/smartWalletChecker.json";
 import bunniHubABI from "../abi/bunniHub.json";
 
-// yarn hardhat --config hardhat-fork.config.ts test ./test-liquis/OptionsExerciser.spec.ts
+// yarn hardhat --config hardhat-fork.config.ts test ./test-liquis/OLitFlashHelper.spec.ts
 
 const hreAddress: string = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
 
@@ -82,7 +82,7 @@ describe("Booster", () => {
     let accounts: Signer[];
     let booster: Booster;
     let boosterOwner: BoosterOwner;
-    let optionsExerciser: OptionsExerciser;
+    let oLitFlashHelper: OLitFlashHelper;
 
     let cvxCrvRewards: BaseRewardPool;
     let cvxCrv: CvxCrvToken;
@@ -215,7 +215,7 @@ describe("Booster", () => {
             crvDepositor,
             crvDepositorWrapper,
             poolManager,
-            optionsExerciser,
+            oLitFlashHelper,
             cvxCrvRewards,
             cvxCrv,
             cvxLocker,
@@ -314,9 +314,9 @@ describe("Booster", () => {
         console.log("deployerRewardPool1TokenBalance: ", (await rewardPool1.balanceOf(deployerAddress)).toString());
         console.log("totalSupplyRewardPool1: ", (await rewardPool1.totalSupply()).toString());
 
-        // allow optionsExerciser permissions in rewardPools
-        tx = await cvxCrvRewards.modifyPermission(optionsExerciser.address, true);
-        tx = await rewardPool1.modifyPermission(optionsExerciser.address, true);
+        // allow oLitFlashHelper permissions in rewardPools
+        tx = await cvxCrvRewards.modifyPermission(oLitFlashHelper.address, true);
+        tx = await rewardPool1.modifyPermission(oLitFlashHelper.address, true);
         await waitForTx(tx, debug, waitForBlocks);
 
         // Instance of new lpToken
@@ -344,10 +344,10 @@ describe("Booster", () => {
         console.log("aliceRewardPool2TokenBalance: ", (await rewardPool2.balanceOf(aliceAddress)).toString());
         console.log("totalSupplyRewardPool2: ", (await rewardPool2.totalSupply()).toString());
 
-        // allow optionsExerciser permissions in rewardPools
-        tx = await rewardPool1.connect(alice).modifyPermission(optionsExerciser.address, true);
-        tx = await rewardPool2.connect(alice).modifyPermission(optionsExerciser.address, true);
-        tx = await cvxCrvRewards.connect(alice).modifyPermission(optionsExerciser.address, true);
+        // allow oLitFlashHelper permissions in rewardPools
+        tx = await rewardPool1.connect(alice).modifyPermission(oLitFlashHelper.address, true);
+        tx = await rewardPool2.connect(alice).modifyPermission(oLitFlashHelper.address, true);
+        tx = await cvxCrvRewards.connect(alice).modifyPermission(oLitFlashHelper.address, true);
         await waitForTx(tx, debug, waitForBlocks);
 
         await booster.connect(bob).earmarkRewards(0); // Bob will receive some tokens for being the caller
@@ -381,7 +381,7 @@ describe("Booster", () => {
         bobAddress = await bob.getAddress();
     });
 
-    describe("new OptionsExerciser with flashloan functionality", async () => {
+    describe("new OLitFlashHelper with flashloan functionality", async () => {
         before(async () => {
             await setup();
         });
@@ -401,9 +401,9 @@ describe("Booster", () => {
             expect(deployerOLitBalance).eq(ZERO); // deployer does not intervene
         });
 
-        it("optionsExerciser address is properly initialized in BaseRewardPools", async () => {
-            const hasRole1 = await rewardPool1.hasPermission(deployerAddress, optionsExerciser.address);
-            const hasRole2 = await rewardPool2.hasPermission(aliceAddress, optionsExerciser.address);
+        it("oLitFlashHelper address is properly initialized in BaseRewardPools", async () => {
+            const hasRole1 = await rewardPool1.hasPermission(deployerAddress, oLitFlashHelper.address);
+            const hasRole2 = await rewardPool2.hasPermission(aliceAddress, oLitFlashHelper.address);
 
             assert.isTrue(hasRole1);
             assert.isTrue(hasRole2);
@@ -455,8 +455,8 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
-            await olit.connect(olitWhale).approve(optionsExerciser.address, e18.mul(10000));
-            await optionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(10000), 9800, false);
+            await olit.connect(olitWhale).approve(oLitFlashHelper.address, e18.mul(10000));
+            await oLitFlashHelper.connect(olitWhale).exerciseAndLock(e18.mul(10000), 9800, false, 300);
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -471,14 +471,14 @@ describe("Booster", () => {
             expect(stakingBalAfter.sub(stakingBalBefore)).eq(ZERO); // staking bal does not change
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
 
         it("exerciseAndLock function with staking works properly", async () => {
@@ -491,8 +491,8 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
-            await olit.connect(olitWhale).approve(optionsExerciser.address, e18.mul(10000));
-            await optionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(10000), 9800, true);
+            await olit.connect(olitWhale).approve(oLitFlashHelper.address, e18.mul(10000));
+            await oLitFlashHelper.connect(olitWhale).exerciseAndLock(e18.mul(10000), 9800, true, 300);
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -505,14 +505,14 @@ describe("Booster", () => {
             console.log("stakingBalAfter: ", stakingBalAfter.toString());
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
 
         it("exerciseAndLock function works with 200k oLIT", async () => {
@@ -525,8 +525,10 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
-            await olit.connect(olitWhale).approve(optionsExerciser.address, e18.mul(200000));
-            await optionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(200000), 9800, true);
+            await olit.connect(olitWhale).approve(oLitFlashHelper.address, e18.mul(200000));
+            const tx = await oLitFlashHelper.connect(olitWhale).exerciseAndLock(e18.mul(200000), 9800, true, 300);
+            const txData = await tx.wait();
+            console.log("gasUsed exerciseAndLock, stake = true:", txData.cumulativeGasUsed.toNumber());
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -539,14 +541,14 @@ describe("Booster", () => {
             console.log("stakingBalAfter: ", stakingBalAfter.toString());
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
 
         it("claimAndExercise function works properly, lit balance increases", async () => {
@@ -559,7 +561,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            await optionsExerciser.claimAndExerciseMultiple([0], true, false);
+            await oLitFlashHelper.claimAndExerciseMultiple([0], true, false, 300);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -573,9 +575,9 @@ describe("Booster", () => {
             expect(liqLitDeployerBalAfter).eq(liqLitDeployerBalBefore);
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
@@ -591,7 +593,12 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            await optionsExerciser.claimAndLockMultiple([0], true, false, 9800, false);
+            const tx = await oLitFlashHelper.claimAndLockMultiple([0], true, false, 9800, false, 300);
+            const txData = await tx.wait();
+            console.log(
+                "gasUsed claimAndLockMultiple, 1 pool, locker = true, liqLocker = false:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -603,9 +610,9 @@ describe("Booster", () => {
             expect(liqLitDeployerBalAfter).gt(liqLitDeployerBalBefore);
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
@@ -624,9 +631,11 @@ describe("Booster", () => {
             const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
             expect(earnedOLitInLiqLitRewards).gt(ZERO);
 
-            await cvxCrvRewards.connect(olitWhale).modifyPermission(optionsExerciser.address, true);
+            await cvxCrvRewards.connect(olitWhale).modifyPermission(oLitFlashHelper.address, true);
 
-            await optionsExerciser.connect(olitWhale).claimAndLock(9900, true, 1);
+            const tx = await oLitFlashHelper.connect(olitWhale).claimAndLock(9900, true, 1, 300);
+            const txData = await tx.wait();
+            console.log("gasUsed claimAndLock, stake = true, option = 1:", txData.cumulativeGasUsed.toNumber());
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -639,14 +648,14 @@ describe("Booster", () => {
             console.log("stakingBalAfter: ", stakingBalAfter.toString());
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
 
         it("claimAndLockMultiple function works properly for 2 pools, locker false", async () => {
@@ -665,7 +674,14 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            await optionsExerciser.connect(alice).claimAndLockMultiple([0, 1], false, false, 9800, false);
+            const tx = await oLitFlashHelper
+                .connect(alice)
+                .claimAndLockMultiple([0, 1], false, false, 9800, false, 300);
+            const txData = await tx.wait();
+            console.log(
+                "gasUsed claimAndLockMultiple 2 pools, locker = false, liqLocker = false:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
 
             const liqLitAliceBalAfter = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalAfter: ", liqLitAliceBalAfter.toString());
@@ -673,9 +689,9 @@ describe("Booster", () => {
             expect(liqLitAliceBalAfter).gt(liqLitAliceBalBefore);
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
@@ -699,7 +715,9 @@ describe("Booster", () => {
             const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
             expect(earnedOLitInLiqLitRewards).gt(ZERO);
 
-            await optionsExerciser.connect(olitWhale).claimAndExercise(1);
+            const tx = await oLitFlashHelper.connect(olitWhale).claimAndExercise(1, 300);
+            const txData = await tx.wait();
+            console.log("gasUsed claimAndExercise, option = 1:", txData.cumulativeGasUsed.toNumber());
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -714,14 +732,14 @@ describe("Booster", () => {
             console.log("litWhaleBalAfter: ", litWhaleBalAfter.toString());
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
 
         it("claimAndExerciseMultiple function works properly for 2 pools, locker false", async () => {
@@ -743,7 +761,12 @@ describe("Booster", () => {
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
 
-            await optionsExerciser.connect(alice).claimAndExerciseMultiple([0, 1], true, false);
+            const tx = await oLitFlashHelper.connect(alice).claimAndExerciseMultiple([0, 1], true, false, 300);
+            const txData = await tx.wait();
+            console.log(
+                "gasUsed claimAndLockMultiple, locker = true, liqLocker = false:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
 
             const oLitEarnedAliceInLiqLitPoolAfter = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolAfter).lt(oLitEarnedAliceInLiqLitPoolBefore);
@@ -755,15 +778,15 @@ describe("Booster", () => {
             expect(litAliceBalAfter).gt(litAliceBalBefore);
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
         });
 
-        it("fails to call protected functions if is not OptionsExerciser", async () => {
+        it("fails to call protected functions if is not OLitFlashHelper", async () => {
             const accounts = await ethers.getSigners();
             const randomUser = accounts[10];
 
@@ -780,14 +803,12 @@ describe("Booster", () => {
             const randomUser = accounts[12];
             const randomUserAddress = await randomUser.getAddress();
 
-            const owner = await optionsExerciser.owner();
+            const owner = await oLitFlashHelper.owner();
             expect(owner).eq(deployerAddress);
 
-            await expect(optionsExerciser.connect(randomUser).setOwner(randomUserAddress)).to.be.revertedWith("!auth");
-            await expect(optionsExerciser.connect(randomUser).setOracleParams(100, 10)).to.be.revertedWith("!auth");
-            await expect(optionsExerciser.connect(randomUser).setOperationalParams(1000, 10)).to.be.revertedWith(
-                "!auth",
-            );
+            await expect(oLitFlashHelper.connect(randomUser).setOwner(randomUserAddress)).to.be.revertedWith("!auth");
+            await expect(oLitFlashHelper.connect(randomUser).setOracleParams(100, 10)).to.be.revertedWith("!auth");
+            await expect(oLitFlashHelper.connect(randomUser).setReferralCode(10)).to.be.revertedWith("!auth");
         });
 
         it("random user has no permission in BaseRewardPools", async () => {
@@ -819,20 +840,20 @@ describe("Booster", () => {
         });
 
         it("users have no permission in LiqLocker", async () => {
-            const hasPermission1 = await cvxLocker.hasPermission(deployerAddress, optionsExerciser.address);
-            const hasPermission2 = await cvxLocker.hasPermission(aliceAddress, optionsExerciser.address);
+            const hasPermission1 = await cvxLocker.hasPermission(deployerAddress, oLitFlashHelper.address);
+            const hasPermission2 = await cvxLocker.hasPermission(aliceAddress, oLitFlashHelper.address);
 
             assert.isFalse(hasPermission1);
             assert.isFalse(hasPermission2);
 
-            await expect(optionsExerciser.connect(alice).claimAndExercise(2)).to.be.revertedWith(
+            await expect(oLitFlashHelper.connect(alice).claimAndExercise(2, 300)).to.be.revertedWith(
                 "permission not granted",
             );
-            await expect(optionsExerciser.claimAndExercise(2)).to.be.revertedWith("permission not granted");
+            await expect(oLitFlashHelper.claimAndExercise(2, 300)).to.be.revertedWith("permission not granted");
 
             // Modify permissions for next test
-            await cvxLocker.connect(alice).modifyPermission(optionsExerciser.address, true);
-            await cvxLocker.modifyPermission(optionsExerciser.address, true);
+            await cvxLocker.connect(alice).modifyPermission(oLitFlashHelper.address, true);
+            await cvxLocker.modifyPermission(oLitFlashHelper.address, true);
         });
 
         it("claimAndExercise for LiqLocker function works properly, lit balance increases", async () => {
@@ -844,7 +865,9 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            await optionsExerciser.claimAndExercise(2);
+            const tx = await oLitFlashHelper.claimAndExercise(2, 300);
+            const txData = await tx.wait();
+            console.log("gasUsed claimAndExercise, option = 2:", txData.cumulativeGasUsed.toNumber());
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -860,14 +883,14 @@ describe("Booster", () => {
             expect(deployerEarnedOLitAfter[0].amount).lt(e15);
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
 
         it("claimAndExerciseMultiple function works properly for 2 pools, locker true", async () => {
@@ -887,7 +910,12 @@ describe("Booster", () => {
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
 
-            await optionsExerciser.connect(alice).claimAndExerciseMultiple([0, 1], true, true);
+            const tx = await oLitFlashHelper.connect(alice).claimAndExerciseMultiple([0, 1], true, true, 300);
+            const txData = await tx.wait();
+            console.log(
+                "gasUsed claimAndExerciseMultiple 2 pools, locker = true, liqLocker = true:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
 
             const oLitEarnedAliceInLiqLitPoolAfter = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolAfter).lt(oLitEarnedAliceInLiqLitPoolBefore);
@@ -903,14 +931,14 @@ describe("Booster", () => {
             expect(aliceEarnedOLitAfter[0].amount).lt(e15);
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
 
         it("claimAndLockMultiple function works properly for 2 pools, locker true", async () => {
@@ -932,7 +960,12 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            await optionsExerciser.connect(alice).claimAndLockMultiple([0, 1], false, true, 9800, false);
+            const tx = await oLitFlashHelper.connect(alice).claimAndLockMultiple([0, 1], false, true, 9800, false, 300);
+            const txData = await tx.wait();
+            console.log(
+                "gasUsed claimAndLockMultiple 2 pools, locker = false, liqLocker = true:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
 
             const liqLitAliceBalAfter = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalAfter: ", liqLitAliceBalAfter.toString());
@@ -940,9 +973,9 @@ describe("Booster", () => {
             expect(liqLitAliceBalAfter).gt(liqLitAliceBalBefore);
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
@@ -958,7 +991,7 @@ describe("Booster", () => {
             const liqLitAliceBalAfterStaking = await cvxCrv.balanceOf(aliceAddress);
             expect(liqLitAliceBalAfterStaking).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
 
         it("claimAndLock with liqLocker true  works properly, liqLit balance increases", async () => {
@@ -970,7 +1003,12 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            await optionsExerciser.claimAndLockMultiple([0], true, true, 9800, false);
+            const tx = await oLitFlashHelper.claimAndLockMultiple([0], true, true, 9800, false, 300);
+            const txData = await tx.wait();
+            console.log(
+                "gasUsed claimAndLockMultiple 1 pool, locker = true, liqLocker = true:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -986,14 +1024,14 @@ describe("Booster", () => {
             expect(deployerEarnedOLitAfter[0].amount).lt(e15);
 
             // Check that no funds are left in the contract
-            const litContractBalAfter = await lit.balanceOf(optionsExerciser.address);
-            const olitContractBalAfter = await olit.balanceOf(optionsExerciser.address);
-            const liqLitContractBalAfter = await cvxCrv.balanceOf(optionsExerciser.address);
+            const litContractBalAfter = await lit.balanceOf(oLitFlashHelper.address);
+            const olitContractBalAfter = await olit.balanceOf(oLitFlashHelper.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(oLitFlashHelper.address);
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
 
-            expect(await weth.balanceOf(optionsExerciser.address)).eq(ZERO);
+            expect(await weth.balanceOf(oLitFlashHelper.address)).eq(ZERO);
         });
     });
 });
