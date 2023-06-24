@@ -111,12 +111,12 @@ interface IPool {
  */
 
 /**
- * @title   OptionsExerciser
+ * @title   OLitFlashHelper
  * @author  LiquisFinance
  * @notice  Main helper contract; allows for claiming oLIT from RewardPools and later exercise it.
  * @dev     Implements AaveFlashloan in order to facilitate the conversion in one step.
  */
-contract OptionsExerciser is IFlashLoanSimpleReceiver {
+contract OLitFlashHelper is IFlashLoanSimpleReceiver {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -138,7 +138,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
     uint256 public secs;
     uint256 public ago;
-    uint256 public maxSlippage;
+
     uint16 internal referralCode; // Aave referral code
 
     uint256 public constant basisOne = 10000;
@@ -152,11 +152,12 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
         uint256 maxAmountIn;
         uint256 amountNeeded;
         uint256 wethBal;
+        uint256 maxSlippage;
     }
 
     event OwnerUpdated(address newOwner);
-    event SetParams(uint256 secs, uint256 ago);
-    event SetOperationalParams(uint256 maxSlippage, uint16 referralCode);
+    event SetOracleParams(uint256 secs, uint256 ago);
+    event SetReferralCode(uint16 referralCode);
 
     /**
      * @param _liqLit ERC20 token minted when locking LIT to veLIT in VoterProxy through crvDepositor.
@@ -182,7 +183,6 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
         secs = 1800;
         ago = 0;
-        maxSlippage = 300;
 
         IERC20(weth).safeApprove(olit, type(uint256).max);
         IERC20(lit).safeApprove(balVault, type(uint256).max);
@@ -206,15 +206,17 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
      * @notice User converts their olit into liqLit, sends it back to the user or stakes it in liqLit staking
      * @param _outputBps Multiplier where 100% == 10000, 99.5% == 9950 and 98% == 9800
      * @param _stake Stake liqLit into the liqLit staking rewards pool
+     * @param _maxSlippage Max slippage allowed in Balancer swap
      */
     function exerciseAndLock(
         uint256 _amount,
         uint256 _outputBps,
-        bool _stake
+        bool _stake,
+        uint256 _maxSlippage
     ) external {
         IERC20(olit).safeTransferFrom(msg.sender, address(this), _amount);
 
-        _exerciseOptions(_amount);
+        _exerciseOptions(_amount, _maxSlippage);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
         _convertLitToLiqLit(_outputBps, _stake);
@@ -223,8 +225,9 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
     /**
      * @notice User claims their olit from liqLit staking, converts into lit and sends it back to the user
      * @param _option Option == 1 claim from liqLit staking, 2 claim from liqLocker, anything else claim from both
+     * @param _maxSlippage Max slippage allowed in Balancer swap
      */
-    function claimAndExercise(uint8 _option) external {
+    function claimAndExercise(uint8 _option, uint256 _maxSlippage) external {
         uint256 olitAmount = 0;
 
         if (_option == 1) {
@@ -236,7 +239,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount);
+        _exerciseOptions(olitAmount, _maxSlippage);
 
         // send lit to sender
         _transferLitToSender();
@@ -247,11 +250,13 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _pids Booster pools ids array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
+     * @param _maxSlippage Max slippage allowed in Balancer swap
      */
     function claimAndExerciseMultiple(
         uint256[] memory _pids,
         bool _locker,
-        bool _liqLocker
+        bool _liqLocker,
+        uint256 _maxSlippage
     ) external {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _pids.length; i++) {
@@ -268,7 +273,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount);
+        _exerciseOptions(olitAmount, _maxSlippage);
 
         // send lit to sender
         _transferLitToSender();
@@ -286,11 +291,13 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
      * @param _stake Stake liqLit into the liqLit staking rewards pool
      * @param _option Option == 1 claim from liqLit staking, 2 claim from liqLocker, anything else claim from both
+     * @param _maxSlippage Max slippage allowed in Balancer swap
      */
     function claimAndLock(
         uint256 _outputBps,
         bool _stake,
-        uint8 _option
+        uint8 _option,
+        uint256 _maxSlippage
     ) external {
         uint256 olitAmount = 0;
 
@@ -303,7 +310,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount);
+        _exerciseOptions(olitAmount, _maxSlippage);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
         _convertLitToLiqLit(_outputBps, _stake);
@@ -316,13 +323,15 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
      * @param _stake Stake liqLit into the liqLit staking rewards pool
+     * @param _maxSlippage Max slippage allowed in Balancer swap
      */
     function claimAndLockMultiple(
         uint256[] memory _pids,
         bool _locker,
         bool _liqLocker,
         uint256 _outputBps,
-        bool _stake
+        bool _stake,
+        uint256 _maxSlippage
     ) external {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _pids.length; i++) {
@@ -338,7 +347,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount);
+        _exerciseOptions(olitAmount, _maxSlippage);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
         _convertLitToLiqLit(_outputBps, _stake);
@@ -377,14 +386,14 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
         );
     }
 
-    function _exerciseOptions(uint256 _olitAmount) internal {
+    function _exerciseOptions(uint256 _olitAmount, uint256 _maxSlippage) internal {
         if (_olitAmount == 0) return;
 
         // amount of weth needed to process the olit, rounded up
         uint256 amount = (_olitAmount * IOracle(olitOracle).getPrice()) / 1e18 + 1;
 
         // encode _olitAmount to avoid an extra balanceOf call in next function
-        bytes memory userData = abi.encode(_olitAmount);
+        bytes memory userData = abi.encode(_olitAmount, _maxSlippage);
 
         IPool(aavePool).flashLoanSimple(address(this), weth, amount, userData, referralCode);
     }
@@ -401,7 +410,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
         LocalVariablesFlashLoan memory vars;
 
-        vars.olitAmount = abi.decode(params, (uint256));
+        (vars.olitAmount, vars.maxSlippage) = abi.decode(params, (uint256, uint256));
 
         // exercise the olit into lit
         IOLit(olit).exercise(vars.olitAmount, amount, address(this), block.timestamp);
@@ -421,7 +430,7 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
 
         vars.amountIn = vars.amountToRepay.mul(1e18).div(vars.price);
         // apply our accepted slippage to amountIn
-        vars.maxAmountIn = vars.amountIn.mul(basisOne.add(maxSlippage)).div(basisOne);
+        vars.maxAmountIn = vars.amountIn.mul(basisOne.add(vars.maxSlippage)).div(basisOne);
 
         vars.wethBal = IERC20(weth).balanceOf(address(this));
         if (vars.wethBal < vars.amountToRepay) {
@@ -448,17 +457,15 @@ contract OptionsExerciser is IFlashLoanSimpleReceiver {
         require(msg.sender == owner, "!auth");
         secs = _secs;
         ago = _ago;
-        emit SetParams(_secs, _ago);
+        emit SetOracleParams(_secs, _ago);
     }
 
     /**
-     * @param _maxSlippage Max slippage allowed in Balancer swap.
      * @param _referralCode The referral code for Aave Protocol.
      */
-    function setOperationalParams(uint256 _maxSlippage, uint16 _referralCode) external {
+    function setReferralCode(uint16 _referralCode) external {
         require(msg.sender == owner, "!auth");
-        maxSlippage = _maxSlippage;
         referralCode = _referralCode;
-        emit SetOperationalParams(_maxSlippage, _referralCode);
+        emit SetReferralCode(_referralCode);
     }
 }
