@@ -82,8 +82,8 @@ import {
     PoolMigrator__factory,
     PoolManagerV4,
     BoosterOwnerSecondary,
-    OLitFlashHelper,
-    OLitFlashHelper__factory,
+    FlashOptionsExerciser,
+    FlashOptionsExerciser__factory,
 } from "../types/generated";
 import { AssetHelpers } from "@balancer-labs/balancer-js";
 import { Chain, deployContract, waitForTx } from "../tasks/utils";
@@ -229,7 +229,7 @@ interface Phase2Deployed extends Phase1Deployed {
     balLiquidityProvider: BalLiquidityProvider;
     penaltyForwarder: AuraPenaltyForwarder;
     extraRewardsDistributor: ExtraRewardsDistributor;
-    oLitFlashHelper: OLitFlashHelper;
+    flashOptionsExerciser: FlashOptionsExerciser;
 }
 
 interface Phase3Deployed extends Phase2Deployed {
@@ -576,13 +576,13 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    let oLitFlashHelper: OLitFlashHelper;
+    let flashOptionsExerciser: FlashOptionsExerciser;
     // Some addresses are hardcoded in an immutable way and does not work with hre
     if (chain != Chain.local) {
-        oLitFlashHelper = await deployContract<OLitFlashHelper>(
+        flashOptionsExerciser = await deployContract<FlashOptionsExerciser>(
             hre,
-            new OLitFlashHelper__factory(deployer),
-            "OLitFlashHelper",
+            new FlashOptionsExerciser__factory(deployer),
+            "FlashOptionsExerciser",
             [cvxCrv.address, booster.address, crvDepositorWrapper.address, cvxCrvRewards.address, cvxLocker.address],
             {},
             debug,
@@ -1018,7 +1018,7 @@ async function deployPhase2(
         extraRewardsDistributor,
         poolManagerProxy,
         poolManagerSecondaryProxy,
-        oLitFlashHelper,
+        flashOptionsExerciser,
     };
 }
 
