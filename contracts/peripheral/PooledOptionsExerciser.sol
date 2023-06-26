@@ -119,9 +119,10 @@ contract PooledOptionsExerciser {
      * @dev Reverts if insufficient balance
      */
     function queue(uint256 amount) external {
+        IERC20(olit).safeTransferFrom(msg.sender, address(this), amount);
+
         queued[msg.sender][epoch] += amount;
         totalQueued[epoch] += amount;
-        IERC20(olit).safeTransferFrom(msg.sender, address(this), amount);
 
         emit Queued(msg.sender, epoch, amount);
     }
