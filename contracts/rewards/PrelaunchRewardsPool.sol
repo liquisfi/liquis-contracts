@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { ICrvDepositor } from "../interfaces/ICrvDepositor.sol";
 import { ILitConvertor } from "../interfaces/ILitConvertor.sol";
+import { ICrvVoteEscrow } from "../interfaces/ICrvVoteEscrow.sol";
 
 import { Math } from "../utils/Math.sol";
 
@@ -26,9 +27,10 @@ contract PrelaunchRewardsPool {
     uint256 public constant duration = 7 days;
 
     address public owner;
-    address public rewardDistributor;
     address public crvDepositor;
     address public litConvertor;
+    address public voterProxy;
+    address public immutable escrow;
 
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
@@ -37,7 +39,7 @@ contract PrelaunchRewardsPool {
     uint256 public currentRewards = 0;
     uint256 public historicalRewards = 0;
 
-    uint256 private _totalSupply;
+    uint256 public totalSupply;
 
     uint256 public immutable START_WITHDRAWALS;
     uint256 public immutable START_VESTING_DATE;
@@ -47,57 +49,56 @@ contract PrelaunchRewardsPool {
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
-    mapping(address => uint256) private _balances;
+    mapping(address => uint256) public balances;
     mapping(address => uint256) public claimed;
     mapping(address => bool) public isVestingUser;
 
+    event Staked(address indexed user, uint256 amount);
+    event Converted(address indexed user, uint256 amount);
+    event Withdrawn(address indexed user, uint256 amount);
+    event Claimed(address indexed user, uint256 reward);
+    event Recovered(address token, uint256 amount);
     event RewardAdded(uint256 reward);
     event OwnerUpdated(address newOwner);
-    event Staked(address indexed user, uint256 amount);
-    event Withdrawn(address indexed user, uint256 amount);
-    event RewardPaid(address indexed user, uint256 reward);
-    event Recovered(address token, uint256 amount);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event CrvDepositorSet(address indexed crvDepositor);
-    event RewardsDistributorUpdated(address indexed newRewardDistributor);
+    event CrvDepositorUpdated(address indexed crvDepositor);
+    event VoterProxyUpdated(address indexed voterProxy);
 
     /**
      * @dev Initializes variables, approves lit and sets target dates.
-     * @param stakingToken_  BPT token BAL 20-80 WETH/LIT
-     * @param rewardToken_   LIQ
-     * @param litConvertor_  Contract that converts LIT into BPT
-     * @param lit_           LIT
+     * @param _stakingToken  BPT token BAL 20-80 WETH/LIT
+     * @param _rewardToken   LIQ
+     * @param _litConvertor  Contract that converts LIT to BPT
+     * @param _lit           LIT
+     * @param _crvDepositor  Contract that locks BPT for liqLIT
+     * @param _voterProxy    Contract that holds veLIT voting power (is whitelisted on veLIT)
+     * @param _escrow        veLIT
      */
     constructor(
-        address stakingToken_,
-        address rewardToken_,
-        address litConvertor_,
-        address lit_
+        address _stakingToken,
+        address _rewardToken,
+        address _litConvertor,
+        address _lit,
+        address _crvDepositor,
+        address _voterProxy,
+        address _escrow
     ) {
         owner = msg.sender;
 
-        stakingToken = IERC20(stakingToken_);
-        rewardToken = IERC20(rewardToken_);
+        stakingToken = IERC20(_stakingToken);
+        rewardToken = IERC20(_rewardToken);
 
-        litConvertor = litConvertor_;
+        litConvertor = _litConvertor;
+        crvDepositor = _crvDepositor;
+        voterProxy = _voterProxy;
+        escrow = _escrow;
 
-        lit = IERC20(lit_);
+        lit = IERC20(_lit);
         lit.safeApprove(litConvertor, type(uint256).max);
 
         START_VESTING_DATE = block.timestamp + 28 days;
         END_VESTING_DATE = START_VESTING_DATE + 180 days;
 
-        START_WITHDRAWALS = START_VESTING_DATE + 14 days;
-    }
-
-    // ----- View Methods ----- //
-
-    function totalSupply() public view virtual returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address account) public view virtual returns (uint256) {
-        return _balances[account];
+        START_WITHDRAWALS = START_VESTING_DATE + 28 days;
     }
 
     // ----- Reward Functions ----- //
@@ -112,25 +113,24 @@ contract PrelaunchRewardsPool {
         _;
     }
 
-    function rewardPerToken() public view returns (uint256) {
-        if (totalSupply() == 0) {
-            return rewardPerTokenStored;
-        }
-        return
-            rewardPerTokenStored +
-            (((lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18) / totalSupply());
-    }
-
-    function lastTimeRewardApplicable() public view returns (uint256) {
-        return Math.min(block.timestamp, periodFinish);
-    }
-
     /**
      * @dev Returns how many rewards a given account has earned
      * @param account    Address for which the request is made
      */
     function earned(address account) public view returns (uint256) {
-        return (balanceOf(account) * (rewardPerToken() - userRewardPerTokenPaid[account])) / 1e18 + rewards[account];
+        return (balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account])) / 1e18 + rewards[account];
+    }
+
+    function rewardPerToken() public view returns (uint256) {
+        if (totalSupply == 0) {
+            return rewardPerTokenStored;
+        }
+        return
+            rewardPerTokenStored + (((lastTimeRewardApplicable() - lastUpdateTime) * rewardRate * 1e18) / totalSupply);
+    }
+
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return Math.min(block.timestamp, periodFinish);
     }
 
     // ----- Stake Functions ----- //
@@ -161,8 +161,8 @@ contract PrelaunchRewardsPool {
     /**
      * @dev Converts user LIT into BPT and stakes it, reward is updated in low level func _processStake
      */
-    function stakeInLit(uint256 amount, uint256 minOut) external {
-        lit.safeTransferFrom(msg.sender, address(this), amount); // Note check if we can save a transfer
+    function stakeLit(uint256 amount, uint256 minOut) external {
+        lit.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 bptReceived = ILitConvertor(litConvertor).convertLitToBpt(amount, minOut);
 
@@ -178,10 +178,8 @@ contract PrelaunchRewardsPool {
         require(_amount > 0, "Cannot stake 0");
 
         // update storage variables
-        _totalSupply = _totalSupply + _amount;
-        _balances[_receiver] = _balances[_receiver] + _amount;
-
-        emit Transfer(address(0), _receiver, _amount);
+        totalSupply = totalSupply + _amount;
+        balances[_receiver] = balances[_receiver] + _amount;
 
         emit Staked(_receiver, _amount);
     }
@@ -190,18 +188,22 @@ contract PrelaunchRewardsPool {
      * @dev Called by a staker to convert all their staked BPT balance to liqLIT (if target address set)
      * Note crvDepositor address should be populated after rewards have ended
      */
-    function convertStakeToLiqLit() external updateReward(msg.sender) onlyIfAddressExists(crvDepositor) {
-        uint256 userStake = balanceOf(msg.sender);
+    function convert() external updateReward(msg.sender) onlyAfterDate(START_VESTING_DATE) {
+        require(ICrvVoteEscrow(escrow).balanceOf(voterProxy) > 0, "Not activated");
+
+        uint256 userStake = balances[msg.sender];
 
         // update state variables
-        _totalSupply = _totalSupply - userStake;
-        _balances[msg.sender] = 0;
+        totalSupply = totalSupply - userStake;
+        balances[msg.sender] = 0;
 
         // deposit to crvDepositor for the user, liqLit is sent directly to the user
         ICrvDepositor(crvDepositor).depositFor(msg.sender, userStake, true, address(0));
 
         // register the user as vesting user
         isVestingUser[msg.sender] = true;
+
+        emit Converted(msg.sender, userStake);
     }
 
     // ----- Withdraw Functions ----- //
@@ -209,28 +211,25 @@ contract PrelaunchRewardsPool {
     /**
      * @dev Called by a staker to withdraw all their BPT stake
      * Note Rewards accumulated are renounced, users that withdraw are not eligible for rewards vesting
-     * Note Check if it is better to send directly the rewardToken to the treasury
      */
-    function withdraw() external {
-        _withdraw(_balances[msg.sender]);
-    }
+    function withdraw() external updateReward(msg.sender) onlyAfterDate(START_WITHDRAWALS) {
+        require(ICrvVoteEscrow(escrow).balanceOf(voterProxy) == 0, "Activated");
 
-    function _withdraw(uint256 amount) internal updateReward(msg.sender) onlyAfterDate(START_WITHDRAWALS) {
-        require(crvDepositor == address(0), "Target address is set");
-        require(amount > 0, "Cannot withdraw 0");
+        uint256 userStake = balances[msg.sender];
 
-        _totalSupply = _totalSupply - amount;
-        _balances[msg.sender] = _balances[msg.sender] - amount;
+        require(userStake > 0, "Cannot withdraw 0");
+
+        totalSupply = totalSupply - userStake;
+        balances[msg.sender] = 0;
 
         // track renounced reward balances from users that withdraw
         uint256 rewardAccrued = rewards[msg.sender];
         totalRenounced += rewardAccrued;
         rewards[msg.sender] = 0;
 
-        stakingToken.safeTransfer(msg.sender, amount);
-        emit Withdrawn(msg.sender, amount);
+        stakingToken.safeTransfer(msg.sender, userStake);
 
-        emit Transfer(msg.sender, address(0), amount);
+        emit Withdrawn(msg.sender, userStake);
     }
 
     // ----- Vesting Functions ----- //
@@ -239,20 +238,18 @@ contract PrelaunchRewardsPool {
      * @dev Called by a staker to get their vested LIQ rewards
      * Note In convertStakeToLiqLit() we make sure that rewards[msg.sender] mapping reflects all rewards
      */
-    function claimLiqVesting() external onlyAfterDate(START_VESTING_DATE) onlyVestingUser {
-        _sendLiqVesting(msg.sender);
-    }
+    function claim() external onlyAfterDate(START_VESTING_DATE) {
+        require(isVestingUser[msg.sender], "Not vesting User");
 
-    function _sendLiqVesting(address _account) private {
-        uint256 unclaimedAmount = getClaimableLiqVesting(_account);
+        uint256 unclaimedAmount = getClaimableLiqVesting(msg.sender);
         if (unclaimedAmount == 0) return;
 
         // update rewards claimed mapping
-        claimed[_account] += unclaimedAmount;
+        claimed[msg.sender] += unclaimedAmount;
 
-        rewardToken.safeTransfer(_account, unclaimedAmount);
+        rewardToken.safeTransfer(msg.sender, unclaimedAmount);
 
-        emit RewardPaid(_account, unclaimedAmount);
+        emit Claimed(msg.sender, unclaimedAmount);
     }
 
     function getClaimableLiqVesting(address _account) public view returns (uint256 claimable) {
@@ -275,7 +272,7 @@ contract PrelaunchRewardsPool {
      *      Rewards need to be first sent and subsequently call notifyRewardAmount
      *      There is no pull method in the function
      */
-    function notifyRewardAmount(uint256 reward) external onlyAuthorized updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward) external updateReward(address(0)) onlyAuthorized {
         historicalRewards = historicalRewards + reward;
 
         if (block.timestamp >= periodFinish) {
@@ -301,43 +298,31 @@ contract PrelaunchRewardsPool {
         emit RewardAdded(reward);
     }
 
-    function recoverERC20(address tokenAddress, uint256 tokenAmount) external {
-        require(msg.sender == owner, "!auth");
-        require(tokenAddress != address(stakingToken) && tokenAddress != address(rewardToken), "Not valid token");
-        IERC20(tokenAddress).safeTransfer(owner, tokenAmount);
-
-        emit Recovered(tokenAddress, tokenAmount);
-    }
-
-    function setNewRewardsDistributor(address _rewardDistributor) external {
-        require(msg.sender == owner, "!auth");
-        rewardDistributor = _rewardDistributor;
-
-        emit RewardsDistributorUpdated(_rewardDistributor);
-    }
-
-    function setOwner(address _owner) external {
-        require(msg.sender == owner, "!auth");
+    function setOwner(address _owner) external onlyAuthorized {
         owner = _owner;
 
         emit OwnerUpdated(_owner);
     }
 
-    function setCrvDepositor(address _crvDepositor) external {
-        require(msg.sender == owner, "!auth");
+    function setCrvDepositor(address _crvDepositor) external onlyAuthorized {
         crvDepositor = _crvDepositor;
 
         // approve crvDepositor to convert contract BPT to liqLIT
         IERC20(stakingToken).safeApprove(crvDepositor, type(uint256).max);
 
-        emit CrvDepositorSet(_crvDepositor);
+        emit CrvDepositorUpdated(_crvDepositor);
+    }
+
+    function setVoterProxy(address _voterProxy) external onlyAuthorized {
+        voterProxy = _voterProxy;
+
+        emit VoterProxyUpdated(_voterProxy);
     }
 
     /**
      * @dev Allows the owner to pull the renounced balances from people that withdrew
      */
-    function recoverRenouncedLiq() external {
-        require(msg.sender == owner, "!auth");
+    function recoverRenouncedLiq() external onlyAuthorized {
         uint256 _totalRenounced = totalRenounced;
 
         totalRenounced = 0;
@@ -346,25 +331,25 @@ contract PrelaunchRewardsPool {
         emit Recovered(address(rewardToken), _totalRenounced);
     }
 
+    /**
+     * @dev Allows the owner to recover other ERC20s mistakingly sent to this contract
+     */
+    function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyAuthorized {
+        require(tokenAddress != address(stakingToken) && tokenAddress != address(rewardToken), "Not valid token");
+        IERC20(tokenAddress).safeTransfer(owner, tokenAmount);
+
+        emit Recovered(tokenAddress, tokenAmount);
+    }
+
     // ----- Modifiers ----- //
 
     modifier onlyAuthorized() {
-        require(msg.sender == owner || msg.sender == rewardDistributor, "!auth");
+        require(msg.sender == owner, "!auth");
         _;
     }
 
     modifier onlyAfterDate(uint256 limitDate) {
         require(block.timestamp > limitDate, "Currently not possible");
-        _;
-    }
-
-    modifier onlyVestingUser() {
-        require(isVestingUser[msg.sender], "Not vesting User");
-        _;
-    }
-
-    modifier onlyIfAddressExists(address targetAddress) {
-        require(targetAddress != address(0), "Target address not set");
         _;
     }
 }
