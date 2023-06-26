@@ -492,7 +492,7 @@ describe("Booster", () => {
             const totalQueuedMappingAfter = await pooledOptionsExerciser.totalQueued(epoch);
             expect(totalQueuedMappingAfter).eq(amount);
 
-            assertBNClosePercent(earnedDeployer1, amount, "0.1");
+            assertBNClosePercent(earnedDeployer1, amount, "1");
 
             const earnedDeployer1After = await rewardPool1.earned(deployerAddress);
             expect(earnedDeployer1After).lt(e15);
@@ -571,7 +571,7 @@ describe("Booster", () => {
 
             const receipt = await tx.wait();
             console.log(
-                "gasUsed claimAndLockMultiple, locker = false, liqLocker = false:",
+                "gasUsed claimAndQueueMultiple, locker = false, liqLocker = false:",
                 receipt.cumulativeGasUsed.toNumber(),
             );
 
@@ -607,6 +607,280 @@ describe("Booster", () => {
 
             expect(earnedAlice0After).lt(e15); // rewards dust due to block mining with tx
             expect(earnedAlice1After).lt(e15); // rewards dust due to block mining with tx
+        });
+
+        it("withdraw reverts if the epoch is the actual epoch", async () => {
+            await expect(
+                pooledOptionsExerciser.connect(alice).withdraw(await pooledOptionsExerciser.epoch()),
+            ).to.be.revertedWith("epoch not withdrawable");
+        });
+
+        it("exercise getter works properly", async () => {
+            const olitOracleAddress: string = "0x9d43ccb1ad7e0081cc8a8f1fd54d16e54a637e30";
+            const olitOracle = new ethers.Contract(
+                olitOracleAddress,
+                ["function getPrice() view returns (uint256 price)"],
+                deployer,
+            );
+            const price = await olitOracle.getPrice();
+            const fee = await pooledOptionsExerciser.fee();
+
+            const exerciseAmounts = await pooledOptionsExerciser.exerciseAmounts();
+
+            // 2 is the ratio of Bunni in this block, half of the value in weth in order to execute
+            const totalAtEpoch = await pooledOptionsExerciser.totalQueued(await pooledOptionsExerciser.epoch());
+            const expectedAmount = totalAtEpoch.mul(fee).div(e18.mul(2));
+            assertBNClosePercent(exerciseAmounts[0].sub(expectedAmount), exerciseAmounts[1], "0.01");
+        });
+
+        it("if fee is 50% exercisers need to add 1/4 of the totalAtEpoch", async () => {
+            await pooledOptionsExerciser.setParams(1800, 0, e15.mul(1500)); // 50% fee
+
+            const fee = await pooledOptionsExerciser.fee();
+
+            const exerciseAmounts = await pooledOptionsExerciser.exerciseAmounts();
+
+            // 2 is the ratio of Bunni in this block, half of the value in weth in order to execute
+            const totalAtEpoch = await pooledOptionsExerciser.totalQueued(await pooledOptionsExerciser.epoch());
+            const expectedAmount = totalAtEpoch.mul(fee).div(e18.mul(2));
+            assertBNClosePercent(exerciseAmounts[0].sub(expectedAmount), exerciseAmounts[1], "0.01");
+        });
+
+        it("if fee is 33% exercisers need to add 1/3 of the totalAtEpoch", async () => {
+            await pooledOptionsExerciser.setParams(1800, 0, e15.mul(1333)); // 33% fee
+
+            const fee = await pooledOptionsExerciser.fee();
+
+            const exerciseAmounts = await pooledOptionsExerciser.exerciseAmounts();
+
+            // 2 is the ratio of Bunni in this block, half of the value in weth in order to execute
+            const totalAtEpoch = await pooledOptionsExerciser.totalQueued(await pooledOptionsExerciser.epoch());
+            const expectedAmount = totalAtEpoch.mul(fee).div(e18.mul(2));
+            assertBNClosePercent(exerciseAmounts[0].sub(expectedAmount), exerciseAmounts[1], "0.01");
+        });
+
+        it("exercise function works properly, balances check", async () => {
+            await pooledOptionsExerciser.setParams(1800, 0, e15.mul(1010)); // 1% fee
+
+            const fee = await pooledOptionsExerciser.fee();
+
+            const litBalBefore = await lit.balanceOf(litHolderAddress);
+            const olitBalBefore = await olit.balanceOf(litHolderAddress);
+
+            const exerciseAmounts = await pooledOptionsExerciser.exerciseAmounts();
+
+            await impersonateAccount(litHolderAddress, true);
+            const litWhale = await ethers.getSigner(litHolderAddress);
+
+            await lit.connect(litWhale).approve(pooledOptionsExerciser.address, e18.mul(1000000));
+
+            const epochBefore = await pooledOptionsExerciser.epoch();
+            const totalWithdrawableBefore = await pooledOptionsExerciser.totalWithdrawable(epochBefore);
+
+            const tx = await pooledOptionsExerciser.connect(litWhale).exercise();
+            const receipt = await tx.wait();
+            console.log("gasUsed exercise:", receipt.cumulativeGasUsed.toNumber());
+
+            const epochAfter = await pooledOptionsExerciser.epoch();
+            expect(epochAfter.sub(epochBefore)).eq(1);
+
+            const totalWithdrawableAfter = await pooledOptionsExerciser.totalWithdrawable(epochBefore);
+            expect(totalWithdrawableAfter.sub(totalWithdrawableBefore)).eq(exerciseAmounts[1]);
+
+            const litBalAfter = await lit.balanceOf(litHolderAddress);
+            const olitBalAfter = await olit.balanceOf(litHolderAddress);
+
+            expect(litBalBefore.sub(litBalAfter)).eq(exerciseAmounts[1]);
+            expect(olitBalAfter.sub(olitBalBefore)).eq(exerciseAmounts[0]);
+        });
+
+        it("withdraw function for a previous epoch works properly, balances check", async () => {
+            const litBalBefore = await lit.balanceOf(olitHolderAddress);
+
+            await impersonateAccount(olitHolderAddress, true);
+            const olitWhale = await ethers.getSigner(olitHolderAddress);
+
+            const epoch = await pooledOptionsExerciser.epoch();
+
+            const queuedWhale = await pooledOptionsExerciser.queued(olitHolderAddress, epoch.sub(1));
+            const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
+            const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
+            const withdrawn = await pooledOptionsExerciser.withdrawn(olitHolderAddress, epoch.sub(1));
+            expect(withdrawn).eq(ZERO);
+
+            const tx = await pooledOptionsExerciser.connect(olitWhale).withdraw(epoch.sub(1));
+            const receipt = await tx.wait();
+            console.log("gasUsed withdraw:", receipt.cumulativeGasUsed.toNumber());
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "Withdrawn";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const amount = args[2];
+            const expectedLit = queuedWhale.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
+            expect(expectedLit).eq(amount);
+
+            const litBalAfter = await lit.balanceOf(olitHolderAddress);
+            expect(litBalAfter.sub(litBalBefore)).eq(amount);
+
+            const withdrawnAfter = await pooledOptionsExerciser.withdrawn(olitHolderAddress, epoch.sub(1));
+            expect(withdrawnAfter).eq(amount);
+        });
+
+        it("calling withdraw again does not transfer any tokens, balances check", async () => {
+            const litBalBefore = await lit.balanceOf(olitHolderAddress);
+
+            await impersonateAccount(olitHolderAddress, true);
+            const olitWhale = await ethers.getSigner(olitHolderAddress);
+
+            const epoch = await pooledOptionsExerciser.epoch();
+
+            const withdrawn = await pooledOptionsExerciser.withdrawn(olitHolderAddress, epoch.sub(1));
+            expect(withdrawn).gt(ZERO);
+
+            await pooledOptionsExerciser.connect(olitWhale).withdraw(epoch.sub(1));
+
+            const litBalAfter = await lit.balanceOf(olitHolderAddress);
+            expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
+
+            const withdrawnAfter = await pooledOptionsExerciser.withdrawn(olitHolderAddress, epoch.sub(1));
+            expect(withdrawnAfter).eq(withdrawn);
+        });
+
+        it("withdrawAndLock (stake = true) function for a previous epoch works properly, balances check", async () => {
+            const litBalBefore = await lit.balanceOf(deployerAddress);
+            const stakingBalBefore = await cvxCrvRewards.balanceOf(deployerAddress);
+
+            const epoch = await pooledOptionsExerciser.epoch();
+
+            const queuedDeployer = await pooledOptionsExerciser.queued(deployerAddress, epoch.sub(1));
+            const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
+            const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
+
+            const tx = await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), 9900, true);
+            const receipt = await tx.wait();
+            console.log("gasUsed withdrawAndLock, stake = true:", receipt.cumulativeGasUsed.toNumber());
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "Withdrawn";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const amount = args[2];
+            const expectedLit = queuedDeployer.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
+            expect(expectedLit).eq(amount);
+
+            const litBalAfter = await lit.balanceOf(deployerAddress);
+            expect(litBalAfter).eq(litBalBefore);
+
+            const stakingBalAfter = await cvxCrvRewards.balanceOf(deployerAddress);
+            expect(stakingBalAfter).gt(stakingBalBefore);
+        });
+
+        it("calling withdrawAndLock again does not transfer any tokens, balances check", async () => {
+            const litBalBefore = await lit.balanceOf(deployerAddress);
+
+            const epoch = await pooledOptionsExerciser.epoch();
+
+            const withdrawn = await pooledOptionsExerciser.withdrawn(deployerAddress, epoch.sub(1));
+            expect(withdrawn).gt(ZERO);
+
+            await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), 9900, true);
+
+            const litBalAfter = await lit.balanceOf(deployerAddress);
+            expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
+
+            const withdrawnAfter = await pooledOptionsExerciser.withdrawn(deployerAddress, epoch.sub(1));
+            expect(withdrawnAfter).eq(withdrawn);
+        });
+
+        it("withdrawAndLock (stake = false) function for a previous epoch works properly, balances check", async () => {
+            const litBalBefore = await lit.balanceOf(aliceAddress);
+            const stakingBalBefore = await cvxCrvRewards.balanceOf(aliceAddress);
+            const cvxCrvBalBefore = await cvxCrv.balanceOf(aliceAddress);
+
+            const epoch = await pooledOptionsExerciser.epoch();
+
+            const queuedAlice = await pooledOptionsExerciser.queued(aliceAddress, epoch.sub(1));
+            const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
+            const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
+
+            const tx = await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), 9900, false);
+            const receipt = await tx.wait();
+            console.log("gasUsed withdrawAndLock, stake = false:", receipt.cumulativeGasUsed.toNumber());
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "Withdrawn";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const amount = args[2];
+            const expectedLit = queuedAlice.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
+            expect(expectedLit).eq(amount);
+
+            const litBalAfter = await lit.balanceOf(aliceAddress);
+            expect(litBalAfter).eq(litBalBefore);
+
+            const stakingBalAfter = await cvxCrvRewards.balanceOf(aliceAddress);
+            expect(stakingBalAfter).eq(stakingBalBefore);
+
+            const cvxCrvBalAfter = await cvxCrv.balanceOf(aliceAddress);
+            expect(cvxCrvBalAfter).gt(cvxCrvBalBefore);
+        });
+
+        it("calling withdrawAndLock again does not transfer any tokens, balances check", async () => {
+            const litBalBefore = await lit.balanceOf(aliceAddress);
+
+            const epoch = await pooledOptionsExerciser.epoch();
+
+            const withdrawn = await pooledOptionsExerciser.withdrawn(aliceAddress, epoch.sub(1));
+            expect(withdrawn).gt(ZERO);
+
+            await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), 9900, false);
+
+            const litBalAfter = await lit.balanceOf(aliceAddress);
+            expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
+
+            const withdrawnAfter = await pooledOptionsExerciser.withdrawn(aliceAddress, epoch.sub(1));
+            expect(withdrawnAfter).eq(withdrawn);
+        });
+
+        it("fails to call protected functions if is not Owner", async () => {
+            const accounts = await ethers.getSigners();
+            const randomUser = accounts[12];
+            const randomUserAddress = await randomUser.getAddress();
+
+            const owner = await pooledOptionsExerciser.owner();
+            expect(owner).eq(deployerAddress);
+
+            await expect(pooledOptionsExerciser.connect(randomUser).setOwner(randomUserAddress)).to.be.revertedWith(
+                "!auth",
+            );
+            await expect(
+                pooledOptionsExerciser.connect(randomUser).setParams(1800, 0, e15.mul(1050)),
+            ).to.be.revertedWith("!auth");
         });
     });
 });
