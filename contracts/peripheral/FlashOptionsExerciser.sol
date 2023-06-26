@@ -99,24 +99,12 @@ interface IPool {
 }
 
 /**
- * @dev     Addresses from Bunni
- *          Gauge Controller 0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218
- *          Voting Escrow 0xf17d23136B4FeAd139f54fB766c8795faae09660
- *          Minter 0xF087521Ffca0Fa8A43F5C445773aB37C5f574DA0
- *          BAL-20WETH-80LIT 0x9232a548DD9E81BaC65500b5e0d918F8Ba93675C
- *          LIT 0xfd0205066521550D7d7AB19DA8F72bb004b4C341
- *          Options LIT 0x627fee87d0D9D2c55098A06ac805Db8F98B158Aa
- *          Liquidity Gauge USDC/WETH 0xd4d8E88bf09efCf3F5bf27135Ef12c1276d9063C
- *          Bunni USDC/WETH LP (BUNNI-LP) 0x680026A1C99a1eC9878431F730706810bFac9f31
- */
-
-/**
- * @title   OLitFlashHelper
+ * @title   FlashOptionsExerciser
  * @author  LiquisFinance
  * @notice  Main helper contract; allows for claiming oLIT from RewardPools and later exercise it.
  * @dev     Implements AaveFlashloan in order to facilitate the conversion in one step.
  */
-contract OLitFlashHelper is IFlashLoanSimpleReceiver {
+contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
