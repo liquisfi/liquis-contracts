@@ -360,12 +360,13 @@ contract PooledOptionsExerciser {
      * The window would be (block.timestamp - secs - ago, block.timestamp - ago]
      * @param _fee The fee in basis points for compensating the caller
      */
-    function setOracleParams(
+    function setParams(
         uint256 _secs,
         uint256 _ago,
         uint256 _fee
     ) external {
         require(msg.sender == owner, "!auth");
+        require(_fee >= 1e18 && _fee < 2e18, "wrong fee value");
         secs = _secs;
         ago = _ago;
         fee = _fee;
