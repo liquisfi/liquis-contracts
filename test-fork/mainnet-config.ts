@@ -307,7 +307,7 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         "0xA3739b206097317c72EF416F0E75BB8f58FbD308",
         deployer,
     ),
-    oLitFlashHelper: FlashOptionsExerciser__factory.connect(ZERO_ADDRESS, deployer),
+    flashOptionsExerciser: FlashOptionsExerciser__factory.connect(ZERO_ADDRESS, deployer),
 });
 
 const getPhase3 = async (deployer: Signer): Promise<Phase3Deployed> => ({
