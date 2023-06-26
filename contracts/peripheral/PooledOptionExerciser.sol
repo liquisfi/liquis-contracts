@@ -169,13 +169,11 @@ contract PooledOptionsExerciser {
      * @param _pids Booster pools ids array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
-     * @param _maxSlippage Max slippage allowed in Balancer swap
      */
     function claimAndQueueMultiple(
         uint256[] memory _pids,
         bool _locker,
-        bool _liqLocker,
-        uint256 _maxSlippage
+        bool _liqLocker
     ) external returns (uint256 amount) {
         for (uint256 i = 0; i < _pids.length; i++) {
             IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
