@@ -14,8 +14,15 @@ import {
     LitConvertor__factory,
     PrelaunchRewardsPool,
     PrelaunchRewardsPool__factory,
-    MockCrvDepositor,
+    VoterProxy,
+    VoterProxy__factory,
+    CvxCrvToken,
+    CvxCrvToken__factory,
+    CrvDepositor,
+    CrvDepositor__factory,
 } from "../types/generated";
+
+import smartWalletCheckerABI from "../abi/smartWalletChecker.json";
 
 interface Holder {
     address: string;
@@ -25,7 +32,7 @@ interface Holder {
 const bptHolders: Holder[] = [
     {
         address: "0xb84dfdD51d18B1613432bfaE91dfcC48899D4151",
-        amount: e18.mul(32305),
+        amount: e18.mul(22305),
     },
     {
         address: "0xe118E6681D1B169e90B7401DFB2bdf47723e9a65",
@@ -72,6 +79,16 @@ describe("PrelaunchRewardsPool", () => {
     const balancerPoolId: string = "0x9232a548dd9e81bac65500b5e0d918f8ba93675c000200000000000000000423";
     const weth: string = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
+    const smartWalletCheckerContractAddress: string = "0x0ccdf95baf116ede5251223ca545d0ed02287a8f";
+    const smartWalletCheckerOwnerAddress: string = "0x9a8fee232dcf73060af348a1b62cdb0a19852d13";
+
+    const minterAddress: string = "0xF087521Ffca0Fa8A43F5C445773aB37C5f574DA0";
+    const olitAddress: string = "0x627fee87d0D9D2c55098A06ac805Db8F98B158Aa";
+    const tokenBptAddress: string = "0x9232a548DD9E81BaC65500b5e0d918F8Ba93675C";
+    const votingEscrowAddress: string = "0xf17d23136B4FeAd139f54fB766c8795faae09660";
+    const gaugeControllerAddress: string = "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218";
+    const crvBptHolderAddress: string = "0xb84dfdD51d18B1613432bfaE91dfcC48899D4151";
+
     let stakingToken: IERC20Extra;
     let litToken: IERC20Extra;
 
@@ -86,6 +103,12 @@ describe("PrelaunchRewardsPool", () => {
     let deployerAddress: string;
     let aliceAddress: string;
     let bobAddress: string;
+
+    let crvBpt: IERC20Extra;
+    let crvDepositor: CrvDepositor;
+    let cvxCrv: CvxCrvToken;
+
+    let voterProxy: VoterProxy;
 
     const debug = false;
     const waitForBlocks = 0;
@@ -108,6 +131,56 @@ describe("PrelaunchRewardsPool", () => {
         deployerAddress = await deployer.getAddress();
         aliceAddress = await alice.getAddress();
         bobAddress = await bob.getAddress();
+
+        // Deploy Voter Proxy, get whitelisted on Bunni system
+        voterProxy = await deployContract<VoterProxy>(
+            hre,
+            new VoterProxy__factory(deployer),
+            "VoterProxy",
+            [minterAddress, olitAddress, tokenBptAddress, votingEscrowAddress, gaugeControllerAddress],
+            {},
+            debug,
+            waitForBlocks,
+        );
+        // Impersonate Bunni governance and fund it with 10 ETH
+        await impersonateAccount(smartWalletCheckerOwnerAddress, true);
+        const smartWalletCheckerGovernance = await ethers.getSigner(smartWalletCheckerOwnerAddress);
+
+        // Whitelist Liq VoterProxy in Bunni Voting Escrow
+        const smartWalletChecker = await ethers.getContractAt(
+            smartWalletCheckerABI,
+            smartWalletCheckerContractAddress,
+            smartWalletCheckerGovernance,
+        );
+        await smartWalletChecker.connect(smartWalletCheckerGovernance).allowlistAddress(voterProxy.address);
+
+        // Instance of crvBpt
+        crvBpt = (await ethers.getContractAt("IERC20Extra", tokenBptAddress)) as IERC20Extra;
+
+        // Impersonate and fund crvBpt whale
+        await impersonateAccount(crvBptHolderAddress, true);
+        const crvBptHolder = await ethers.getSigner(crvBptHolderAddress);
+        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(10000));
+
+        cvxCrv = await deployContract<CvxCrvToken>(
+            hre,
+            new CvxCrvToken__factory(deployer),
+            "CvxCrv",
+            ["Liq LIT", "liqLIT"],
+            {},
+            debug,
+            waitForBlocks,
+        );
+
+        crvDepositor = await deployContract<CrvDepositor>(
+            hre,
+            new CrvDepositor__factory(deployer),
+            "CrvDepositor",
+            [voterProxy.address, cvxCrv.address, tokenBptAddress, votingEscrowAddress, deployerAddress],
+            {},
+            debug,
+            waitForBlocks,
+        );
 
         // stakingToken & lit instances
         stakingToken = (await ethers.getContractAt("IERC20Extra", bpt)) as IERC20Extra;
@@ -138,7 +211,7 @@ describe("PrelaunchRewardsPool", () => {
             hre,
             new PrelaunchRewardsPool__factory(deployer),
             "PrelaunchRewardsPool",
-            [bpt, liq.address, litConvertor.address, lit],
+            [bpt, liq.address, litConvertor.address, lit, ZERO_ADDRESS, voterProxy.address, votingEscrowAddress],
             {},
             debug,
             waitForBlocks,
@@ -179,7 +252,7 @@ describe("PrelaunchRewardsPool", () => {
 
                 assertBNClosePercent(START_VESTING_DATE, timestamp.add(ONE_WEEK.mul(4)), "0.001");
                 assertBNClosePercent(END_VESTING_DATE, START_VESTING_DATE.add(ONE_DAY.mul(180)), "0.001");
-                assertBNClosePercent(START_WITHDRAWALS, START_VESTING_DATE.add(ONE_WEEK.mul(2)), "0.001");
+                assertBNClosePercent(START_WITHDRAWALS, START_VESTING_DATE.add(ONE_WEEK.mul(4)), "0.001");
             });
 
             it("allows bpt holders to stake their LIT/WETH lpTokens", async () => {
@@ -193,7 +266,7 @@ describe("PrelaunchRewardsPool", () => {
                     await stakingToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
                     await prelaunchRewardsPool.connect(holder).stake(bptHolder.amount);
 
-                    const stakes = await prelaunchRewardsPool.balanceOf(await holder.getAddress());
+                    const stakes = await prelaunchRewardsPool.balances(await holder.getAddress());
                     expect(stakes).eq(bptHolder.amount);
 
                     totalAmount = totalAmount.add(bptHolder.amount);
@@ -214,9 +287,9 @@ describe("PrelaunchRewardsPool", () => {
                     const minOut = await litConvertor.getMinOut(amount, 9850);
 
                     await litToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
-                    await prelaunchRewardsPool.connect(holder).stakeInLit(amount, minOut);
+                    await prelaunchRewardsPool.connect(holder).stakeLit(amount, minOut);
 
-                    const stakes = await prelaunchRewardsPool.balanceOf(await holder.getAddress());
+                    const stakes = await prelaunchRewardsPool.balances(await holder.getAddress());
                     expect(stakes).gt(minOut);
                     assertBNClosePercent(stakes, minOut, "1"); // 1%
 
@@ -228,21 +301,6 @@ describe("PrelaunchRewardsPool", () => {
         });
 
         describe("Protected functions and methods", () => {
-            it("reverts when trying to convert to liqLit before targetAddress is set", async () => {
-                for (const bptHolder of bptHolders) {
-                    await impersonateAccount(bptHolder.address, true);
-
-                    const holder = await ethers.getSigner(bptHolder.address);
-
-                    const crvDepositorAddress = await prelaunchRewardsPool.crvDepositor();
-                    expect(crvDepositorAddress).eq(ZERO_ADDRESS);
-
-                    await expect(prelaunchRewardsPool.connect(holder).convertStakeToLiqLit()).to.be.revertedWith(
-                        "Target address not set",
-                    );
-                }
-            });
-
             it("reverts when trying to withdraw before start withdrawals target date", async () => {
                 for (const bptHolder of bptHolders) {
                     await impersonateAccount(bptHolder.address, true);
@@ -269,7 +327,7 @@ describe("PrelaunchRewardsPool", () => {
                     const startVestingTimestamp = await prelaunchRewardsPool.START_VESTING_DATE();
                     expect(timestamp).lt(startVestingTimestamp);
 
-                    await expect(prelaunchRewardsPool.connect(holder).claimLiqVesting()).to.be.revertedWith(
+                    await expect(prelaunchRewardsPool.connect(holder).claim()).to.be.revertedWith(
                         "Currently not possible",
                     );
                 }
@@ -302,7 +360,7 @@ describe("PrelaunchRewardsPool", () => {
                     await stakingToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
                     await prelaunchRewardsPool.connect(holder).stake(bptHolder.amount);
 
-                    const stakes = await prelaunchRewardsPool.balanceOf(await holder.getAddress());
+                    const stakes = await prelaunchRewardsPool.balances(await holder.getAddress());
                     expect(stakes).eq(bptHolder.amount);
 
                     totalAmount = totalAmount.add(bptHolder.amount);
@@ -348,7 +406,7 @@ describe("PrelaunchRewardsPool", () => {
 
                     const earned = await prelaunchRewardsPool.earned(bptHolder.address);
 
-                    const stakes = await prelaunchRewardsPool.balanceOf(bptHolder.address);
+                    const stakes = await prelaunchRewardsPool.balances(bptHolder.address);
 
                     assertBNClosePercent(earned, stakes.mul(currentRewards).div(totalStaked), "0.01");
                 }
@@ -367,7 +425,7 @@ describe("PrelaunchRewardsPool", () => {
 
                     const earned = await prelaunchRewardsPool.earned(bptHolder.address);
 
-                    const stakes = await prelaunchRewardsPool.balanceOf(bptHolder.address);
+                    const stakes = await prelaunchRewardsPool.balances(bptHolder.address);
 
                     assertBNClosePercent(earned, stakes.mul(historicalRewards).div(totalStaked), "0.01");
                 }
@@ -386,7 +444,7 @@ describe("PrelaunchRewardsPool", () => {
                     const minOut = await litConvertor.getMinOut(amount, 9850);
 
                     await litToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
-                    await prelaunchRewardsPool.connect(holder).stakeInLit(amount, minOut);
+                    await prelaunchRewardsPool.connect(holder).stakeLit(amount, minOut);
 
                     const userRewardPerTokenPaid = await prelaunchRewardsPool.userRewardPerTokenPaid(litHolder.address);
                     const rewardPerTokenStored = await prelaunchRewardsPool.rewardPerTokenStored();
@@ -396,14 +454,9 @@ describe("PrelaunchRewardsPool", () => {
                 }
             });
 
-            it("if users convert to liqLit stakes are reduced, tokens are pulled into crvDepositor", async () => {
+            it("it reverts when converting if balanceOf(voterProxy) == 0", async () => {
                 const initialSupply = await prelaunchRewardsPool.totalSupply();
                 let reducedSupply: BigNumber = ZERO;
-
-                // we deploy a new crvDepositor to add it as target address
-                const crvDepositorFactory = await ethers.getContractFactory("MockCrvDepositor", deployer);
-                const crvDepositor = (await crvDepositorFactory.deploy(stakingToken.address)) as MockCrvDepositor;
-                await crvDepositor.deployed();
 
                 await prelaunchRewardsPool.setCrvDepositor(crvDepositor.address);
                 expect(await prelaunchRewardsPool.crvDepositor()).eq(crvDepositor.address);
@@ -412,11 +465,31 @@ describe("PrelaunchRewardsPool", () => {
                     await impersonateAccount(bptHolder.address, true);
                     const holder = await ethers.getSigner(bptHolder.address);
 
+                    await expect(prelaunchRewardsPool.connect(holder).convert()).to.be.revertedWith("Not activated");
+                }
+            });
+
+            it("if users convert to liqLit stakes are reduced, tokens are pulled into crvDepositor", async () => {
+                // Create the initial lock
+                await crvBpt.transfer(voterProxy.address, e18.mul(10000));
+                await voterProxy.setDepositor(crvDepositor.address);
+                await cvxCrv.setOperator(crvDepositor.address);
+                await crvDepositor.initialLock();
+
+                const initialSupply = await prelaunchRewardsPool.totalSupply();
+                let reducedSupply: BigNumber = ZERO;
+
+                const balanceDepositorBefore = await stakingToken.balanceOf(votingEscrowAddress);
+
+                for (const bptHolder of bptHolders) {
+                    await impersonateAccount(bptHolder.address, true);
+                    const holder = await ethers.getSigner(bptHolder.address);
+
                     const earned = await prelaunchRewardsPool.earned(bptHolder.address);
 
-                    await prelaunchRewardsPool.connect(holder).convertStakeToLiqLit();
+                    await prelaunchRewardsPool.connect(holder).convert();
 
-                    const stakes = await prelaunchRewardsPool.balanceOf(bptHolder.address);
+                    const stakes = await prelaunchRewardsPool.balances(bptHolder.address);
                     expect(stakes).eq(ZERO);
 
                     const isVestingUser = await prelaunchRewardsPool.isVestingUser(bptHolder.address);
@@ -433,8 +506,8 @@ describe("PrelaunchRewardsPool", () => {
                 const endSupply = await prelaunchRewardsPool.totalSupply();
                 expect(endSupply).eq(initialSupply.sub(reducedSupply));
 
-                const balanceDepositor = await stakingToken.balanceOf(crvDepositor.address);
-                expect(balanceDepositor).eq(reducedSupply); // tokens are pulled from the prelaunchRewardsPool
+                const balanceDepositorAfter = await stakingToken.balanceOf(votingEscrowAddress);
+                expect(balanceDepositorAfter.sub(balanceDepositorBefore)).eq(reducedSupply); // tokens are pulled from the prelaunchRewardsPool
             });
         });
 
@@ -478,11 +551,11 @@ describe("PrelaunchRewardsPool", () => {
                     const claimable = await prelaunchRewardsPool.getClaimableLiqVesting(bptHolder.address);
                     const rewardsUser = await prelaunchRewardsPool.rewards(bptHolder.address);
 
-                    const tx = await prelaunchRewardsPool.connect(holder).claimLiqVesting();
+                    const tx = await prelaunchRewardsPool.connect(holder).claim();
                     const receipt = await tx.wait();
 
                     const events = receipt.events?.filter(x => {
-                        return x.event == "RewardPaid";
+                        return x.event == "Claimed";
                     });
                     if (!events) {
                         throw new Error("No events found");
@@ -524,11 +597,11 @@ describe("PrelaunchRewardsPool", () => {
                     await impersonateAccount(bptHolder.address, true);
                     const holder = await ethers.getSigner(bptHolder.address);
 
-                    const tx = await prelaunchRewardsPool.connect(holder).claimLiqVesting();
+                    const tx = await prelaunchRewardsPool.connect(holder).claim();
                     const receipt = await tx.wait();
 
                     const events = receipt.events?.filter(x => {
-                        return x.event == "RewardPaid";
+                        return x.event == "Claimed";
                     });
                     if (!events) {
                         throw new Error("No events found");
@@ -566,9 +639,7 @@ describe("PrelaunchRewardsPool", () => {
                     const claimable = await prelaunchRewardsPool.getClaimableLiqVesting(litHolder.address);
                     expect(claimable).eq(ZERO);
 
-                    await expect(prelaunchRewardsPool.connect(holder).claimLiqVesting()).to.be.revertedWith(
-                        "Not vesting User",
-                    );
+                    await expect(prelaunchRewardsPool.connect(holder).claim()).to.be.revertedWith("Not vesting User");
                 }
             });
         });
@@ -591,7 +662,7 @@ describe("PrelaunchRewardsPool", () => {
                     await stakingToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
                     await prelaunchRewardsPool.connect(holder).stake(bptHolder.amount);
 
-                    const stakes = await prelaunchRewardsPool.balanceOf(await holder.getAddress());
+                    const stakes = await prelaunchRewardsPool.balances(await holder.getAddress());
                     expect(stakes).eq(bptHolder.amount);
 
                     // add some rewards to distribute
@@ -603,39 +674,15 @@ describe("PrelaunchRewardsPool", () => {
                     const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
                     expect(timestamp).lt(START_WITHDRAWALS);
 
-                    await expect(prelaunchRewardsPool.connect(holder).claimLiqVesting()).to.be.revertedWith(
+                    await expect(prelaunchRewardsPool.connect(holder).claim()).to.be.revertedWith(
                         "Currently not possible",
                     );
                 }
             });
 
-            it("reverts when withdrawing if target address is not set", async () => {
-                for (const bptHolder of bptHolders) {
-                    await impersonateAccount(bptHolder.address, true);
-                    const holder = await ethers.getSigner(bptHolder.address);
-
-                    const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
-
-                    await increaseTime(ONE_WEEK.mul(6));
-
-                    const timestamp = await getTimestamp();
-                    expect(timestamp).gt(START_WITHDRAWALS);
-
-                    // we deploy a new crvDepositor to add it as target address
-                    const crvDepositorFactory = await ethers.getContractFactory("MockCrvDepositor", deployer);
-                    const crvDepositor = (await crvDepositorFactory.deploy(stakingToken.address)) as MockCrvDepositor;
-                    await crvDepositor.deployed();
-
-                    await prelaunchRewardsPool.setCrvDepositor(crvDepositor.address);
-                    expect(await prelaunchRewardsPool.crvDepositor()).eq(crvDepositor.address);
-
-                    await expect(prelaunchRewardsPool.connect(holder).withdraw()).to.be.revertedWith(
-                        "Target address is set",
-                    );
-                }
-            });
-
             it("reverts when withdrawing if users stake is zero", async () => {
+                await increaseTime(ONE_WEEK.mul(9));
+
                 // set crvDepositor to address(0)
                 await prelaunchRewardsPool.setCrvDepositor(ZERO_ADDRESS);
                 expect(await prelaunchRewardsPool.crvDepositor()).eq(ZERO_ADDRESS);
@@ -649,7 +696,7 @@ describe("PrelaunchRewardsPool", () => {
                     await impersonateAccount(bptHolder.address, true);
                     const holder = await ethers.getSigner(bptHolder.address);
 
-                    const initStakes = await prelaunchRewardsPool.balanceOf(bptHolder.address);
+                    const initStakes = await prelaunchRewardsPool.balances(bptHolder.address);
                     const initStakingTokenBal = await stakingToken.balanceOf(bptHolder.address);
 
                     const tx = await prelaunchRewardsPool.connect(holder).withdraw();
@@ -670,7 +717,7 @@ describe("PrelaunchRewardsPool", () => {
                     const userWithdrawn = args[0];
                     const amountWithdrawn = args[1];
 
-                    const endStakes = await prelaunchRewardsPool.balanceOf(bptHolder.address);
+                    const endStakes = await prelaunchRewardsPool.balances(bptHolder.address);
                     const endStakingTokenBal = await stakingToken.balanceOf(bptHolder.address);
 
                     expect(userWithdrawn).eq(bptHolder.address);
@@ -693,9 +740,7 @@ describe("PrelaunchRewardsPool", () => {
                     await impersonateAccount(bptHolder.address, true);
                     const holder = await ethers.getSigner(bptHolder.address);
 
-                    await expect(prelaunchRewardsPool.connect(holder).claimLiqVesting()).to.be.revertedWith(
-                        "Not vesting User",
-                    );
+                    await expect(prelaunchRewardsPool.connect(holder).claim()).to.be.revertedWith("Not vesting User");
                 }
             });
         });
