@@ -370,7 +370,7 @@ describe("PrelaunchRewardsPool", () => {
             });
 
             it("notifies rewardAmount if called by owner", async () => {
-                await liq.transfer(prelaunchRewardsPool.address, e18.mul(100000));
+                await liq.approve(prelaunchRewardsPool.address, e18.mul(100000));
                 await prelaunchRewardsPool.notifyRewardAmount(e18.mul(100000));
 
                 const periodFinish = await prelaunchRewardsPool.periodFinish();
@@ -413,7 +413,7 @@ describe("PrelaunchRewardsPool", () => {
             });
 
             it("after one row of rewards earned amounts are proportional to stakes", async () => {
-                await liq.transfer(prelaunchRewardsPool.address, e18.mul(100000));
+                await liq.approve(prelaunchRewardsPool.address, e18.mul(100000));
                 await prelaunchRewardsPool.notifyRewardAmount(e18.mul(100000));
 
                 for (const bptHolder of bptHolders) {
@@ -666,7 +666,7 @@ describe("PrelaunchRewardsPool", () => {
                     expect(stakes).eq(bptHolder.amount);
 
                     // add some rewards to distribute
-                    await liq.transfer(prelaunchRewardsPool.address, e18.mul(100000));
+                    await liq.approve(prelaunchRewardsPool.address, e18.mul(100000));
                     await prelaunchRewardsPool.notifyRewardAmount(e18.mul(100000));
 
                     const timestamp = await getTimestamp();

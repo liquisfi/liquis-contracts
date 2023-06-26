@@ -273,6 +273,8 @@ contract PrelaunchRewardsPool {
      *      There is no pull method in the function
      */
     function notifyRewardAmount(uint256 reward) external updateReward(address(0)) onlyAuthorized {
+        rewardToken.safeTransferFrom(msg.sender, address(this), reward);
+
         historicalRewards = historicalRewards + reward;
 
         if (block.timestamp >= periodFinish) {
