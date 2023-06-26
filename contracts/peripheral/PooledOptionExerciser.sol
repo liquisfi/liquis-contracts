@@ -7,9 +7,10 @@ import "@openzeppelin/contracts-0.8/utils/Address.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 
 import { IBooster } from "../interfaces/IBooster.sol";
+import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IBaseRewardPool } from "../interfaces/IBaseRewardPool.sol";
 import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
-import { IBalancerVault, IAsset, IBalancerTwapOracle } from "../interfaces/balancer/BalancerV2.sol";
+import { IBalancerTwapOracle } from "../interfaces/balancer/BalancerV2.sol";
 
 // Note Oracle 0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30
 interface IOracle {
@@ -50,6 +51,7 @@ contract PooledOptionsExerciser {
     address public immutable liqLit;
     address public immutable crvDepositorWrapper;
     address public immutable lockerRewards;
+    address public immutable liqLocker;
 
     address public immutable lit = 0xfd0205066521550D7d7AB19DA8F72bb004b4C341;
     address public immutable olit = 0x627fee87d0D9D2c55098A06ac805Db8F98B158Aa;
@@ -59,7 +61,6 @@ contract PooledOptionsExerciser {
     uint256 public secs;
     uint256 public ago;
 
-    uint256 public constant basisOne = 10000;
     bytes32 internal constant balancerPoolId = 0x9232a548dd9e81bac65500b5e0d918f8ba93675c000200000000000000000423;
 
     // Option execution queue
@@ -68,8 +69,8 @@ contract PooledOptionsExerciser {
     mapping(address => mapping(uint256 => uint256)) public withdrawn; // owner => epoch => balance
     mapping(uint256 => uint256) public totalWithdrawable; // epoch => total supply
 
-    uint256 epoch; // execution queue epoch
-    uint256 fee; // fee paid to option executor
+    uint256 public epoch; // execution queue epoch
+    uint256 public fee; // fee paid to option executor in 1e18 scale
 
     event OwnerUpdated(address newOwner);
     event SetParams(uint256 secs, uint256 ago, uint256 fee);
@@ -82,20 +83,20 @@ contract PooledOptionsExerciser {
      * @param _liqLit ERC20 token minted when locking LIT to veLIT in VoterProxy through crvDepositor.
      * @param _operator Booster main deposit contract; keeps track of pool info & user deposits; distributes rewards.
      * @param _crvDepositorWrapper Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor.
-     * @param _lockerRewards BaseRewardPool where staking token is liqLIT
-     * @param _fee Fee paid to oLIT option executor (expressed as a factor 1+fee)
+     * @param _lockerRewards BaseRewardPool where staking token is liqLIT.
      */
     constructor(
         address _liqLit,
         address _operator,
         address _crvDepositorWrapper,
         address _lockerRewards,
-        uint256 _fee
+        address _liqLocker
     ) {
         liqLit = _liqLit;
         operator = _operator;
         crvDepositorWrapper = _crvDepositorWrapper;
         lockerRewards = _lockerRewards;
+        liqLocker = _liqLocker;
 
         owner = msg.sender;
 
@@ -103,12 +104,12 @@ contract PooledOptionsExerciser {
         ago = 0;
 
         epoch = 0;
-        fee = _fee;
+        fee = 1.01e18; // 1%
 
         IERC20(lit).safeApprove(crvDepositorWrapper, type(uint256).max);
 
         emit OwnerUpdated(msg.sender);
-        emit SetParams(1800, 0, _fee);
+        emit SetParams(1800, 0, 1.01e18);
     }
 
     /**
@@ -134,6 +135,61 @@ contract PooledOptionsExerciser {
         // claim oLIT rewards from _pid pool for user
         IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pid);
         amount = IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
+
+        // queue claimed oLIT rewards
+        queued[msg.sender][epoch] += amount;
+        totalQueued[epoch] += amount;
+
+        emit Queued(msg.sender, epoch, amount);
+    }
+
+    /**
+     * @notice Claim oLIT rewards from liqLit staking and liqLocker
+     * @param _option Option == 1 claim from liqLit staking, 2 claim from liqLocker, anything else claim from both
+     */
+    function claimAndQueueExtra(uint8 _option) external returns (uint256 amount) {
+        if (_option == 1) {
+            amount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        } else if (_option == 2) {
+            amount = ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        } else {
+            amount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+            amount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        }
+
+        // queue claimed oLIT rewards
+        queued[msg.sender][epoch] += amount;
+        totalQueued[epoch] += amount;
+
+        emit Queued(msg.sender, epoch, amount);
+    }
+
+    /**
+     * @notice Claim oLIT rewards from liqLit staking and liqLocker
+     * @param _pids Booster pools ids array to claim rewards from
+     * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
+     * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
+     * @param _maxSlippage Max slippage allowed in Balancer swap
+     */
+    function claimAndQueueMultiple(
+        uint256[] memory _pids,
+        bool _locker,
+        bool _liqLocker,
+        uint256 _maxSlippage
+    ) external returns (uint256 amount) {
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+            // claim all the rewards, only oLIT is sent here, the rest directly to sender
+            amount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_locker) {
+            amount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_liqLocker) {
+            amount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        }
 
         // queue claimed oLIT rewards
         queued[msg.sender][epoch] += amount;
@@ -214,8 +270,8 @@ contract PooledOptionsExerciser {
         epoch += 1;
 
         // Transfer oLIT to caller and LIT to exerciser contract
-        IERC20(olit).safeTransfer(msg.sender, amountIn);
         IERC20(lit).safeTransferFrom(msg.sender, address(this), amountOut);
+        IERC20(olit).safeTransfer(msg.sender, amountIn);
 
         emit Exercised(epoch - 1, amountIn, amountOut);
     }
@@ -303,11 +359,17 @@ contract PooledOptionsExerciser {
      * @param _secs The size of the window to take the TWAP value over in seconds.
      * @param _ago The number of seconds in the past to take the TWAP from.
      * The window would be (block.timestamp - secs - ago, block.timestamp - ago]
+     * @param _fee The fee in basis points for compensating the caller
      */
-    function setOracleParams(uint256 _secs, uint256 _ago) external {
+    function setOracleParams(
+        uint256 _secs,
+        uint256 _ago,
+        uint256 _fee
+    ) external {
         require(msg.sender == owner, "!auth");
         secs = _secs;
         ago = _ago;
-        emit SetParams(_secs, _ago, fee);
+        fee = _fee;
+        emit SetParams(_secs, _ago, _fee);
     }
 }
