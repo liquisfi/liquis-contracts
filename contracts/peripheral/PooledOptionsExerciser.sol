@@ -218,7 +218,7 @@ contract PooledOptionsExerciser {
     }
 
     // compute oLIT amountIn and LIT amountOut for exercising the oLIT queued for execution in current epoch
-    function _exerciseAmounts() internal returns (uint256 amountIn, uint256 amountOut) {
+    function _exerciseAmounts() internal view returns (uint256 amountIn, uint256 amountOut) {
         // oLIT amount available for exercise
         amountIn = totalQueued[epoch];
 
@@ -250,7 +250,7 @@ contract PooledOptionsExerciser {
      * @return amountIn The amount of oLIT options exercised
      * @return amountOut The amount of LIT received
      */
-    function exerciseAmounts() external virtual returns (uint256 amountIn, uint256 amountOut) {
+    function exerciseAmounts() external view returns (uint256 amountIn, uint256 amountOut) {
         return _exerciseAmounts();
     }
 
