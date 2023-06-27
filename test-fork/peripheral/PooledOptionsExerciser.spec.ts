@@ -13,9 +13,9 @@ import {
     PooledOptionsExerciser__factory,
     LiqLocker,
 } from "../../types/generated";
-import { Signer } from "ethers";
+import { Signer, BigNumber as BN } from "ethers";
 import { increaseTime } from "../../test-utils/time";
-import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../../test-utils/constants";
+import { ZERO_ADDRESS, ZERO, e18, e15, e6, e4 } from "../../test-utils/constants";
 import { deployContract, waitForTx } from "../../tasks/utils";
 import { assertBNClosePercent, impersonateAccount } from "../../test-utils";
 
@@ -600,48 +600,56 @@ describe("Booster", () => {
             const olitOracleAddress: string = "0x9d43ccb1ad7e0081cc8a8f1fd54d16e54a637e30";
             const olitOracle = new ethers.Contract(
                 olitOracleAddress,
-                ["function getPrice() view returns (uint256 price)"],
+                ["function multiplier() view returns (uint16 multiplier)"],
                 deployer,
             );
-            await olitOracle.getPrice();
-            const fee = await pooledOptionsExerciser.fee();
-
+            const multiplier = await olitOracle.multiplier(); // oLIT execution price
+            const fee = await pooledOptionsExerciser.fee(); // exerciser fee
             const exerciseAmounts = await pooledOptionsExerciser.exerciseAmounts();
-
-            // 2 is the ratio of Bunni in this block, half of the value in weth in order to execute
             const totalAtEpoch = await pooledOptionsExerciser.totalQueued(await pooledOptionsExerciser.epoch());
-            const expectedAmount = totalAtEpoch.mul(fee).div(e18.mul(2));
-            assertBNClosePercent(exerciseAmounts[0].sub(expectedAmount), exerciseAmounts[1], "0.01");
+            const price = BN.from(multiplier).mul(e4.add(fee)).div(e4);
+
+            assertBNClosePercent(exerciseAmounts[0].sub(totalAtEpoch.mul(price).div(e4)), exerciseAmounts[1], "0.01");
         });
 
         it("if fee is 50% exercisers need to add 1/4 of the totalAtEpoch", async () => {
-            await pooledOptionsExerciser.setParams(1800, 0, e15.mul(1500)); // 50% fee
+            await pooledOptionsExerciser.setFee(5000); // 50% fee
 
-            const fee = await pooledOptionsExerciser.fee();
-
+            const olitOracleAddress: string = "0x9d43ccb1ad7e0081cc8a8f1fd54d16e54a637e30";
+            const olitOracle = new ethers.Contract(
+                olitOracleAddress,
+                ["function multiplier() view returns (uint16 multiplier)"],
+                deployer,
+            );
+            const multiplier = await olitOracle.multiplier(); // oLIT execution price
+            const fee = await pooledOptionsExerciser.fee(); // exerciser fee
             const exerciseAmounts = await pooledOptionsExerciser.exerciseAmounts();
-
-            // 2 is the ratio of Bunni in this block, half of the value in weth in order to execute
             const totalAtEpoch = await pooledOptionsExerciser.totalQueued(await pooledOptionsExerciser.epoch());
-            const expectedAmount = totalAtEpoch.mul(fee).div(e18.mul(2));
-            assertBNClosePercent(exerciseAmounts[0].sub(expectedAmount), exerciseAmounts[1], "0.01");
+            const price = BN.from(multiplier).mul(e4.add(fee)).div(e4);
+
+            assertBNClosePercent(exerciseAmounts[0].sub(totalAtEpoch.mul(price).div(e4)), exerciseAmounts[1], "0.01");
         });
 
         it("if fee is 33% exercisers need to add 1/3 of the totalAtEpoch", async () => {
-            await pooledOptionsExerciser.setParams(1800, 0, e15.mul(1333)); // 33% fee
+            await pooledOptionsExerciser.setFee(3300); // 33% fee
 
-            const fee = await pooledOptionsExerciser.fee();
-
+            const olitOracleAddress: string = "0x9d43ccb1ad7e0081cc8a8f1fd54d16e54a637e30";
+            const olitOracle = new ethers.Contract(
+                olitOracleAddress,
+                ["function multiplier() view returns (uint16 multiplier)"],
+                deployer,
+            );
+            const multiplier = await olitOracle.multiplier(); // oLIT execution price
+            const fee = await pooledOptionsExerciser.fee(); // exerciser fee
             const exerciseAmounts = await pooledOptionsExerciser.exerciseAmounts();
-
-            // 2 is the ratio of Bunni in this block, half of the value in weth in order to execute
             const totalAtEpoch = await pooledOptionsExerciser.totalQueued(await pooledOptionsExerciser.epoch());
-            const expectedAmount = totalAtEpoch.mul(fee).div(e18.mul(2));
-            assertBNClosePercent(exerciseAmounts[0].sub(expectedAmount), exerciseAmounts[1], "0.01");
+            const price = BN.from(multiplier).mul(e4.add(fee)).div(e4);
+
+            assertBNClosePercent(exerciseAmounts[0].sub(totalAtEpoch.mul(price).div(e4)), exerciseAmounts[1], "0.01");
         });
 
         it("exercise function works properly, balances check", async () => {
-            await pooledOptionsExerciser.setParams(1800, 0, e15.mul(1010)); // 1% fee
+            await pooledOptionsExerciser.setFee(100); // 1% fee
 
             const litBalBefore = await lit.balanceOf(litHolderAddress);
             const olitBalBefore = await olit.balanceOf(litHolderAddress);
@@ -857,9 +865,7 @@ describe("Booster", () => {
             await expect(pooledOptionsExerciser.connect(randomUser).setOwner(randomUserAddress)).to.be.revertedWith(
                 "!auth",
             );
-            await expect(
-                pooledOptionsExerciser.connect(randomUser).setParams(1800, 0, e15.mul(1050)),
-            ).to.be.revertedWith("!auth");
+            await expect(pooledOptionsExerciser.connect(randomUser).setFee(500)).to.be.revertedWith("!auth");
         });
     });
 });

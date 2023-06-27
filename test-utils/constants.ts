@@ -13,6 +13,7 @@ export const MAX_UINT256 = BN.from(2).pow(256).sub(1);
 export const MAX_INT128 = BN.from(2).pow(127).sub(1);
 export const MIN_INT128 = BN.from(2).pow(127).mul(-1);
 
+export const e4: BN = BN.from(10).pow(4);
 export const e6: BN = BN.from(10).pow(6);
 export const e15: BN = BN.from(10).pow(15);
 export const e18: BN = BN.from(10).pow(18);

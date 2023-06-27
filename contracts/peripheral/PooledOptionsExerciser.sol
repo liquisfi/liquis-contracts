@@ -15,12 +15,10 @@ import { IBalancerTwapOracle } from "../interfaces/balancer/BalancerV2.sol";
 // Oracle 0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30
 interface IOracle {
     /**
-     * @notice Computes the current strike price of the option
-     * @return price The strike price in terms of the payment token, scaled by 18 decimals.
-     * For example, if the payment token is $2 and the strike price is $4, the return value
-     * would be 2e18.
+     * @notice The multiplier applied to the TWAP value. Encodes the discount of the options token.
+     * @return multiplier The multiplier in 4 decimals precision
      */
-    function getPrice() external view returns (uint256 price);
+    function multiplier() external view returns (uint16 multiplier);
 }
 
 /**
@@ -46,9 +44,6 @@ contract PooledOptionsExerciser {
     address public immutable olitOracle = 0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30;
     address public immutable balOracle = 0x9232a548DD9E81BaC65500b5e0d918F8Ba93675C;
 
-    uint256 public secs;
-    uint256 public ago;
-
     uint256 public constant basisOne = 10000;
     bytes32 internal constant balancerPoolId = 0x9232a548dd9e81bac65500b5e0d918f8ba93675c000200000000000000000423;
 
@@ -59,10 +54,10 @@ contract PooledOptionsExerciser {
     mapping(uint256 => uint256) public totalWithdrawable; // epoch => total withdrawable
 
     uint256 public epoch; // execution queue epoch
-    uint256 public fee; // fee paid to option executor in 1e18 scale
+    uint256 public fee; // fee paid to option executor expressed in bps (100=1%, 50=0.5%)
 
     event OwnerUpdated(address newOwner);
-    event SetParams(uint256 secs, uint256 ago, uint256 fee);
+    event FeeUpdated(uint256 fee);
     event Queued(address owner, uint256 epoch, uint256 amount);
     event Unqueued(address owner, uint256 epoch, uint256 amount);
     event Exercised(uint256 epoch, uint256 amountIn, uint256 amountOut);
@@ -89,16 +84,13 @@ contract PooledOptionsExerciser {
 
         owner = msg.sender;
 
-        secs = 1800;
-        ago = 0;
-
         epoch = 0;
-        fee = 1.01e18; // 1%
+        fee = 100; // 1% expressed in bps
 
         IERC20(lit).safeApprove(crvDepositorWrapper, type(uint256).max);
 
         emit OwnerUpdated(msg.sender);
-        emit SetParams(1800, 0, 1.01e18);
+        emit FeeUpdated(100);
     }
 
     /**
@@ -175,25 +167,11 @@ contract PooledOptionsExerciser {
 
         if (amountIn == 0) return (0, 0);
 
-        // oLIT option exercise price in WETH incl exercise fee for caller
-        // note, normalize to 1e18 precision when computing exercise price in LIT (below)
-        uint256 executionPriceWETH = IOracle(olitOracle).getPrice().mul(fee);
-
-        // WETH/LIT price
-        IBalancerTwapOracle.OracleAverageQuery[] memory queries = new IBalancerTwapOracle.OracleAverageQuery[](1);
-        queries[0] = IBalancerTwapOracle.OracleAverageQuery({
-            variable: IBalancerTwapOracle.Variable.PAIR_PRICE,
-            secs: secs,
-            ago: ago
-        });
-        uint256 priceLIT = IBalancerTwapOracle(balOracle).getTimeWeightedAverage(queries)[0];
-
-        // oLIT option exercise price in LIT
-        // note, executionPriceWETH is in 1e36 precision
-        uint256 executionPriceLIT = executionPriceWETH.div(priceLIT);
+        // oLIT execution price denominated in LIT and expressed in bps
+        uint256 price = uint256(IOracle(olitOracle).multiplier()).mul(basisOne.add(fee)).div(basisOne);
 
         // amount of LIT available for claiming is exercised LIT minus execution price
-        amountOut = amountIn.sub(amountIn.mul(executionPriceLIT).div(1e18));
+        amountOut = amountIn.sub(amountIn.mul(price).div(basisOne));
     }
 
     /**
@@ -307,21 +285,13 @@ contract PooledOptionsExerciser {
     }
 
     /**
-     * @param _secs The size of the window to take the TWAP value over in seconds.
-     * @param _ago The number of seconds in the past to take the TWAP from.
-     * The window would be (block.timestamp - secs - ago, block.timestamp - ago]
-     * @param _fee The fee in basis points for compensating the caller
+     * @notice Updates the fee parameter within a restricted range
+     * @param _fee The fee in bps for compensating the option exerciser
      */
-    function setParams(
-        uint256 _secs,
-        uint256 _ago,
-        uint256 _fee
-    ) external {
+    function setFee(uint256 _fee) external {
         require(msg.sender == owner, "!auth");
-        require(_fee >= 1e18 && _fee < 2e18, "wrong fee value");
-        secs = _secs;
-        ago = _ago;
+        require(_fee <= basisOne, "unsupported value");
         fee = _fee;
-        emit SetParams(_secs, _ago, _fee);
+        emit FeeUpdated(_fee);
     }
 }
