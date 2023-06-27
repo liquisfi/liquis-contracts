@@ -13,19 +13,19 @@ import {
     PoolManagerV3,
     FlashOptionsExerciser,
     LiqLocker,
-} from "../types/generated";
+} from "../../types/generated";
 import { Signer } from "ethers";
-import { increaseTime } from "../test-utils/time";
-import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../test-utils/constants";
-import { deployContract, waitForTx } from "../tasks/utils";
-import { impersonateAccount } from "../test-utils";
+import { increaseTime } from "../../test-utils/time";
+import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../../test-utils/constants";
+import { deployContract, waitForTx } from "../../tasks/utils";
+import { impersonateAccount } from "../../test-utils";
 
 import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../scripts/deploySystem";
-import { getMockDistro } from "../scripts/deployMocks";
-import { logContracts } from "../tasks/utils/deploy-utils";
+import { getMockDistro } from "../../scripts/deployMocks";
+import { logContracts } from "../../tasks/utils/deploy-utils";
 
-import smartWalletCheckerABI from "../abi/smartWalletChecker.json";
-import bunniHubABI from "../abi/bunniHub.json";
+import smartWalletCheckerABI from "../../abi/smartWalletChecker.json";
+import bunniHubABI from "../../abi/bunniHub.json";
 
 // yarn hardhat --config hardhat-fork.config.ts test ./test-liquis/FlashOptionsExerciser.spec.ts
 
