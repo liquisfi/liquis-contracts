@@ -59,12 +59,10 @@ import {
     IStablePoolFactory__factory,
     AuraPenaltyForwarder__factory,
     ExtraRewardsDistributor__factory,
-    AuraBalRewardPool,
-    AuraBalRewardPool__factory,
     LiqVestedEscrow,
     LiqVestedEscrow__factory,
-    AuraMerkleDrop,
-    AuraMerkleDrop__factory,
+    LiqMerkleDrop,
+    LiqMerkleDrop__factory,
     ClaimFeesHelper,
     ClaimFeesHelper__factory,
     RewardPoolDepositWrapper__factory,
@@ -72,10 +70,6 @@ import {
     BoosterHelper__factory,
     GaugeMigrator,
     GaugeMigrator__factory,
-    MasterChefRewardHook,
-    MasterChefRewardHook__factory,
-    SiphonToken,
-    SiphonToken__factory,
     TempBooster,
     TempBooster__factory,
     PoolMigrator,
@@ -96,6 +90,7 @@ interface AirdropData {
     merkleRoot: string;
     startDelay: BN;
     length: BN;
+    totalClaims: BN;
     amount: BN;
 }
 
@@ -215,7 +210,6 @@ interface Phase2Deployed extends Phase1Deployed {
     cvxCrv: CvxCrvToken;
     cvxCrvBpt: BalancerPoolDeployed;
     cvxCrvRewards: BaseRewardPool;
-    initialCvxCrvStaking: AuraBalRewardPool;
     crvDepositor: CrvDepositor;
     crvDepositorWrapper: CrvDepositorWrapper;
     poolManager: PoolManagerV3;
@@ -224,7 +218,7 @@ interface Phase2Deployed extends Phase1Deployed {
     cvxLocker: LiqLocker;
     chef: ConvexMasterChef;
     vestedEscrows: LiqVestedEscrow[];
-    drops: AuraMerkleDrop[];
+    drops: LiqMerkleDrop[];
     lbpBpt: BalancerPoolDeployed;
     balLiquidityProvider: BalLiquidityProvider;
     penaltyForwarder: AuraPenaltyForwarder;
@@ -266,10 +260,6 @@ interface Phase6Deployed {
 }
 type PoolsSnapshot = { gauge: string; lptoken: string; shutdown: boolean; pid: number };
 
-interface Phase7Deployed {
-    masterChefRewardHook: MasterChefRewardHook;
-    siphonToken: SiphonToken;
-}
 interface Phase8Deployed {
     poolManagerV4: PoolManagerV4;
     boosterOwnerSecondary: BoosterOwnerSecondary;
@@ -747,23 +737,6 @@ async function deployPhase2(
     }
 
     // -----------------------------
-    // 2.2.2 Schedule: 2% emission for cvxCrv staking
-    // -----------------------------
-
-    const initialCvxCrvStaking = await deployContract<AuraBalRewardPool>(
-        hre,
-        new AuraBalRewardPool__factory(deployer),
-        "AuraBalRewardPool",
-        [cvxCrv.address, cvx.address, multisigs.treasuryMultisig, cvxLocker.address, penaltyForwarder.address, DELAY],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    tx = await cvx.transfer(initialCvxCrvStaking.address, distroList.cvxCrvBootstrap);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    // -----------------------------
     // 2.2.3 Create: auraBAL/BPT BPT Stableswap
     // https://dev.balancer.fi/resources/deploy-pools-from-factory/creation#deploying-a-pool-with-typescript
     // -----------------------------
@@ -787,7 +760,7 @@ async function deployPhase2(
     }
 
     let cvxCrvBpt: BalancerPoolDeployed;
-    if (chain == Chain.mainnet || chain == Chain.kovan) {
+    if (chain == Chain.mainnet) {
         const [poolTokens, initialBalances] = balHelper.sortTokens(
             [cvxCrv.address, crvBpt.address],
             [cvxCrvBalance, cvxCrvBalance],
@@ -881,21 +854,22 @@ async function deployPhase2(
     // -----------------------------
 
     const dropCount = distroList.airdrops.length;
-    const drops: AuraMerkleDrop[] = [];
+    const drops: LiqMerkleDrop[] = [];
     for (let i = 0; i < dropCount; i++) {
-        const { merkleRoot, startDelay, length, amount } = distroList.airdrops[i];
-        const airdrop = await deployContract<AuraMerkleDrop>(
+        const { merkleRoot, startDelay, length, totalClaims, amount } = distroList.airdrops[i];
+        const airdrop = await deployContract<LiqMerkleDrop>(
             hre,
-            new AuraMerkleDrop__factory(deployer),
-            "AuraMerkleDrop",
+            new LiqMerkleDrop__factory(deployer),
+            "LiqMerkleDrop",
             [
                 multisigs.treasuryMultisig,
                 merkleRoot,
                 cvx.address,
                 cvxLocker.address,
-                penaltyForwarder.address,
                 startDelay,
                 length,
+                totalClaims,
+                amount,
             ],
             {},
             debug,
@@ -912,7 +886,7 @@ async function deployPhase2(
 
     // If Mainnet or Kovan, create LBP
     let lbpBpt: BalancerPoolDeployed;
-    if (chain == Chain.mainnet || chain == Chain.kovan) {
+    if (chain == Chain.mainnet) {
         const { tknAmount, wethAmount } = distroList.lbp;
         const [poolTokens, weights, initialBalances] = balHelper.sortTokens(
             [cvx.address, config.weth],
@@ -985,7 +959,9 @@ async function deployPhase2(
 
     const balance = await cvx.balanceOf(deployerAddress);
     if (balance.gt(0)) {
-        throw console.error("Uh oh, deployer still has CVX to distribute: ", balance.toString());
+        // throw console.error("Uh oh, deployer still has CVX to distribute: ", balance.toString());
+        tx = await cvx.transfer(multisigs.treasuryMultisig, balance);
+        await waitForTx(tx, debug, waitForBlocks);
     }
 
     return {
@@ -1004,7 +980,6 @@ async function deployPhase2(
         cvxCrv,
         cvxCrvBpt,
         cvxCrvRewards,
-        initialCvxCrvStaking,
         crvDepositor,
         crvDepositorWrapper,
         poolManager,
@@ -1051,7 +1026,7 @@ async function deployPhase3(
     // If Mainnet or Kovan, create LBP
     let tx: ContractTransaction;
     let pool: BalancerPoolDeployed = { address: DEAD_ADDRESS, poolId: ZERO_KEY };
-    if (chain == Chain.mainnet || chain == Chain.kovan) {
+    if (chain == Chain.mainnet) {
         const tknAmount = await cvx.balanceOf(balLiquidityProvider.address);
         const wethAmount = await MockERC20__factory.connect(config.weth, deployer).balanceOf(
             balLiquidityProvider.address,
@@ -1516,43 +1491,6 @@ async function deployPhase6(
     };
 }
 
-async function deployPhase7(
-    hre: HardhatRuntimeEnvironment,
-    signer: Signer,
-    phase2: Phase2Deployed,
-    auraBalStash: string,
-    debug = false,
-    waitForBlocks = 0,
-): Promise<Phase7Deployed> {
-    const { chef, cvx } = phase2;
-
-    const masterChefRewardHook = await deployContract<MasterChefRewardHook>(
-        hre,
-        new MasterChefRewardHook__factory(signer),
-        "MasterChefRewardHook",
-        [auraBalStash, chef.address, cvx.address],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    const siphonToken = await deployContract<SiphonToken>(
-        hre,
-        new SiphonToken__factory(signer),
-        "SiphonToken",
-        [masterChefRewardHook.address, simpleToExactAmount(1)],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    // -----------------------------
-    // POST-7: Setup MasterChefRewardHook (setPid, transferOwnership)
-    //  -  boosterOwner (setStashExtraReward, setStashRewardHook)
-
-    return { masterChefRewardHook, siphonToken };
-}
-
 export {
     DistroList,
     MultisigConfig,
@@ -1573,8 +1511,6 @@ export {
     Phase5Deployed,
     deployPhase6,
     Phase6Deployed,
-    deployPhase7,
-    Phase7Deployed,
     Phase8Deployed,
     PoolsSnapshot,
 };

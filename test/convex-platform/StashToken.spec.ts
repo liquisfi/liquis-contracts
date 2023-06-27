@@ -33,7 +33,6 @@ import {
     increaseTime,
     simpleToExactAmount,
 } from "../../test-utils";
-import { deployAuraBalStaker } from "scripts/deployPeripheral";
 import { getAddress } from "ethers/lib/utils";
 
 describe("StashToken", () => {

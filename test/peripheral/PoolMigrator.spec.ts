@@ -9,7 +9,6 @@ import {
     deployPhase4,
     deployPhase5,
     deployPhase6,
-    deployPhase7,
     MultisigConfig,
     Phase2Deployed,
     Phase6Deployed,
@@ -98,8 +97,6 @@ describe("PoolMigrator", () => {
                 await poolManager["addPool(address)"](poolInfo.gauge);
             }
         }
-
-        await deployPhase7(hre, deployer, phase2, "0x0000000000000000000000000000000000000000");
     };
 
     describe("migration ", async () => {

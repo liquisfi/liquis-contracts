@@ -4,13 +4,10 @@ import {
     Phase2Deployed,
     Phase3Deployed,
     Phase6Deployed,
-    Phase7Deployed,
     Phase8Deployed,
     SystemDeployed,
 } from "../scripts/deploySystem";
 import {
-    SiphonToken__factory,
-    MasterChefRewardHook__factory,
     VoterProxy__factory,
     LiqToken__factory,
     LiqMinter__factory,
@@ -19,9 +16,8 @@ import {
     CvxCrvToken__factory,
     CrvDepositor__factory,
     CrvDepositorWrapper__factory,
-    AuraBalRewardPool__factory,
     LiqLocker__factory,
-    AuraMerkleDrop__factory,
+    LiqMerkleDrop__factory,
     AuraPenaltyForwarder__factory,
     LiqVestedEscrow__factory,
     BalLiquidityProvider__factory,
@@ -46,17 +42,6 @@ import {
     PoolMigrator__factory,
     PoolManagerV4__factory,
     BoosterOwnerSecondary__factory,
-    FeeForwarder__factory,
-    AuraBalVault__factory,
-    AuraBalStrategy__factory,
-    BalancerSwapsHandler__factory,
-    AuraBalVault,
-    AuraBalStrategy,
-    BalancerSwapsHandler,
-    VirtualBalanceRewardPool,
-    VirtualBalanceRewardPool__factory,
-    AuraClaimZapV3,
-    AuraClaimZapV3__factory,
     FlashOptionsExerciser__factory,
 } from "../types/generated";
 import { Signer } from "ethers";
@@ -275,7 +260,6 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         address: "0x3dd0843a028c86e0b760b1a76929d1c5ef93a2dd",
     },
     cvxCrvRewards: BaseRewardPool__factory.connect("0x5e5ea2048475854a5702F5B8468A51Ba1296EFcC", deployer),
-    initialCvxCrvStaking: AuraBalRewardPool__factory.connect("0xC47162863a12227E5c3B0860715F9cF721651C0c", deployer),
     crvDepositor: CrvDepositor__factory.connect("0xeAd792B55340Aa20181A80d6a16db6A0ECd1b827", deployer),
     crvDepositorWrapper: CrvDepositorWrapper__factory.connect("0x68655AD9852a99C87C0934c7290BB62CFa5D4123", deployer),
     poolManager: PoolManagerV3__factory.connect("0xf843F61508Fc17543412DE55B10ED87f4C28DE50", deployer),
@@ -294,8 +278,8 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         LiqVestedEscrow__factory.connect("0x43B17088503F4CE1AED9fB302ED6BB51aD6694Fa", deployer),
     ],
     drops: [
-        AuraMerkleDrop__factory.connect("0x45EB1A004373b1D8457134A2C04a42d69D287724", deployer),
-        AuraMerkleDrop__factory.connect("0x1a661CF8D8cd69dD2A423F3626A461A24280a8fB", deployer),
+        LiqMerkleDrop__factory.connect("0x45EB1A004373b1D8457134A2C04a42d69D287724", deployer),
+        LiqMerkleDrop__factory.connect("0x1a661CF8D8cd69dD2A423F3626A461A24280a8fB", deployer),
     ],
     lbpBpt: {
         poolId: "0x6fc73b9d624b543f8b6b88fc3ce627877ff169ee000200000000000000000235",
@@ -354,11 +338,6 @@ const getPhase6 = async (deployer: Signer): Promise<Phase6Deployed> => ({
     poolMigrator: PoolMigrator__factory.connect("0x12addE99768a82871EAaecFbDB065b12C56F0578", deployer),
 });
 
-const getPhase7 = async (deployer: Signer): Promise<Phase7Deployed> => ({
-    masterChefRewardHook: MasterChefRewardHook__factory.connect("0xB5932c9CfdE9aDDa6D578FA168D7F8D2688b84Da", deployer),
-    siphonToken: SiphonToken__factory.connect("0xa348a39a98418DD78B242E2fD7B14e18aC080e75", deployer),
-});
-
 const getPhase8 = async (deployer: Signer): Promise<Phase8Deployed> => ({
     poolManagerV4: PoolManagerV4__factory.connect("0x8Dd8cDb1f3d419CCDCbf4388bC05F4a7C8aEBD64", deployer),
     boosterOwnerSecondary: BoosterOwnerSecondary__factory.connect(
@@ -366,27 +345,6 @@ const getPhase8 = async (deployer: Signer): Promise<Phase8Deployed> => ({
         deployer,
     ),
 });
-
-const getFeeForwarder = async (deployer: Signer) => ({
-    feeForwarder: FeeForwarder__factory.connect("0xE14360AA496A85FCfe4B75AFD2ec4d95CbA38Fe1", deployer),
-});
-
-export interface AuraBalVaultDeployed {
-    vault: AuraBalVault;
-    strategy: AuraBalStrategy;
-    bbusdHandler: BalancerSwapsHandler;
-    auraRewards: VirtualBalanceRewardPool;
-}
-
-const getAuraBalVault = async (deployer: Signer): Promise<AuraBalVaultDeployed> => ({
-    vault: AuraBalVault__factory.connect("0xfAA2eD111B4F580fCb85C48E6DC6782Dc5FCD7a6", deployer),
-    strategy: AuraBalStrategy__factory.connect("0x7372EcE4C18bEABc19981A53b557be90dcBd2b66", deployer),
-    bbusdHandler: BalancerSwapsHandler__factory.connect("0xC4eF943b7c2f6b387b37689f1e9fa6ecB738845d", deployer),
-    auraRewards: VirtualBalanceRewardPool__factory.connect("0xAc16927429c5c7Af63dD75BC9d8a58c63FfD0147", deployer),
-});
-
-const getAuraClaimZapV3 = async (deployer: Signer): Promise<AuraClaimZapV3> =>
-    AuraClaimZapV3__factory.connect("0x5b2364fD757E262253423373E4D57C5c011Ad7F4", deployer);
 
 export const config = {
     addresses,
@@ -399,9 +357,5 @@ export const config = {
     getPhase4,
     getTempBooster,
     getPhase6,
-    getPhase7,
     getPhase8,
-    getFeeForwarder,
-    getAuraBalVault,
-    getAuraClaimZapV3,
 };

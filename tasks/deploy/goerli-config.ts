@@ -16,7 +16,6 @@ import {
     CvxCrvToken__factory,
     CrvDepositor__factory,
     CrvDepositorWrapper__factory,
-    AuraBalRewardPool__factory,
     LiqLocker__factory,
     AuraPenaltyForwarder__factory,
     BalLiquidityProvider__factory,
@@ -34,14 +33,6 @@ import {
     AuraClaimZap__factory,
     ClaimFeesHelper__factory,
     RewardPoolDepositWrapper__factory,
-    AuraBalVault__factory,
-    AuraBalStrategy__factory,
-    BalancerSwapsHandler__factory,
-    AuraBalVault,
-    AuraBalStrategy,
-    BalancerSwapsHandler,
-    VirtualBalanceRewardPool,
-    VirtualBalanceRewardPool__factory,
     PoolManagerV4__factory,
     BoosterOwnerSecondary__factory,
     ExtraRewardStashV3__factory,
@@ -136,7 +127,6 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         deployer,
     ),
     cvxLocker: LiqLocker__factory.connect("0x984B0aDFf6137BB1E00c977c594f4C1664894CEc", deployer),
-    initialCvxCrvStaking: AuraBalRewardPool__factory.connect("0xEC24eBf4c3AE1fF5B8FeFdA36B63a36261Fb95c1", deployer),
     chef: ConvexMasterChef__factory.connect("0x8155a8fc133648aA21272dD5afE2a700B28c6250", deployer),
     vestedEscrows: [], //"0xad45617A84F30868Ee69d5A22dCB49AE0AD78D57","0xaB79aa6238D0d4BB27651534Fb08F4Bf1Ece122B","0x0Ee0CaE533B5c86910De029bbB3238c8824C11c4","0xEEf969A8ebdf73C5c5D8A2855206F1154Cd1a297"],
     drops: [], //"0xae6d5d7a8108c074220D3692C045696389d6D933","0x68AAf3ac16b57f3eC47F766b11f18f3DFFdC18db"],
@@ -194,20 +184,6 @@ const getPhase8 = async (deployer: Signer): Promise<Phase8Deployed> => ({
     ),
 });
 
-export interface AuraBalVaultDeployed {
-    vault: AuraBalVault;
-    strategy: AuraBalStrategy;
-    bbusdHandler: BalancerSwapsHandler;
-    auraRewards: VirtualBalanceRewardPool;
-}
-
-const getAuraBalVault = async (deployer: Signer): Promise<AuraBalVaultDeployed> => ({
-    vault: AuraBalVault__factory.connect("0x0E69F37f5009c174537277BA956A13663AAAa814", deployer),
-    strategy: AuraBalStrategy__factory.connect("0x098810A74E7682fD650439E2b7440519cf4B022A", deployer),
-    bbusdHandler: BalancerSwapsHandler__factory.connect("0xb30a0c7ac99D61650A528AbB31A46470C55f4834", deployer),
-    auraRewards: VirtualBalanceRewardPool__factory.connect("0x6fE74EA452b21698bbC27617b2B23FB797393094", deployer),
-});
-
 export const config = {
     addresses,
     naming,
@@ -219,5 +195,4 @@ export const config = {
     getPhase4,
     getPhase6,
     getPhase8,
-    getAuraBalVault,
 };

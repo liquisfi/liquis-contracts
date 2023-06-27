@@ -22,11 +22,8 @@ import {
     IERC20__factory,
 } from "../../types/generated";
 import { deployUpgrade01 } from "../../scripts/deployUpgrades";
-import { deployFeeForwarder, deployVault } from "../../scripts/deployVault";
-import { deployAuraClaimZapV3 } from "../../scripts/deployAuraClaimZapV3";
 import { simpleToExactAmount } from "../../test-utils/math";
 import { waitForTx } from "../../tasks/utils";
-import { deployAuraBalStaker, deployFeeScheduler, deployVeBalGrant } from "../../scripts/deployPeripheral";
 
 const waitForBlocks = 2;
 const debug = true;
@@ -119,45 +116,6 @@ task("deploy:mainnet:auraMining").setAction(async function (_: TaskArguments, hr
     console.log("update auraMining address to:", auraMining.address);
 });
 
-task("deploy:vault")
-    .addParam("wait", "How many blocks to wait")
-    .setAction(async function (tskArgs: TaskArguments, hre) {
-        const deployer = await getSigner(hre);
-
-        const conf = {
-            mainnet: config,
-            goerli: goerliConfig,
-            hardhat: config, // For fork mode
-        }[hre.network.name];
-
-        if (!conf) {
-            throw Error(`Config for network ${hre.network.name} not found`);
-        }
-
-        const { vault, strategy, bbusdHandler, auraRewards } = await deployVault(
-            conf,
-            hre,
-            deployer,
-            debug,
-            tskArgs.wait || waitForBlocks,
-        );
-
-        console.log("Vault:", vault.address);
-        console.log("Strategy:", strategy.address);
-        console.log("BBUSD Handler:", bbusdHandler.address);
-        console.log("AuraRewards:", auraRewards.address);
-    });
-
-task("deploy:feeForwarder")
-    .addParam("wait", "How many blocks to wait")
-    .setAction(async function (tskArgs: TaskArguments, hre) {
-        const deployer = await getSigner(hre);
-
-        const { feeForwarder } = await deployFeeForwarder(config, hre, deployer, debug, tskArgs.wait || waitForBlocks);
-
-        console.log("FeeForwarder:", feeForwarder.address);
-    });
-
 task("deploy:goerli:AuraBalStablePool")
     .addParam("wait", "How many blocks to wait")
     .setAction(async function (tskArgs: TaskArguments, hre) {
@@ -227,51 +185,4 @@ task("deploy:goerli:AuraBalStablePool")
         );
         await waitForTx(tx, debug, waitForBlocks);
         console.log("Joined pool");
-    });
-
-task("deploy:mainnet:auraClaimZapV3")
-    .addParam("wait", "How many blocks to wait")
-    .setAction(async function (tskArgs: TaskArguments, hre) {
-        const deployer = await getSigner(hre);
-        const vault = (await config.getAuraBalVault(deployer)).vault;
-        const { claimZapV3: claimZapV3 } = await deployAuraClaimZapV3(
-            config,
-            hre,
-            deployer,
-            vault.address,
-            debug,
-            tskArgs.wait || waitForBlocks,
-        );
-        console.log("update claimZapV3 address to:", claimZapV3.address);
-    });
-
-task("deploy:mainnet:auraBalStaker")
-    .addParam("wait", "How many blocks to wait")
-    .setAction(async function (tskArgs: TaskArguments, hre) {
-        const deployer = await getSigner(hre);
-        const vault = (await config.getAuraBalVault(deployer)).vault;
-        const cvxCrv = (await config.getPhase2(deployer)).cvxCrv;
-
-        const staker = await deployAuraBalStaker(hre, deployer, vault, cvxCrv, true, tskArgs.wait);
-        console.log("AuraBalStaker:", staker.address);
-    });
-
-task("deploy:mainnet:feeScheduler")
-    .addParam("wait", "How many blocks to wait")
-    .setAction(async function (tskArgs: TaskArguments, hre) {
-        const deployer = await getSigner(hre);
-        const result = await deployFeeScheduler(hre, deployer, debug, tskArgs.wait);
-        console.log("FeeScheduler:", result.feeScheduler.address);
-    });
-
-task("deploy:mainnet:veBalGrant")
-    .addParam("balancer", "Address of balancer")
-    .addParam("project", "Address of project")
-    .addParam("wait", "How many blocks to wait")
-    .setAction(async function (tskArgs: TaskArguments, hre) {
-        const deployer = await getSigner(hre);
-        const balancer = tskArgs.balancer;
-        const project = tskArgs.project;
-        const result = await deployVeBalGrant(hre, deployer, config.addresses, project, balancer, debug, tskArgs.wait);
-        console.log("VeBalGrant:", result.veBalGrant.address);
     });

@@ -19,8 +19,6 @@ import { simpleToExactAmount } from "./../../test-utils/math";
 import { VoterProxy__factory, ERC20__factory, GaugeMigrator, GaugeMigrator__factory } from "../../types/generated";
 import { ZERO_ADDRESS } from "../../test-utils/constants";
 import { config } from "./goerli-config";
-import { deployVault } from "../../scripts/deployVault";
-import { deployAuraClaimZapV3 } from "../../scripts/deployAuraClaimZapV3";
 
 const debug = true;
 const goerliBalancerConfig: ExtSystemConfig = {
@@ -104,11 +102,7 @@ task("deploy:goerli:234").setAction(async function (taskArguments: TaskArguments
     );
     await waitForTx(tx, true, waitForBlocks);
 
-    tx = await contracts.crvDepositor["deposit(uint256,bool,address)"](
-        tokenBptBal,
-        true,
-        contracts.initialCvxCrvStaking.address,
-    );
+    tx = await contracts.crvDepositor["deposit(uint256,bool,address)"](tokenBptBal, true, ZERO_ADDRESS);
     await waitForTx(tx, true, waitForBlocks);
 });
 
@@ -172,40 +166,4 @@ task("deploy:goerli:gaugeMigrator").setAction(async function (taskArguments: Tas
     );
 
     console.log("update gaugeMigrator address to:", gaugeMigrator.address);
-});
-
-task("deploy:goerli:vault")
-    .addParam("wait", "How many blocks to wait")
-    .setAction(async function (tskArgs: TaskArguments, hre) {
-        const deployer = await getSigner(hre);
-
-        const { vault, strategy, bbusdHandler, auraRewards } = await deployVault(
-            config,
-            hre,
-            deployer,
-            debug,
-            tskArgs.wait || waitForBlocks,
-        );
-
-        console.log("Vault:", vault.address);
-        console.log("Strategy:", strategy.address);
-        console.log("BBUSD Handler:", bbusdHandler.address);
-        console.log("AuraRewards:", auraRewards.address);
-    });
-
-task("deploy:goerli:auraClaimZapV3").setAction(async function (_: TaskArguments, hre) {
-    const deployer = await getSigner(hre);
-
-    //todo: add vault address
-    const vault = await (await config.getAuraBalVault(deployer)).vault;
-    const { claimZapV3: claimZapV3 } = await deployAuraClaimZapV3(
-        config,
-        hre,
-        deployer,
-        vault.address,
-        debug,
-        waitForBlocks,
-    );
-
-    console.log("update claimZapV3 address to:", claimZapV3.address);
 });

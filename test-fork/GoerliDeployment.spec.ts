@@ -59,11 +59,10 @@ describe.skip("Full Deployment", () => {
                     expect(await cvx.totalSupply()).eq(simpleToExactAmount(50000000));
                 });
                 it("Contracts have correct Aura balance", async () => {
-                    const { cvx, initialCvxCrvStaking, chef } = phase2;
+                    const { cvx, chef } = phase2;
                     const { distroList } = config;
                     expect(await cvx.totalSupply()).eq(simpleToExactAmount(50, 24));
                     expect(await cvx.balanceOf(chef.address)).eq(distroList.lpIncentives);
-                    expect(await cvx.balanceOf(initialCvxCrvStaking.address)).eq(distroList.cvxCrvBootstrap);
                 });
                 it("Aura Minter has correct config", async () => {
                     const { minter, cvx } = phase2;
@@ -176,20 +175,7 @@ describe.skip("Full Deployment", () => {
                     expect(await cvxCrvRewards.pid()).eq(0);
                     expect(await cvxCrvRewards.extraRewardsLength()).eq(0);
                 });
-                it("InitialCvxCrvStaking has correct config", async () => {
-                    const { initialCvxCrvStaking, cvxLocker, cvx, cvxCrv, penaltyForwarder } = phase2;
-                    const { multisigs } = config;
-                    expect(await initialCvxCrvStaking.rewardToken()).eq(cvx.address);
-                    expect(await initialCvxCrvStaking.stakingToken()).eq(cvxCrv.address);
-                    expect(await initialCvxCrvStaking.duration()).eq(ONE_WEEK.mul(2));
-                    expect(await initialCvxCrvStaking.rewardManager()).eq(multisigs.treasuryMultisig);
-                    expect(await initialCvxCrvStaking.liqLocker()).eq(cvxLocker.address);
-                    expect(await initialCvxCrvStaking.penaltyForwarder()).eq(penaltyForwarder.address);
-                    expect(await initialCvxCrvStaking.pendingPenalty()).eq(0);
 
-                    expect(await initialCvxCrvStaking.startTime()).gt(phase2Timestamp.add(ONE_WEEK).sub(5400));
-                    expect(await initialCvxCrvStaking.startTime()).lt(phase2Timestamp.add(ONE_WEEK).add(5400));
-                });
                 it("CrvDepositor has correct config", async () => {
                     const { voterProxy, cvxCrv, crvDepositor } = phase2;
                     const { multisigs, addresses } = config;

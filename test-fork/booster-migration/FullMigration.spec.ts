@@ -24,13 +24,7 @@ import {
     ZERO,
     ZERO_ADDRESS,
 } from "../../test-utils";
-import {
-    Phase2Deployed,
-    Phase4Deployed,
-    Phase6Deployed,
-    Phase7Deployed,
-    PoolsSnapshot,
-} from "../../scripts/deploySystem";
+import { Phase2Deployed, Phase4Deployed, Phase6Deployed, PoolsSnapshot } from "../../scripts/deploySystem";
 import { Contract, ethers, Signer } from "ethers";
 import { waitForTx } from "../../tasks/utils";
 import { config } from "../mainnet-config";
@@ -54,7 +48,6 @@ describe("Full Migration", () => {
     let phase2: Phase2Deployed;
     let phase4: Phase4Deployed;
     let phase6: Phase6Deployed;
-    let phase7: Phase7Deployed;
 
     let staker: Account;
 
@@ -178,9 +171,6 @@ describe("Full Migration", () => {
                     pid: i.toNumber(),
                 });
             }
-        });
-        it("deploy phase7", async () => {
-            phase7 = await config.getPhase7(deployer);
         });
     });
 
@@ -306,13 +296,7 @@ describe("Full Migration", () => {
             expect(await claimZap.cvxCrvRewards()).eq(cvxCrvRewards.address);
             expect(await claimZap.locker()).eq(cvxLocker.address);
         });
-        it("has correct config for masterChefRewardHook", async () => {
-            expect(await phase2.chef.isAddedPool(phase7.siphonToken.address)).eq(true);
 
-            const stashAddress = await phase7.masterChefRewardHook.stash();
-            const stash = ExtraRewardStashV3__factory.connect(stashAddress, protocolDao.signer);
-            expect(await stash.rewardHook()).eq(phase7.masterChefRewardHook.address);
-        });
         it("has correct config for feeCollector", async () => {
             const { voterProxy } = phase2;
             const { feeCollector, booster } = phase6;
