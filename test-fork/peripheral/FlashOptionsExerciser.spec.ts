@@ -452,7 +452,7 @@ describe("Booster", () => {
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
             await olit.connect(olitWhale).approve(flashOptionsExerciser.address, e18.mul(10000));
-            await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(10000), 9800, false, 300);
+            await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(10000), false, 300);
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -488,7 +488,7 @@ describe("Booster", () => {
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
             await olit.connect(olitWhale).approve(flashOptionsExerciser.address, e18.mul(10000));
-            await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(10000), 9800, true, 300);
+            await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(10000), true, 300);
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -522,7 +522,7 @@ describe("Booster", () => {
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
             await olit.connect(olitWhale).approve(flashOptionsExerciser.address, e18.mul(200000));
-            const tx = await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(200000), 9800, true, 300);
+            const tx = await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(200000), true, 300);
             const txData = await tx.wait();
             console.log("gasUsed exerciseAndLock, stake = true:", txData.cumulativeGasUsed.toNumber());
 
@@ -557,7 +557,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            await flashOptionsExerciser.claimAndExerciseMultiple([0], true, false, 300);
+            await flashOptionsExerciser.claimAndExercise([0], true, false, 300);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -589,10 +589,10 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndLockMultiple([0], true, false, 9800, false, 300);
+            const tx = await flashOptionsExerciser.claimAndLock([0], true, false, false, 300);
             const txData = await tx.wait();
             console.log(
-                "gasUsed claimAndLockMultiple, 1 pool, locker = true, liqLocker = false:",
+                "gasUsed claimAndLock, 1 pool, locker = true, liqLocker = false:",
                 txData.cumulativeGasUsed.toNumber(),
             );
 
@@ -629,9 +629,12 @@ describe("Booster", () => {
 
             await cvxCrvRewards.connect(olitWhale).modifyPermission(flashOptionsExerciser.address, true);
 
-            const tx = await flashOptionsExerciser.connect(olitWhale).claimAndLock(9900, true, 1, 300);
+            const tx = await flashOptionsExerciser.connect(olitWhale).claimAndLock([], true, false, true, 300);
             const txData = await tx.wait();
-            console.log("gasUsed claimAndLock, stake = true, option = 1:", txData.cumulativeGasUsed.toNumber());
+            console.log(
+                "gasUsed claimAndLock, locker=true, liqLocker=false, stake = true:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -654,7 +657,7 @@ describe("Booster", () => {
             expect(await weth.balanceOf(flashOptionsExerciser.address)).eq(ZERO);
         });
 
-        it("claimAndLockMultiple function works properly for 2 pools, locker false", async () => {
+        it("claimAndLock function works properly for 2 pools, locker false", async () => {
             await increaseTime(60 * 60 * 24 * 1);
             await booster.connect(bob).earmarkRewards(0);
             await booster.connect(bob).earmarkRewards(1);
@@ -670,12 +673,10 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            const tx = await flashOptionsExerciser
-                .connect(alice)
-                .claimAndLockMultiple([0, 1], false, false, 9800, false, 300);
+            const tx = await flashOptionsExerciser.connect(alice).claimAndLock([0, 1], false, false, false, 300);
             const txData = await tx.wait();
             console.log(
-                "gasUsed claimAndLockMultiple 2 pools, locker = false, liqLocker = false:",
+                "gasUsed claimAndLock 2 pools, locker = false, liqLocker = false:",
                 txData.cumulativeGasUsed.toNumber(),
             );
 
@@ -711,9 +712,9 @@ describe("Booster", () => {
             const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
             expect(earnedOLitInLiqLitRewards).gt(ZERO);
 
-            const tx = await flashOptionsExerciser.connect(olitWhale).claimAndExercise(1, 300);
+            const tx = await flashOptionsExerciser.connect(olitWhale).claimAndExercise([], true, false, 300);
             const txData = await tx.wait();
-            console.log("gasUsed claimAndExercise, option = 1:", txData.cumulativeGasUsed.toNumber());
+            console.log("gasUsed claimAndExercise, locker=true, liqLocker=false:", txData.cumulativeGasUsed.toNumber());
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
@@ -738,7 +739,7 @@ describe("Booster", () => {
             expect(await weth.balanceOf(flashOptionsExerciser.address)).eq(ZERO);
         });
 
-        it("claimAndExerciseMultiple function works properly for 2 pools, locker false", async () => {
+        it("claimAndExercise function works properly for 2 pools, locker false", async () => {
             await increaseTime(60 * 60 * 24 * 1);
             await booster.connect(bob).earmarkRewards(0);
             await booster.connect(bob).earmarkRewards(1);
@@ -757,10 +758,10 @@ describe("Booster", () => {
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndExerciseMultiple([0, 1], true, false, 300);
+            const tx = await flashOptionsExerciser.connect(alice).claimAndExercise([0, 1], true, false, 300);
             const txData = await tx.wait();
             console.log(
-                "gasUsed claimAndLockMultiple, locker = true, liqLocker = false:",
+                "gasUsed claimAndExercise, locker = true, liqLocker = false:",
                 txData.cumulativeGasUsed.toNumber(),
             );
 
@@ -846,10 +847,12 @@ describe("Booster", () => {
             assert.isFalse(hasPermission1);
             assert.isFalse(hasPermission2);
 
-            await expect(flashOptionsExerciser.connect(alice).claimAndExercise(2, 300)).to.be.revertedWith(
+            await expect(flashOptionsExerciser.connect(alice).claimAndExercise([], true, true, 300)).to.be.revertedWith(
                 "permission not granted",
             );
-            await expect(flashOptionsExerciser.claimAndExercise(2, 300)).to.be.revertedWith("permission not granted");
+            await expect(flashOptionsExerciser.claimAndExercise([], true, true, 300)).to.be.revertedWith(
+                "permission not granted",
+            );
 
             // Modify permissions for next test
             await cvxLocker.connect(alice).modifyPermission(flashOptionsExerciser.address, true);
@@ -865,9 +868,9 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndExercise(2, 300);
+            const tx = await flashOptionsExerciser.claimAndExercise([], true, true, 300);
             const txData = await tx.wait();
-            console.log("gasUsed claimAndExercise, option = 2:", txData.cumulativeGasUsed.toNumber());
+            console.log("gasUsed claimAndExercise, locker=true, liqLocker=true:", txData.cumulativeGasUsed.toNumber());
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -893,7 +896,7 @@ describe("Booster", () => {
             expect(await weth.balanceOf(flashOptionsExerciser.address)).eq(ZERO);
         });
 
-        it("claimAndExerciseMultiple function works properly for 2 pools, locker true", async () => {
+        it("claimAndExercise function works properly for 2 pools, locker true", async () => {
             const aliceEarnedOLit = await cvxLocker.claimableRewards(aliceAddress);
             expect(aliceEarnedOLit[0].amount).gt(ZERO);
 
@@ -910,10 +913,10 @@ describe("Booster", () => {
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndExerciseMultiple([0, 1], true, true, 300);
+            const tx = await flashOptionsExerciser.connect(alice).claimAndExercise([0, 1], true, true, 300);
             const txData = await tx.wait();
             console.log(
-                "gasUsed claimAndExerciseMultiple 2 pools, locker = true, liqLocker = true:",
+                "gasUsed claimAndExercise 2 pools, locker = true, liqLocker = true:",
                 txData.cumulativeGasUsed.toNumber(),
             );
 
@@ -941,7 +944,7 @@ describe("Booster", () => {
             expect(await weth.balanceOf(flashOptionsExerciser.address)).eq(ZERO);
         });
 
-        it("claimAndLockMultiple function works properly for 2 pools, locker true", async () => {
+        it("claimAndLock function works properly for 2 pools, locker true", async () => {
             await increaseTime(60 * 60 * 24 * 1);
             await booster.connect(bob).earmarkRewards(0);
             await booster.connect(bob).earmarkRewards(1);
@@ -960,12 +963,10 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            const tx = await flashOptionsExerciser
-                .connect(alice)
-                .claimAndLockMultiple([0, 1], false, true, 9800, false, 300);
+            const tx = await flashOptionsExerciser.connect(alice).claimAndLock([0, 1], false, true, false, 300);
             const txData = await tx.wait();
             console.log(
-                "gasUsed claimAndLockMultiple 2 pools, locker = false, liqLocker = true:",
+                "gasUsed claimAndLock 2 pools, locker = false, liqLocker = true:",
                 txData.cumulativeGasUsed.toNumber(),
             );
 
@@ -1005,10 +1006,10 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndLockMultiple([0], true, true, 9800, false, 300);
+            const tx = await flashOptionsExerciser.claimAndLock([0], true, true, false, 300);
             const txData = await tx.wait();
             console.log(
-                "gasUsed claimAndLockMultiple 1 pool, locker = true, liqLocker = true:",
+                "gasUsed claimAndLock 1 pool, locker = true, liqLocker = true:",
                 txData.cumulativeGasUsed.toNumber(),
             );
 

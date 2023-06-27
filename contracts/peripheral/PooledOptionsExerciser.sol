@@ -27,7 +27,7 @@ interface IOracle {
  * @title   PooledOptionsExerciser
  * @author  LiquisFinance
  * @notice  Allows for claiming oLIT from RewardPools, exercise it and lock LIT received.
- * @dev     Implements a pooled exercise model where anyone is allowed to exchange a pool of oLIT for LIT.
+ * @dev     Implements a pooled exercise model where oLIT are queued and exercised in two steps.
  */
 contract PooledOptionsExerciser {
     using SafeERC20 for IERC20;
@@ -49,13 +49,14 @@ contract PooledOptionsExerciser {
     uint256 public secs;
     uint256 public ago;
 
+    uint256 public constant basisOne = 10000;
     bytes32 internal constant balancerPoolId = 0x9232a548dd9e81bac65500b5e0d918f8ba93675c000200000000000000000423;
 
     // Option execution queue
     mapping(address => mapping(uint256 => uint256)) public queued; // owner => epoch => balance
-    mapping(uint256 => uint256) public totalQueued; // owner => supply
+    mapping(uint256 => uint256) public totalQueued; // epoch => total queued
     mapping(address => mapping(uint256 => uint256)) public withdrawn; // owner => epoch => balance
-    mapping(uint256 => uint256) public totalWithdrawable; // epoch => total supply
+    mapping(uint256 => uint256) public totalWithdrawable; // epoch => total withdrawable
 
     uint256 public epoch; // execution queue epoch
     uint256 public fee; // fee paid to option executor in 1e18 scale
@@ -116,50 +117,12 @@ contract PooledOptionsExerciser {
     }
 
     /**
-     * @notice Claim oLIT rewards from pool and queue for execution
-     * @param _pid Id of the pool to claim rewards from
-     * @return amount The amount of oLIT claimed and queued
-     */
-    function claimAndQueue(uint256 _pid) external returns (uint256 amount) {
-        // claim oLIT rewards from _pid pool for user
-        IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pid);
-        amount = IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
-
-        // queue claimed oLIT rewards
-        queued[msg.sender][epoch] += amount;
-        totalQueued[epoch] += amount;
-
-        emit Queued(msg.sender, epoch, amount);
-    }
-
-    /**
-     * @notice Claim oLIT rewards from liqLit staking and liqLocker
-     * @param _option Option == 1 claim from liqLit staking, 2 claim from liqLocker, anything else claim from both
-     */
-    function claimAndQueueExtra(uint8 _option) external returns (uint256 amount) {
-        if (_option == 1) {
-            amount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
-        } else if (_option == 2) {
-            amount = ILiqLocker(liqLocker).getRewardFor(msg.sender);
-        } else {
-            amount = IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
-            amount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
-        }
-
-        // queue claimed oLIT rewards
-        queued[msg.sender][epoch] += amount;
-        totalQueued[epoch] += amount;
-
-        emit Queued(msg.sender, epoch, amount);
-    }
-
-    /**
      * @notice Claim oLIT rewards from liqLit staking and liqLocker
      * @param _pids Booster pools ids array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      */
-    function claimAndQueueMultiple(
+    function claimAndQueue(
         uint256[] memory _pids,
         bool _locker,
         bool _liqLocker
@@ -245,7 +208,6 @@ contract PooledOptionsExerciser {
     /**
      * @notice Exercise queued oLIT options
      * @dev Increments epoch
-     * TODO: support partial execution in order to prevent
      */
     function exercise() external {
         // compute oLIT exercise amounts
@@ -293,13 +255,14 @@ contract PooledOptionsExerciser {
     /**
      * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
      * @param _epoch Epoch for which to withdraw and lock LIT
-     * @param _outputBps Multiplier for slippage where 100% == 10000, 99.5% == 9950 and 98% == 9800
      * @param _stake Stake liqLit into the liqLit staking rewards pool
+     * @param _maxSlippage Max accepted slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @return withdrawn_ The amount of LIT rewards withdrawn and locked
      */
     function withdrawAndLock(
         uint256 _epoch,
-        uint256 _outputBps,
-        bool _stake
+        bool _stake,
+        uint256 _maxSlippage
     ) external returns (uint256 withdrawn_) {
         // only withdraw past epochs
         require(_epoch < epoch, "epoch not withdrawable");
@@ -316,7 +279,8 @@ contract PooledOptionsExerciser {
         withdrawn[msg.sender][_epoch] += withdrawn_;
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        _convertLitToLiqLit(withdrawn_, _outputBps, _stake);
+        // note, convert _maxSlippage to _outputBps param used in BalInvestor
+        _convertLitToLiqLit(withdrawn_, basisOne.sub(_maxSlippage), _stake);
 
         emit Withdrawn(msg.sender, _epoch, withdrawn_);
     }

@@ -363,7 +363,7 @@ describe("Booster", () => {
         bobAddress = await bob.getAddress();
     });
 
-    describe("new OLitFlashHelper with flashloan functionality", async () => {
+    describe("new PooledOptionsExerciser with exercise queue functionality", async () => {
         before(async () => {
             await setup();
         });
@@ -445,7 +445,7 @@ describe("Booster", () => {
 
             const earnedDeployer1 = await rewardPool1.earned(deployerAddress);
 
-            const tx = await pooledOptionsExerciser.claimAndQueue(0);
+            const tx = await pooledOptionsExerciser.claimAndQueue([0], false, false);
 
             const receipt = await tx.wait();
             console.log("gasUsed claimAndQueue 1 pool:", receipt.cumulativeGasUsed.toNumber());
@@ -526,7 +526,7 @@ describe("Booster", () => {
             expect(totalQueuedMappingAfter.sub(totalQueuedMapping)).eq(amount);
         });
 
-        it("claimAndQueueMultiple function works properly for 2 pools, balances check", async () => {
+        it("claimAndQueue function works properly for 2 pools, balances check", async () => {
             await increaseTime(60 * 60 * 24 * 1);
             await booster.connect(bob).earmarkRewards(0);
             await booster.connect(bob).earmarkRewards(1);
@@ -548,11 +548,11 @@ describe("Booster", () => {
             const totalQueuedMapping = await pooledOptionsExerciser.totalQueued(epoch);
             expect(totalQueuedMapping).gt(ZERO); // deployer and whale already deposited
 
-            const tx = await pooledOptionsExerciser.connect(alice).claimAndQueueMultiple([0, 1], false, false);
+            const tx = await pooledOptionsExerciser.connect(alice).claimAndQueue([0, 1], false, false);
 
             const receipt = await tx.wait();
             console.log(
-                "gasUsed claimAndQueueMultiple, locker = false, liqLocker = false:",
+                "gasUsed claimAndQueue 2 pools, locker = false, liqLocker = false:",
                 receipt.cumulativeGasUsed.toNumber(),
             );
 
@@ -744,7 +744,7 @@ describe("Booster", () => {
             const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
             const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
 
-            const tx = await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), 9900, true);
+            const tx = await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, 100);
             const receipt = await tx.wait();
             console.log("gasUsed withdrawAndLock, stake = true:", receipt.cumulativeGasUsed.toNumber());
 
@@ -779,7 +779,7 @@ describe("Booster", () => {
             const withdrawn = await pooledOptionsExerciser.withdrawn(deployerAddress, epoch.sub(1));
             expect(withdrawn).gt(ZERO);
 
-            await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), 9900, true);
+            await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, 100);
 
             const litBalAfter = await lit.balanceOf(deployerAddress);
             expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
@@ -799,7 +799,7 @@ describe("Booster", () => {
             const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
             const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
 
-            const tx = await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), 9900, false);
+            const tx = await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, 100);
             const receipt = await tx.wait();
             console.log("gasUsed withdrawAndLock, stake = false:", receipt.cumulativeGasUsed.toNumber());
 
@@ -837,7 +837,7 @@ describe("Booster", () => {
             const withdrawn = await pooledOptionsExerciser.withdrawn(aliceAddress, epoch.sub(1));
             expect(withdrawn).gt(ZERO);
 
-            await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), 9900, false);
+            await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, 100);
 
             const litBalAfter = await lit.balanceOf(aliceAddress);
             expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
