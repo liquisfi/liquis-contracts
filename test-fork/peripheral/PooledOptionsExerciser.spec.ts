@@ -1,12 +1,10 @@
-import hre, { ethers, network } from "hardhat";
+import hre, { ethers } from "hardhat";
 import { expect, assert } from "chai";
 import {
     Booster,
-    BoosterOwner,
     VoterProxy,
     VoterProxy__factory,
     CvxCrvToken,
-    CrvDepositor,
     BaseRewardPool,
     CrvDepositorWrapper,
     IERC20Extra,
@@ -14,21 +12,21 @@ import {
     PooledOptionsExerciser,
     PooledOptionsExerciser__factory,
     LiqLocker,
-} from "../types/generated";
+} from "../../types/generated";
 import { Signer } from "ethers";
-import { increaseTime } from "../test-utils/time";
-import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../test-utils/constants";
-import { deployContract, waitForTx } from "../tasks/utils";
-import { assertBNClosePercent, impersonateAccount } from "../test-utils";
+import { increaseTime } from "../../test-utils/time";
+import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../../test-utils/constants";
+import { deployContract, waitForTx } from "../../tasks/utils";
+import { assertBNClosePercent, impersonateAccount } from "../../test-utils";
 
-import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../scripts/deploySystem";
-import { getMockDistro } from "../scripts/deployMocks";
-import { logContracts } from "../tasks/utils/deploy-utils";
+import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../../scripts/deploySystem";
+import { getMockDistro } from "../../scripts/deployMocks";
+import { logContracts } from "../../tasks/utils/deploy-utils";
 
-import smartWalletCheckerABI from "../abi/smartWalletChecker.json";
-import bunniHubABI from "../abi/bunniHub.json";
+import smartWalletCheckerABI from "../../abi/smartWalletChecker.json";
+import bunniHubABI from "../../abi/bunniHub.json";
 
-// yarn hardhat --config hardhat-fork.config.ts test ./test-liquis/PooledOptionsExerciser.spec.ts
+// yarn hardhat --config hardhat-fork.config.ts test ./test-fork/peripheral/PooledOptionsExerciser.spec.ts
 
 const hreAddress: string = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
 
@@ -67,33 +65,20 @@ const naming = {
     tokenFactoryNamePostfix: " Aura Deposit",
 };
 
-type Pool = {
-    lptoken: string;
-    token: string;
-    gauge: string;
-    crvRewards: string;
-    stash: string;
-    shutdown: boolean;
-};
-
 const debug = false;
 const waitForBlocks = 0;
 
 describe("Booster", () => {
-    let accounts: Signer[];
     let booster: Booster;
-    let boosterOwner: BoosterOwner;
     let pooledOptionsExerciser: PooledOptionsExerciser;
 
     let cvxCrvRewards: BaseRewardPool;
     let cvxCrv: CvxCrvToken;
     let cvxLocker: LiqLocker;
 
-    let crvDepositor: CrvDepositor;
     let crvDepositorWrapper: CrvDepositorWrapper;
     let poolManager: PoolManagerV3;
 
-    let pool: Pool;
     let daoSigner: Signer;
 
     let lit: IERC20Extra;
@@ -210,8 +195,7 @@ describe("Booster", () => {
         );
         logContracts(phase2 as unknown as { [key: string]: { address: string } });
 
-        ({ booster, boosterOwner, crvDepositor, crvDepositorWrapper, poolManager, cvxCrvRewards, cvxCrv, cvxLocker } =
-            phase2);
+        ({ booster, crvDepositorWrapper, poolManager, cvxCrvRewards, cvxCrv, cvxLocker } = phase2);
 
         pooledOptionsExerciser = await deployContract<PooledOptionsExerciser>(
             hre,
@@ -265,7 +249,7 @@ describe("Booster", () => {
         // Register the array of pools in the Booster
         const gaugeLength = externalAddresses.gauges.length;
         for (let i = 0; i < gaugeLength; i++) {
-            let tx = await poolManager["addPool(address)"](externalAddresses.gauges[i]);
+            const tx = await poolManager["addPool(address)"](externalAddresses.gauges[i]);
             await waitForTx(tx, debug, waitForBlocks);
         }
         console.log("poolLength: ", (await booster.poolLength()).toNumber());
@@ -286,10 +270,7 @@ describe("Booster", () => {
         await usdc.connect(deployer).approve(bunniHub.address, e6.mul(1000000));
         await weth.connect(deployer).approve(bunniHub.address, e18.mul(1000));
 
-        let blockNumber = (await ethers.provider.getBlock("latest")).number; // works in 16854887
-        let blockTimestamp = (await ethers.provider.getBlock("latest")).timestamp;
-        console.log("blockTimestamp: ", blockTimestamp);
-        console.log("blockNumber: ", blockNumber);
+        const blockTimestamp = (await ethers.provider.getBlock("latest")).timestamp;
         await bunniHub.deposit([
             ["0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", 191150, 214170],
             e6.mul(1000000),
@@ -376,7 +357,7 @@ describe("Booster", () => {
             ],
         });
 
-        [deployer, alice, bob, daoSigner] = await ethers.getSigners();
+        [deployer, alice, bob] = await ethers.getSigners();
         deployerAddress = await deployer.getAddress();
         aliceAddress = await alice.getAddress();
         bobAddress = await bob.getAddress();
@@ -622,7 +603,7 @@ describe("Booster", () => {
                 ["function getPrice() view returns (uint256 price)"],
                 deployer,
             );
-            const price = await olitOracle.getPrice();
+            await olitOracle.getPrice();
             const fee = await pooledOptionsExerciser.fee();
 
             const exerciseAmounts = await pooledOptionsExerciser.exerciseAmounts();
@@ -661,8 +642,6 @@ describe("Booster", () => {
 
         it("exercise function works properly, balances check", async () => {
             await pooledOptionsExerciser.setParams(1800, 0, e15.mul(1010)); // 1% fee
-
-            const fee = await pooledOptionsExerciser.fee();
 
             const litBalBefore = await lit.balanceOf(litHolderAddress);
             const olitBalBefore = await olit.balanceOf(litHolderAddress);

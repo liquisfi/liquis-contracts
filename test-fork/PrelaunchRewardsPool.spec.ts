@@ -1,10 +1,10 @@
 import { expect, assert } from "chai";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber } from "ethers";
 import hre, { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ONE_WEEK, ONE_DAY, ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../test-utils/constants";
+import { ONE_WEEK, ONE_DAY, ZERO_ADDRESS, ZERO, e18 } from "../test-utils/constants";
 import { impersonateAccount, increaseTime, increaseTimeTo, getTimestamp, assertBNClosePercent } from "../test-utils";
-import { deployContract, waitForTx } from "../tasks/utils";
+import { deployContract } from "../tasks/utils";
 
 import {
     IERC20Extra,
@@ -455,9 +455,6 @@ describe("PrelaunchRewardsPool", () => {
             });
 
             it("it reverts when converting if balanceOf(voterProxy) == 0", async () => {
-                const initialSupply = await prelaunchRewardsPool.totalSupply();
-                let reducedSupply: BigNumber = ZERO;
-
                 await prelaunchRewardsPool.setCrvDepositor(crvDepositor.address);
                 expect(await prelaunchRewardsPool.crvDepositor()).eq(crvDepositor.address);
 

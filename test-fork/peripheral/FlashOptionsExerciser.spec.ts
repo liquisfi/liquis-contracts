@@ -1,4 +1,4 @@
-import hre, { ethers, network } from "hardhat";
+import hre, { ethers } from "hardhat";
 import { expect, assert } from "chai";
 import {
     Booster,
@@ -20,14 +20,14 @@ import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../../test-utils/constants";
 import { deployContract, waitForTx } from "../../tasks/utils";
 import { impersonateAccount } from "../../test-utils";
 
-import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../scripts/deploySystem";
+import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../../scripts/deploySystem";
 import { getMockDistro } from "../../scripts/deployMocks";
 import { logContracts } from "../../tasks/utils/deploy-utils";
 
 import smartWalletCheckerABI from "../../abi/smartWalletChecker.json";
 import bunniHubABI from "../../abi/bunniHub.json";
 
-// yarn hardhat --config hardhat-fork.config.ts test ./test-liquis/FlashOptionsExerciser.spec.ts
+// yarn hardhat --config hardhat-fork.config.ts test ./test-fork/peripheral/FlashOptionsExerciser.spec.ts
 
 const hreAddress: string = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
 
@@ -79,7 +79,6 @@ const debug = false;
 const waitForBlocks = 0;
 
 describe("Booster", () => {
-    let accounts: Signer[];
     let booster: Booster;
     let boosterOwner: BoosterOwner;
     let flashOptionsExerciser: FlashOptionsExerciser;
@@ -91,9 +90,6 @@ describe("Booster", () => {
     let crvDepositor: CrvDepositor;
     let crvDepositorWrapper: CrvDepositorWrapper;
     let poolManager: PoolManagerV3;
-
-    let pool: Pool;
-    let daoSigner: Signer;
 
     let lit: IERC20Extra;
     let olit: IERC20Extra;
@@ -263,7 +259,7 @@ describe("Booster", () => {
         // Register the array of pools in the Booster
         const gaugeLength = externalAddresses.gauges.length;
         for (let i = 0; i < gaugeLength; i++) {
-            let tx = await poolManager["addPool(address)"](externalAddresses.gauges[i]);
+            const tx = await poolManager["addPool(address)"](externalAddresses.gauges[i]);
             await waitForTx(tx, debug, waitForBlocks);
         }
         console.log("poolLength: ", (await booster.poolLength()).toNumber());
@@ -375,7 +371,7 @@ describe("Booster", () => {
             ],
         });
 
-        [deployer, alice, bob, daoSigner] = await ethers.getSigners();
+        [deployer, alice, bob] = await ethers.getSigners();
         deployerAddress = await deployer.getAddress();
         aliceAddress = await alice.getAddress();
         bobAddress = await bob.getAddress();

@@ -4,18 +4,15 @@ import {
     Booster,
     VoterProxy,
     VoterProxy__factory,
-    LiqToken,
     CvxCrvToken,
     CrvDepositor,
     BaseRewardPool,
     CrvDepositorWrapper,
     IERC20Extra,
     PoolManagerV3,
-    LiqLocker,
 } from "../types/generated";
-import { Contract, Signer } from "ethers";
-import { increaseTime } from "../test-utils/time";
-import { ZERO_ADDRESS, ZERO, e18, e6, ONE_WEEK } from "../test-utils/constants";
+import { Signer } from "ethers";
+import { ZERO_ADDRESS, ZERO, e18 } from "../test-utils/constants";
 import { deployContract, waitForTx } from "../tasks/utils";
 import { impersonateAccount, assertBNClosePercent } from "../test-utils";
 
@@ -24,9 +21,8 @@ import { getMockDistro } from "../scripts/deployMocks";
 import { logContracts } from "../tasks/utils/deploy-utils";
 
 import smartWalletCheckerABI from "../abi/smartWalletChecker.json";
-import votingEscrowABI from "../abi/votingEscrow.json";
 
-// yarn hardhat --config hardhat-fork.config.ts test ./test-liquis/LitDepositorWrapper.spec.ts
+// yarn hardhat --config hardhat-fork.config.ts test ./test-fork/LitDepositorWrapper.spec.ts
 
 const hreAddress: string = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
 
@@ -65,15 +61,6 @@ const naming = {
     tokenFactoryNamePostfix: " Aura Deposit",
 };
 
-type Pool = {
-    lptoken: string;
-    token: string;
-    gauge: string;
-    crvRewards: string;
-    stash: string;
-    shutdown: boolean;
-};
-
 const debug = false;
 const waitForBlocks = 0;
 
@@ -81,24 +68,16 @@ describe("Booster", () => {
     let accounts: Signer[];
     let booster: Booster;
 
-    let litVotingEscrow: Contract;
     let voterProxy: VoterProxy;
 
     let crvDepositor: CrvDepositor;
     let crvDepositorWrapper: CrvDepositorWrapper;
     let poolManager: PoolManagerV3;
 
-    let cvxLocker: LiqLocker;
     let cvxCrvStaking: BaseRewardPool;
     let cvxCrv: CvxCrvToken;
-    let cvx: LiqToken;
-
-    let pool: Pool;
-    let daoSigner: Signer;
-    let daoSignerAddress: string;
 
     let lit: IERC20Extra;
-    let olit: IERC20Extra;
     let velit: IERC20Extra;
     let crvBpt: IERC20Extra;
 
@@ -109,9 +88,6 @@ describe("Booster", () => {
 
     let alice: Signer;
     let aliceAddress: string;
-
-    let bob: Signer;
-    let bobAddress: string;
 
     const smartWalletCheckerContractAddress: string = "0x0ccdf95baf116ede5251223ca545d0ed02287a8f";
     const smartWalletCheckerOwnerAddress: string = "0x9a8fee232dcf73060af348a1b62cdb0a19852d13";
@@ -124,7 +100,6 @@ describe("Booster", () => {
     const gaugeControllerAddress: string = "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218";
 
     const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C";
-    const olitHolderAddress: string = "0x5f350bF5feE8e254D6077f8661E9C7B83a30364e";
     const wethHolderAddress: string = "0x57757E3D981446D585Af0D9Ae4d7DF6D64647806";
     const crvBptHolderAddress: string = "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB";
 
@@ -197,7 +172,7 @@ describe("Booster", () => {
         );
         logContracts(phase2 as unknown as { [key: string]: { address: string } });
 
-        ({ booster, cvxCrv, crvDepositor, crvDepositorWrapper, cvxLocker, poolManager } = phase2);
+        ({ booster, cvxCrv, crvDepositor, crvDepositorWrapper, poolManager } = phase2);
 
         console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
         console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
@@ -205,7 +180,6 @@ describe("Booster", () => {
 
         // Instance of LIT & oLIT & veLIT
         lit = (await ethers.getContractAt("IERC20Extra", litAddress)) as IERC20Extra;
-        olit = (await ethers.getContractAt("IERC20Extra", olitAddress)) as IERC20Extra;
         velit = (await ethers.getContractAt("IERC20Extra", votingEscrowAddress)) as IERC20Extra;
 
         // Need to create an initial lock
@@ -216,9 +190,6 @@ describe("Booster", () => {
         await impersonateAccount(litHolderAddress, true);
         const litHolder = await ethers.getSigner(litHolderAddress);
         await lit.connect(litHolder).transfer(deployerAddress, e18.mul(1000000));
-
-        // Instance of Bunni Voting Escrow contract
-        litVotingEscrow = await ethers.getContractAt(votingEscrowABI, externalAddresses.votingEscrow);
 
         // Register a pool in the Booster
         tx = await poolManager["addPool(address)"](externalAddresses.gauges[0]);
@@ -241,11 +212,9 @@ describe("Booster", () => {
             ],
         });
 
-        [deployer, alice, bob, daoSigner] = await ethers.getSigners();
+        [deployer, alice] = await ethers.getSigners();
         deployerAddress = await deployer.getAddress();
         aliceAddress = await alice.getAddress();
-        bobAddress = await bob.getAddress();
-        daoSignerAddress = await daoSigner.getAddress();
     });
 
     describe("Lit depositor: converts LIT -> balBPT and then wraps to liqLIT (auraBAL / cvxCrv)", async () => {
@@ -278,8 +247,6 @@ describe("Booster", () => {
         });
 
         it("stakes cvxCrv on behalf of user in the stakingRewardPool", async () => {
-            pool = await booster.poolInfo(0);
-
             // Address where a small percentage of CRV is sent and distributed to cvxCrv stakers
             const stakeAddress = await booster.lockRewards();
 
