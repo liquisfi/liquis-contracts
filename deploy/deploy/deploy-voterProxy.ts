@@ -66,7 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
                 },
             ],
         },
-        process.env.TENDERLY_PROJECT_SLUG || "",
+        process.env.TENDERLY_PROJECT || "",
         process.env.TENDERLY_USERNAME || "",
         FORK_ID,
     );

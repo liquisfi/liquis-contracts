@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
         },
     },
     tenderly: {
-        project: process.env.TENDERLY_PROJECT_SLUG,
+        project: process.env.TENDERLY_PROJECT,
         username: process.env.TENDERLY_USERNAME,
         privateVerification: true,
     },

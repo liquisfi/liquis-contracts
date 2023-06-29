@@ -27,6 +27,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const duration = parseInt(START_VESTING_DATE.toString()) || 86400;
 
+    const periodFinish = await prelaunchRewardsPool.periodFinish();
+    console.log("Current periodFinish: ", +periodFinish);
+
     await ethers.provider.send("evm_increaseTime", [86400]);
     await ethers.provider.send("evm_mine", []);
 
