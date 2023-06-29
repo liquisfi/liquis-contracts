@@ -35,7 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             naming.cvxSymbol,
             BigNumber.from(18),
             deployer.address,
-            BigNumber.from(100000),
+            BigNumber.from(1000000),
         );
         await liq.deployed();
     }

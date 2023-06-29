@@ -2,6 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
 import { getConfig } from "../config";
+import { e18 } from "../../test-utils";
 
 import { PrelaunchRewardsPool__factory, MockERC20__factory } from "../../types/generated";
 
@@ -17,19 +18,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const liq = MockERC20__factory.connect(config.Deployments.liq, deployer);
 
     const liqBal = await liq.balanceOf(deployer.address);
+    console.log("Deployer LIT balance: ", +liqBal);
 
-    let tx = await liq.approve(config.Deployments.prelaunchRewardsPool, liqBal);
+    const amount = e18.mul(10000);
+    console.log("amount:", +amount);
+
+    let tx = await liq.approve(config.Deployments.prelaunchRewardsPool, amount);
     await tx.wait();
-    console.log(`Approval for ${liqBal} is done`);
+    console.log(`Approval for ${amount} is done`);
 
     const prelaunchRewardsPool = PrelaunchRewardsPool__factory.connect(
         config.Deployments.prelaunchRewardsPool,
         deployer,
     );
 
-    tx = await prelaunchRewardsPool.notifyRewardAmount(liqBal);
+    tx = await prelaunchRewardsPool.notifyRewardAmount(amount);
     await tx.wait();
-    console.log(`NotifyRewardAmount for ${liqBal} is done`);
+    console.log(`NotifyRewardAmount for ${amount} is done`);
 };
 
 export default func;
