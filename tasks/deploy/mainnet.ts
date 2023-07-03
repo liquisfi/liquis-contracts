@@ -13,7 +13,6 @@ import {
 } from "../../scripts/deploySystem";
 import { config } from "./mainnet-config";
 import { ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
-import { simpleToExactAmount } from "test-utils";
 import { deployContract } from "../utils";
 import { LiqMerkleDrop, LiqMerkleDrop__factory } from "../../types/generated";
 import { BigNumber } from "ethers";
@@ -109,7 +108,8 @@ task("deploy:mainnet:merkledrop")
             throw console.error("invalid hash");
         }
 
-        const AMOUNT = simpleToExactAmount(100000);
+        const SCALE = BigNumber.from(10).pow(18);
+        const AMOUNT = SCALE.mul(100000);
         const TOTAL_COUNT = BigNumber.from(30);
 
         const airdrop = await deployContract<LiqMerkleDrop>(

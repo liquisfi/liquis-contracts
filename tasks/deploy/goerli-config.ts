@@ -37,6 +37,9 @@ import {
     BoosterOwnerSecondary__factory,
     ExtraRewardStashV3__factory,
     FlashOptionsExerciser__factory,
+    PooledOptionsExerciser__factory,
+    LitConvertor__factory,
+    PrelaunchRewardsPool__factory,
 } from "../../types/generated";
 import { Signer } from "ethers";
 import { ZERO_ADDRESS } from "../../test-utils/constants";
@@ -141,6 +144,9 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         deployer,
     ),
     flashOptionsExerciser: FlashOptionsExerciser__factory.connect(ZERO_ADDRESS, deployer),
+    pooledOptionsExerciser: PooledOptionsExerciser__factory.connect(ZERO_ADDRESS, deployer),
+    litConvertor: LitConvertor__factory.connect(ZERO_ADDRESS, deployer),
+    prelaunchRewardsPool: PrelaunchRewardsPool__factory.connect(ZERO_ADDRESS, deployer),
 });
 
 const getPhase3 = async (deployer: Signer): Promise<Phase3Deployed> => ({

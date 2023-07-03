@@ -78,6 +78,12 @@ import {
     BoosterOwnerSecondary,
     FlashOptionsExerciser,
     FlashOptionsExerciser__factory,
+    PooledOptionsExerciser,
+    PooledOptionsExerciser__factory,
+    LitConvertor,
+    LitConvertor__factory,
+    PrelaunchRewardsPool,
+    PrelaunchRewardsPool__factory,
 } from "../types/generated";
 import { AssetHelpers } from "@balancer-labs/balancer-js";
 import { Chain, deployContract, waitForTx } from "../tasks/utils";
@@ -224,6 +230,9 @@ interface Phase2Deployed extends Phase1Deployed {
     penaltyForwarder: AuraPenaltyForwarder;
     extraRewardsDistributor: ExtraRewardsDistributor;
     flashOptionsExerciser: FlashOptionsExerciser;
+    pooledOptionsExerciser: PooledOptionsExerciser;
+    litConvertor: LitConvertor;
+    prelaunchRewardsPool: PrelaunchRewardsPool;
 }
 
 interface Phase3Deployed extends Phase2Deployed {
@@ -342,6 +351,8 @@ async function deployPhase2(
 
     const { token, tokenBpt, votingEscrow, gaugeController, voteOwnership, voteParameter } = config;
     const { voterProxy } = deployment;
+
+    console.log("Current chain connected:", hre.network.name);
 
     // -----------------------------
     // 2: cvx, booster, factories, cvxCrv, crvDepositor, poolManager, vlCVX + stakerProxy
@@ -566,6 +577,26 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    const extraRewardsDistributor = await deployContract<ExtraRewardsDistributor>(
+        hre,
+        new ExtraRewardsDistributor__factory(deployer),
+        "ExtraRewardsDistributor",
+        [cvxLocker.address],
+        {},
+        debug,
+        waitForBlocks,
+    );
+
+    const penaltyForwarder = await deployContract<AuraPenaltyForwarder>(
+        hre,
+        new AuraPenaltyForwarder__factory(deployer),
+        "AuraPenaltyForwarder",
+        [extraRewardsDistributor.address, cvx.address, ONE_WEEK.mul(7).div(2), multisigs.daoMultisig],
+        {},
+        debug,
+        waitForBlocks,
+    );
+
     let flashOptionsExerciser: FlashOptionsExerciser;
     // Some addresses are hardcoded in an immutable way and does not work with hre
     if (chain != Chain.local) {
@@ -580,20 +611,43 @@ async function deployPhase2(
         );
     }
 
-    const extraRewardsDistributor = await deployContract<ExtraRewardsDistributor>(
+    let pooledOptionsExerciser: PooledOptionsExerciser;
+    // Some addresses are hardcoded in an immutable way and does not work with hre
+    if (chain != Chain.local) {
+        pooledOptionsExerciser = await deployContract<PooledOptionsExerciser>(
+            hre,
+            new PooledOptionsExerciser__factory(deployer),
+            "PooledOptionsExerciser",
+            [cvxCrv.address, booster.address, crvDepositorWrapper.address, cvxCrvRewards.address, cvxLocker.address],
+            {},
+            debug,
+            waitForBlocks,
+        );
+    }
+
+    const litConvertor = await deployContract<LitConvertor>(
         hre,
-        new ExtraRewardsDistributor__factory(deployer),
-        "ExtraRewardsDistributor",
-        [cvxLocker.address],
+        new LitConvertor__factory(deployer),
+        "LitConvertor",
+        [config.balancerVault, config.lit, config.weth, config.balancerPoolId],
         {},
         debug,
         waitForBlocks,
     );
-    const penaltyForwarder = await deployContract<AuraPenaltyForwarder>(
+
+    const prelaunchRewardsPool = await deployContract<PrelaunchRewardsPool>(
         hre,
-        new AuraPenaltyForwarder__factory(deployer),
-        "AuraPenaltyForwarder",
-        [extraRewardsDistributor.address, cvx.address, ONE_WEEK.mul(7).div(2), multisigs.daoMultisig],
+        new PrelaunchRewardsPool__factory(deployer),
+        "PrelaunchRewardsPool",
+        [
+            config.tokenBpt,
+            cvx.address,
+            litConvertor.address,
+            config.lit,
+            crvDepositor.address,
+            voterProxy.address,
+            config.votingEscrow,
+        ],
         {},
         debug,
         waitForBlocks,
@@ -629,6 +683,7 @@ async function deployPhase2(
     tx = await voterProxy.setOwner(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
+    // Note needs to be commented for deployment
     const crvBpt = MockERC20__factory.connect(config.tokenBpt, deployer);
     let crvBptbalance = await crvBpt.balanceOf(deployerAddress);
     if (crvBptbalance.lt(simpleToExactAmount(1))) {
@@ -686,6 +741,15 @@ async function deployPhase2(
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await extraRewardsDistributor.transferOwnership(multisigs.daoMultisig);
+    await waitForTx(tx, debug, waitForBlocks);
+
+    tx = await pooledOptionsExerciser.setOwner(multisigs.daoMultisig);
+    await waitForTx(tx, debug, waitForBlocks);
+
+    tx = await flashOptionsExerciser.setOwner(multisigs.daoMultisig);
+    await waitForTx(tx, debug, waitForBlocks);
+
+    tx = await prelaunchRewardsPool.setOwner(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
     // -----------------------------
@@ -994,6 +1058,9 @@ async function deployPhase2(
         poolManagerProxy,
         poolManagerSecondaryProxy,
         flashOptionsExerciser,
+        pooledOptionsExerciser,
+        litConvertor,
+        prelaunchRewardsPool,
     };
 }
 

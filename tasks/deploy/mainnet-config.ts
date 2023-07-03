@@ -43,6 +43,9 @@ import {
     PoolManagerV4__factory,
     BoosterOwnerSecondary__factory,
     FlashOptionsExerciser__factory,
+    PooledOptionsExerciser__factory,
+    LitConvertor__factory,
+    PrelaunchRewardsPool__factory,
 } from "../../types/generated";
 import { Signer, BigNumber } from "ethers";
 import { simpleToExactAmount } from "../../test-utils/math";
@@ -241,7 +244,7 @@ const naming = {
 };
 
 const getPhase1 = async (deployer: Signer): Promise<Phase1Deployed> => ({
-    voterProxy: VoterProxy__factory.connect("0x447786d977Ea11Ad0600E193b2d07A06EfB53e5F", deployer),
+    voterProxy: VoterProxy__factory.connect("0xE2b5bDE7e80f89975f7229d78aD9259b2723d11F", deployer),
 });
 
 const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
@@ -295,6 +298,9 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
         deployer,
     ),
     flashOptionsExerciser: FlashOptionsExerciser__factory.connect(ZERO_ADDRESS, deployer),
+    pooledOptionsExerciser: PooledOptionsExerciser__factory.connect(ZERO_ADDRESS, deployer),
+    litConvertor: LitConvertor__factory.connect(ZERO_ADDRESS, deployer),
+    prelaunchRewardsPool: PrelaunchRewardsPool__factory.connect(ZERO_ADDRESS, deployer),
 });
 
 const getPhase3 = async (deployer: Signer): Promise<Phase3Deployed> => ({
