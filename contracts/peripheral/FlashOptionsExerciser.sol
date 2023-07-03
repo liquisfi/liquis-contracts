@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import { IBooster } from "../interfaces/IBooster.sol";
 import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IBaseRewardPool } from "../interfaces/IBaseRewardPool.sol";
+import { IRewardPool4626 } from "../interfaces/IRewardPool4626.sol";
 import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
 import { IBalancerVault, IAsset, IBalancerTwapOracle } from "../interfaces/balancer/BalancerV2.sol";
 
@@ -274,6 +275,50 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _pids.length; i++) {
             IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+            olitAmount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_locker) {
+            olitAmount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_liqLocker) {
+            olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        }
+
+        _exerciseOptions(olitAmount, _maxSlippage);
+
+        // convert lit to liqLit, send it to sender or stake it in liqLit staking
+        // note, convert _maxSlippage to _outputBps param used in BalInvestor
+        claimed = IERC20(lit).balanceOf(address(this));
+        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxSlippage), _stake);
+    }
+
+    /**
+     * @notice Withdraw Bunni LpTokens, claim oLIT, convert into liqLit and sends it back to the user
+     * @param _pids Booster pools ids array to claim rewards from
+     * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
+     * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
+     * @param _stake Stake liqLit into the liqLit staking rewards pool
+     * @param _maxSlippage Max accepted slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @return claimed The amount of LIT rewards claimed and locked
+     */
+    function withdrawAndLock(
+        uint256[] memory _pids,
+        uint256[] memory _amounts,
+        bool _locker,
+        bool _liqLocker,
+        bool _stake,
+        uint256 _maxSlippage
+    ) external returns (uint256 claimed) {
+        require(_pids.length == _amounts.length, "array length missmatch");
+
+        uint256 olitAmount = 0;
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+            // sender will receive the Bunni LpTokens, already unwrapped
+            IRewardPool4626(pool.crvRewards).withdraw(_amounts[i], msg.sender, msg.sender);
+            // claim all the rewards, only oLIT is sent here, the rest directly to sender
             olitAmount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
         }
 
