@@ -1036,5 +1036,81 @@ describe("Booster", () => {
 
             expect(await weth.balanceOf(flashOptionsExerciser.address)).eq(ZERO);
         });
+
+        it("withdrawAndLock function works properly for 2 pools, locker true", async () => {
+            await increaseTime(60 * 60 * 24 * 1);
+            await booster.connect(bob).earmarkRewards(0);
+            await booster.connect(bob).earmarkRewards(1);
+            await increaseTime(60 * 60 * 24 * 1);
+
+            const aliceEarnedOLit = await cvxLocker.claimableRewards(aliceAddress);
+            expect(aliceEarnedOLit[0].amount).gt(ZERO);
+
+            const earnedAlice0 = await rewardPool1.earned(aliceAddress);
+            const earnedAlice1 = await rewardPool2.earned(aliceAddress);
+
+            const stakingTokenBalAlice0 = await rewardPool1.balanceOf(aliceAddress);
+            const stakingTokenBalAlice1 = await rewardPool2.balanceOf(aliceAddress);
+
+            expect(stakingTokenBalAlice0).gt(ZERO);
+            expect(stakingTokenBalAlice1).gt(ZERO);
+
+            // Alice has rewards from both pools
+            expect(earnedAlice0).gt(ZERO);
+            expect(earnedAlice1).gt(ZERO);
+
+            const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
+            console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
+
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .withdrawAndLock([0, 1], [stakingTokenBalAlice0, stakingTokenBalAlice1], false, true, false, 300);
+            const txData = await tx.wait();
+            console.log(
+                "gasUsed withdrawAndLock 2 pools, locker = false, liqLocker = true:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
+
+            const liqLitAliceBalAfter = await cvxCrv.balanceOf(aliceAddress);
+            console.log("liqLitAliceBalAfter: ", liqLitAliceBalAfter.toString()); // 12,853
+
+            // liqLit increases after the tx
+            expect(liqLitAliceBalAfter).gt(liqLitAliceBalBefore);
+
+            // Check that no funds are left in the contract
+            const litContractBalAfter = await lit.balanceOf(flashOptionsExerciser.address);
+            const olitContractBalAfter = await olit.balanceOf(flashOptionsExerciser.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(flashOptionsExerciser.address);
+            expect(litContractBalAfter).eq(ZERO);
+            expect(olitContractBalAfter).eq(ZERO);
+            expect(liqLitContractBalAfter).eq(ZERO);
+
+            const aliceEarnedOLitAfter = await cvxLocker.claimableRewards(aliceAddress);
+            expect(aliceEarnedOLitAfter[0].amount).lt(aliceEarnedOLit[0].amount);
+            expect(aliceEarnedOLitAfter[0].amount).lt(e15);
+
+            const liqLitAliceBal = await cvxCrv.balanceOf(aliceAddress);
+            await cvxCrv.connect(alice).approve(cvxCrvRewards.address, liqLitAliceBal);
+            await cvxCrvRewards.connect(alice).stakeAll();
+
+            const liqLitAliceBalAfterStaking = await cvxCrv.balanceOf(aliceAddress);
+            expect(liqLitAliceBalAfterStaking).eq(ZERO);
+
+            const stakingTokenBalAfterAlice0 = await rewardPool1.balanceOf(aliceAddress);
+            const stakingTokenBalAfterAlice1 = await rewardPool2.balanceOf(aliceAddress);
+
+            // Alice withdrew from both pools its balance
+            expect(stakingTokenBalAfterAlice0).eq(ZERO);
+            expect(stakingTokenBalAfterAlice1).eq(ZERO);
+
+            const earnedAliceAfter0 = await rewardPool1.earned(aliceAddress);
+            const earnedAliceAfter1 = await rewardPool2.earned(aliceAddress);
+
+            // Alice has rewards from both pools
+            expect(earnedAliceAfter0).eq(ZERO);
+            expect(earnedAliceAfter1).eq(ZERO);
+
+            expect(await weth.balanceOf(flashOptionsExerciser.address)).eq(ZERO);
+        });
     });
 });

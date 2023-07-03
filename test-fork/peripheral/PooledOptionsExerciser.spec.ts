@@ -867,5 +867,80 @@ describe("Booster", () => {
             );
             await expect(pooledOptionsExerciser.connect(randomUser).setFee(500)).to.be.revertedWith("!auth");
         });
+
+        it("withdrawAndQueue function works properly for 2 pools, balances check", async () => {
+            await increaseTime(60 * 60 * 24 * 1);
+            await booster.connect(bob).earmarkRewards(0);
+            await booster.connect(bob).earmarkRewards(1);
+            await increaseTime(60 * 60 * 24 * 1);
+
+            const earnedAlice0 = await rewardPool1.earned(aliceAddress);
+            const earnedAlice1 = await rewardPool2.earned(aliceAddress);
+
+            // Alice has rewards from both pools
+            expect(earnedAlice0).gt(ZERO);
+            expect(earnedAlice1).gt(ZERO);
+
+            const stakingTokenBalAlice0 = await rewardPool1.balanceOf(aliceAddress);
+            const stakingTokenBalAlice1 = await rewardPool2.balanceOf(aliceAddress);
+
+            expect(stakingTokenBalAlice0).gt(ZERO);
+            expect(stakingTokenBalAlice1).gt(ZERO);
+
+            const epoch = await pooledOptionsExerciser.epoch();
+            expect(epoch).eq(1);
+
+            const queuedMappingAlice = await pooledOptionsExerciser.queued(aliceAddress, epoch);
+            expect(queuedMappingAlice).eq(ZERO);
+
+            const totalQueuedMapping = await pooledOptionsExerciser.totalQueued(epoch);
+
+            const tx = await pooledOptionsExerciser
+                .connect(alice)
+                .withdrawAndQueue([0, 1], [stakingTokenBalAlice0, stakingTokenBalAlice1], false, false);
+
+            const receipt = await tx.wait();
+            console.log(
+                "gasUsed withdrawAndQueue 2 pools, locker = false, liqLocker = false:",
+                receipt.cumulativeGasUsed.toNumber(),
+            );
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "Queued";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const amount = args[2];
+
+            const epochAfter = await pooledOptionsExerciser.epoch();
+            expect(epochAfter).eq(1);
+
+            const queuedMappingAliceAfter = await pooledOptionsExerciser.queued(aliceAddress, epoch);
+            expect(queuedMappingAliceAfter).eq(amount);
+
+            const totalQueuedMappingAfter = await pooledOptionsExerciser.totalQueued(epoch);
+            expect(totalQueuedMappingAfter.sub(totalQueuedMapping)).eq(amount);
+
+            assertBNClosePercent(earnedAlice0.add(earnedAlice1), amount, "0.1");
+
+            const earnedAlice0After = await rewardPool1.earned(aliceAddress);
+            const earnedAlice1After = await rewardPool2.earned(aliceAddress);
+            expect(earnedAlice0After).eq(ZERO);
+            expect(earnedAlice1After).eq(ZERO);
+
+            const stakingTokenBalAfterAlice0 = await rewardPool1.balanceOf(aliceAddress);
+            const stakingTokenBalAfterAlice1 = await rewardPool2.balanceOf(aliceAddress);
+
+            // Alice withdrew from both pools its balance
+            expect(stakingTokenBalAfterAlice0).eq(ZERO);
+            expect(stakingTokenBalAfterAlice1).eq(ZERO);
+        });
     });
 });
