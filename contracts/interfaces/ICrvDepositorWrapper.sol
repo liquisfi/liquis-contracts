@@ -18,4 +18,6 @@ interface ICrvDepositorWrapper {
         bool _lock,
         address _stakeAddress
     ) external;
+
+    function convertLitToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptBalance);
 }

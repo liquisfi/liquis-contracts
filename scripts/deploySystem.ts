@@ -78,8 +78,6 @@ import {
     FlashOptionsExerciser__factory,
     PooledOptionsExerciser,
     PooledOptionsExerciser__factory,
-    LitConvertor,
-    LitConvertor__factory,
     PrelaunchRewardsPool,
     PrelaunchRewardsPool__factory,
 } from "../types/generated";
@@ -229,7 +227,6 @@ interface Phase2Deployed extends Phase1Deployed {
     extraRewardsDistributor: ExtraRewardsDistributor;
     flashOptionsExerciser: FlashOptionsExerciser;
     pooledOptionsExerciser: PooledOptionsExerciser;
-    litConvertor: LitConvertor;
     prelaunchRewardsPool: PrelaunchRewardsPool;
 }
 
@@ -622,16 +619,6 @@ async function deployPhase2(
         );
     }
 
-    const litConvertor = await deployContract<LitConvertor>(
-        hre,
-        new LitConvertor__factory(deployer),
-        "LitConvertor",
-        [config.balancerVault, config.lit, config.weth, config.balancerPoolId],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
     const prelaunchRewardsPool = await deployContract<PrelaunchRewardsPool>(
         hre,
         new PrelaunchRewardsPool__factory(deployer),
@@ -639,7 +626,7 @@ async function deployPhase2(
         [
             config.tokenBpt,
             cvx.address,
-            litConvertor.address,
+            crvDepositorWrapper.address,
             config.lit,
             crvDepositor.address,
             voterProxy.address,
@@ -1056,7 +1043,6 @@ async function deployPhase2(
         poolManagerSecondaryProxy,
         flashOptionsExerciser,
         pooledOptionsExerciser,
-        litConvertor,
         prelaunchRewardsPool,
     };
 }

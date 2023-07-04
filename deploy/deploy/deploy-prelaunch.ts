@@ -49,23 +49,60 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         name: hre.network.name == "mainnet" ? "LiqToken" : "MockERC20",
     });
 
-    console.log(`Deploying LitConvertor Contract to ${hre.network.name}`);
-    const LitConvertor = await ethers.getContractFactory("LitConvertor", deployer);
-    const litConvertor = await LitConvertor.deploy(
+    console.log(`Deploying LiqLit Contract to ${hre.network.name}`);
+    const CvxCrvToken = await ethers.getContractFactory("CvxCrvToken", deployer);
+    const cvxCrv = await CvxCrvToken.deploy(naming.cvxCrvName, naming.cvxCrvSymbol);
+
+    await cvxCrv.deployed();
+    console.log(`Deployed at: ${cvxCrv.address}`);
+
+    config.Deployments.cvxCrv = cvxCrv.address;
+    writeConfigFile(config);
+
+    await tenderly.verify({
+        address: cvxCrv.address,
+        name: "CvxCrvToken",
+    });
+
+    console.log(`Deploying CrvDepositor Contract to ${hre.network.name}`);
+    const CrvDepositor = await ethers.getContractFactory("CrvDepositor", deployer);
+    const crvDepositor = await CrvDepositor.deploy(
+        config.Deployments.voterProxy,
+        cvxCrv.address,
+        config.External.weth,
+        config.External.votingEscrow,
+        deployer.address,
+    );
+
+    await crvDepositor.deployed();
+    console.log(`Deployed at: ${crvDepositor.address}`);
+
+    config.Deployments.crvDepositor = crvDepositor.address;
+    writeConfigFile(config);
+
+    await tenderly.verify({
+        address: crvDepositor.address,
+        name: "CrvDepositor",
+    });
+
+    console.log(`Deploying CrvDepositorWrapper Contract to ${hre.network.name}`);
+    const CrvDepositorWrapper = await ethers.getContractFactory("CrvDepositorWrapper", deployer);
+    const crvDepositorWrapper = await CrvDepositorWrapper.deploy(
+        crvDepositor.address,
         config.External.balancerVault,
         config.External.lit,
         config.External.weth,
         config.External.balancerPoolId,
     );
-    await litConvertor.deployed();
-    console.log(`Deployed at: ${litConvertor.address}`);
+    await crvDepositorWrapper.deployed();
+    console.log(`Deployed at: ${crvDepositorWrapper.address}`);
 
-    config.Deployments.litConvertor = litConvertor.address;
+    config.Deployments.crvDepositorWrapper = crvDepositorWrapper.address;
     writeConfigFile(config);
 
     await tenderly.verify({
-        address: litConvertor.address,
-        name: "LitConvertor",
+        address: crvDepositorWrapper.address,
+        name: "CrvDepositorWrapper",
     });
 
     console.log(`Deploying PrelaunchRewardsPool Contract to ${hre.network.name}`);
@@ -73,9 +110,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const prelaunchRewardsPool = await PrelaunchRewardsPool.deploy(
         config.External.tokenBpt,
         config.Deployments.liq,
-        config.Deployments.litConvertor,
+        crvDepositorWrapper.address,
         config.External.lit,
-        config.Deployments.crvDepositor,
+        crvDepositor.address,
         config.Deployments.voterProxy,
         config.External.votingEscrow,
     );

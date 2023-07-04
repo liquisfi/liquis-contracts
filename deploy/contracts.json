@@ -13,8 +13,9 @@
     "Deployments": {
         "voterProxy": "",
         "liq": "",
-        "litConvertor": "",
+        "cvxCrv": "",
         "crvDepositor": "0x0000000000000000000000000000000000000000",
+        "crvDepositorWrapper": "",
         "prelaunchRewardsPool": ""
     }
 }
