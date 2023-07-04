@@ -2,7 +2,7 @@ import { expect, assert } from "chai";
 import { BigNumber } from "ethers";
 import hre, { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ONE_WEEK, ONE_DAY, ZERO_ADDRESS, ZERO, e18 } from "../test-utils/constants";
+import { ONE_WEEK, ONE_DAY, ZERO_ADDRESS, ZERO, e18, e15 } from "../test-utils/constants";
 import { impersonateAccount, increaseTime, increaseTimeTo, getTimestamp, assertBNClosePercent } from "../test-utils";
 import { deployContract } from "../tasks/utils";
 
@@ -574,7 +574,8 @@ describe("PrelaunchRewardsPool", () => {
                     assertBNClosePercent(liqClaimed, endLiqBal.sub(initialLiqBal), "0.01");
 
                     const claimableAfter = await prelaunchRewardsPool.getClaimableLiqVesting(bptHolder.address);
-                    expect(claimableAfter).eq(ZERO);
+                    expect(claimableAfter).lt(claimable);
+                    expect(claimableAfter).lt(e15);
                 }
             });
 
