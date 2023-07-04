@@ -8,6 +8,7 @@ import {
     CvxCrvToken,
     CrvDepositor,
     BaseRewardPool,
+    BaseRewardPool4626__factory,
     CrvDepositorWrapper,
     IERC20Extra,
     PoolManagerV3,
@@ -205,17 +206,8 @@ describe("Booster", () => {
         );
         logContracts(phase2 as unknown as { [key: string]: { address: string } });
 
-        ({
-            booster,
-            boosterOwner,
-            crvDepositor,
-            crvDepositorWrapper,
-            poolManager,
-            flashOptionsExerciser,
-            cvxCrvRewards,
-            cvxCrv,
-            cvxLocker,
-        } = phase2);
+        ({ booster, crvDepositorWrapper, poolManager, flashOptionsExerciser, cvxCrvRewards, cvxCrv, cvxLocker } =
+            phase2);
 
         console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
         console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
@@ -280,8 +272,8 @@ describe("Booster", () => {
         await usdc.connect(deployer).approve(bunniHub.address, e6.mul(1000000));
         await weth.connect(deployer).approve(bunniHub.address, e18.mul(1000));
 
-        let blockNumber = (await ethers.provider.getBlock("latest")).number; // works in 16854887
-        let blockTimestamp = (await ethers.provider.getBlock("latest")).timestamp;
+        const blockNumber = (await ethers.provider.getBlock("latest")).number; // works in 16854887
+        const blockTimestamp = (await ethers.provider.getBlock("latest")).timestamp;
         console.log("blockTimestamp: ", blockTimestamp);
         console.log("blockNumber: ", blockNumber);
         await bunniHub.deposit([
@@ -297,10 +289,19 @@ describe("Booster", () => {
         console.log("deployerLpTokenBalance: ", lpTokenUsdcWethBalance.toString());
 
         await lpTokenUsdcWeth.connect(deployer).transfer(aliceAddress, e15.mul(10));
-        await lpTokenUsdcWeth.connect(deployer).approve(booster.address, e15.mul(40));
-        await booster.connect(deployer).deposit(0, e15.mul(40), true);
+        await lpTokenUsdcWeth.connect(deployer).approve(booster.address, e15.mul(20));
+        tx = await booster.connect(deployer).deposit(0, e15.mul(20), true);
+        let txData = await tx.wait();
+        console.log("gasUsed deposited Booster:", txData.cumulativeGasUsed.toNumber());
 
         const poolInfo1 = await booster.poolInfo(0);
+
+        const rewardPool4626 = BaseRewardPool4626__factory.connect(poolInfo1.crvRewards, deployer);
+        await lpTokenUsdcWeth.connect(deployer).approve(rewardPool4626.address, e15.mul(20));
+        tx = await rewardPool4626.connect(deployer).deposit(e15.mul(20), deployerAddress);
+        txData = await tx.wait();
+        console.log("gasUsed deposited BaseReward:", txData.cumulativeGasUsed.toNumber());
+
         const depositTokenAddress = poolInfo1.token;
         const depositToken = (await ethers.getContractAt("IERC20Extra", depositTokenAddress)) as IERC20Extra;
         console.log("deployerDepositTokenBalance: ", (await depositToken.balanceOf(deployerAddress)).toString());
