@@ -4,7 +4,7 @@ pragma solidity 0.8.11;
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import { AuraMath } from "../utils/AuraMath.sol";
-import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
+import { ILitDepositorHelper } from "../interfaces/ILitDepositorHelper.sol";
 import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IRewardStaking } from "../interfaces/IRewardStaking.sol";
 
@@ -220,7 +220,7 @@ contract AuraClaimZap {
                 //pull crv
                 IERC20(crv).safeTransferFrom(msg.sender, address(this), crvBalance);
                 //deposit
-                ICrvDepositorWrapper(crvDepositWrapper).deposit(
+                ILitDepositorHelper(crvDepositWrapper).deposit(
                     crvBalance,
                     minAmountOut,
                     _checkOption(options, uint256(Options.LockCrvDeposit)),

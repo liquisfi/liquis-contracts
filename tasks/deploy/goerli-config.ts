@@ -15,7 +15,7 @@ import {
     BoosterOwner__factory,
     CvxCrvToken__factory,
     CrvDepositor__factory,
-    CrvDepositorWrapper__factory,
+    LitDepositorHelper__factory,
     LiqLocker__factory,
     AuraPenaltyForwarder__factory,
     BalLiquidityProvider__factory,
@@ -120,7 +120,7 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
     },
     cvxCrvRewards: BaseRewardPool__factory.connect("0xA2F294C74fe9d63Dc272b6a5C3aE494BfA0DF14B", deployer),
     crvDepositor: CrvDepositor__factory.connect("0x46af03341e0Afb410c87c5A6dF412Bf5C8858cCc", deployer),
-    crvDepositorWrapper: CrvDepositorWrapper__factory.connect("0x79CC68A74F388d260e6Ed8F8aE2ce810E8d6FE38", deployer),
+    litDepositorHelper: LitDepositorHelper__factory.connect("0x79CC68A74F388d260e6Ed8F8aE2ce810E8d6FE38", deployer),
     poolManager: PoolManagerV3__factory.connect("0x68707046fF3fC67c931f0eb5f6d227bbe1DE6a7B", deployer),
     poolManagerProxy: PoolManagerProxy__factory.connect("0xA5e7926f7385c96c9a0DB751234EFc3eB503bA89", deployer),
     poolManagerSecondaryProxy: PoolManagerSecondaryProxy__factory.connect(

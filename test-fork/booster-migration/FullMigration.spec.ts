@@ -187,7 +187,6 @@ describe("Full Migration", () => {
             expect(await boosterV2.voteParameter()).eq(await booster.voteParameter());
 
             // Fees are different from existing booster as we have updated
-            // to remove caps so we can remove the crvDepositorWrapperWithFee
             expect(await boosterV2.lockIncentive()).eq(2050);
             expect(await boosterV2.stakerIncentive()).eq(400);
             expect(await boosterV2.earmarkIncentive()).eq(50);
@@ -285,14 +284,14 @@ describe("Full Migration", () => {
             expect(await poolManager.protectAddPool()).eq(true);
         });
         it("has correct config for claimZap", async () => {
-            const { cvx, cvxCrv, crvDepositorWrapper, cvxLocker } = phase2;
+            const { cvx, cvxCrv, litDepositorHelper, cvxLocker } = phase2;
             const { claimZap, cvxCrvRewards } = phase6;
             const { addresses } = config;
 
             expect(await claimZap.crv()).eq(addresses.token);
             expect(await claimZap.cvx()).eq(cvx.address);
             expect(await claimZap.cvxCrv()).eq(cvxCrv.address);
-            expect(await claimZap.crvDepositWrapper()).eq(crvDepositorWrapper.address);
+            expect(await claimZap.crvDepositWrapper()).eq(litDepositorHelper.address);
             expect(await claimZap.cvxCrvRewards()).eq(cvxCrvRewards.address);
             expect(await claimZap.locker()).eq(cvxLocker.address);
         });

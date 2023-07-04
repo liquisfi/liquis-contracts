@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-interface ICrvDepositorWrapper {
+interface ILitDepositorHelper {
     function getMinOut(uint256, uint256) external view returns (uint256);
 
     function deposit(

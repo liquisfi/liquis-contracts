@@ -10,8 +10,8 @@ import {
     IERC20Extra,
     MockERC20,
     MockERC20__factory,
-    CrvDepositorWrapper,
-    CrvDepositorWrapper__factory,
+    LitDepositorHelper,
+    LitDepositorHelper__factory,
     PrelaunchRewardsPool,
     PrelaunchRewardsPool__factory,
     VoterProxy,
@@ -93,7 +93,7 @@ describe("PrelaunchRewardsPool", () => {
     let litToken: IERC20Extra;
 
     let liq: MockERC20;
-    let crvDepositorWrapper: CrvDepositorWrapper;
+    let litDepositorHelper: LitDepositorHelper;
     let prelaunchRewardsPool: PrelaunchRewardsPool;
 
     let deployer: SignerWithAddress;
@@ -197,23 +197,23 @@ describe("PrelaunchRewardsPool", () => {
             waitForBlocks,
         );
 
-        crvDepositorWrapper = await deployContract<CrvDepositorWrapper>(
+        litDepositorHelper = await deployContract<LitDepositorHelper>(
             hre,
-            new CrvDepositorWrapper__factory(deployer),
-            "CrvDepositorWrapper",
+            new LitDepositorHelper__factory(deployer),
+            "LitDepositorHelper",
             [crvDepositor.address, balancerVault, lit, weth, balancerPoolId],
             {},
             debug,
             waitForBlocks,
         );
 
-        await crvDepositorWrapper.setApprovals();
+        await litDepositorHelper.setApprovals();
 
         prelaunchRewardsPool = await deployContract<PrelaunchRewardsPool>(
             hre,
             new PrelaunchRewardsPool__factory(deployer),
             "PrelaunchRewardsPool",
-            [bpt, liq.address, crvDepositorWrapper.address, lit, ZERO_ADDRESS, voterProxy.address, votingEscrowAddress],
+            [bpt, liq.address, litDepositorHelper.address, lit, ZERO_ADDRESS, voterProxy.address, votingEscrowAddress],
             {},
             debug,
             waitForBlocks,
@@ -239,8 +239,8 @@ describe("PrelaunchRewardsPool", () => {
                 const rewardTokenAddress = await prelaunchRewardsPool.rewardToken();
                 expect(rewardTokenAddress).eq(liq.address);
 
-                const crvDepositorWrapperAddress = await prelaunchRewardsPool.litConvertor();
-                expect(crvDepositorWrapperAddress).eq(crvDepositorWrapper.address);
+                const litDepositorHelperAddress = await prelaunchRewardsPool.litConvertor();
+                expect(litDepositorHelperAddress).eq(litDepositorHelper.address);
             });
 
             it("deadlines and target dates are properly initialized", async () => {
@@ -286,7 +286,7 @@ describe("PrelaunchRewardsPool", () => {
                     const holder = await ethers.getSigner(litHolder.address);
                     const amount = e18.mul(100000);
 
-                    const minOut = await crvDepositorWrapper.getMinOut(amount, 9850);
+                    const minOut = await litDepositorHelper.getMinOut(amount, 9850);
 
                     await litToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
                     await prelaunchRewardsPool.connect(holder).stakeLit(amount, minOut);
@@ -443,7 +443,7 @@ describe("PrelaunchRewardsPool", () => {
                     const holder = await ethers.getSigner(litHolder.address);
                     const amount = e18.mul(100000);
 
-                    const minOut = await crvDepositorWrapper.getMinOut(amount, 9850);
+                    const minOut = await litDepositorHelper.getMinOut(amount, 9850);
 
                     await litToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
                     await prelaunchRewardsPool.connect(holder).stakeLit(amount, minOut);

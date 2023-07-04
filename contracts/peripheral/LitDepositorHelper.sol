@@ -4,15 +4,15 @@ pragma solidity 0.8.11;
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import { IBalancerVault } from "../interfaces/balancer/IBalancerCore.sol";
-import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
+import { ILitDepositorHelper } from "../interfaces/ILitDepositorHelper.sol";
 import { ICrvDepositor } from "../interfaces/ICrvDepositor.sol";
 import { BalInvestor } from "./BalInvestor.sol";
 
 /**
- * @title   CrvDepositorWrapper
+ * @title   LitDepositorHelper
  * @notice  Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor
  */
-contract CrvDepositorWrapper is ICrvDepositorWrapper, BalInvestor {
+contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
     using SafeERC20 for IERC20;
 
     address public immutable crvDeposit;

@@ -189,14 +189,14 @@ describe.skip("Full Deployment", () => {
                     expect(await crvDepositor.incentiveCrv()).eq(0);
                     expect(await crvDepositor.cooldown()).eq(false);
                 });
-                it("crvDepositorWrapper has correct config", async () => {
-                    const { crvDepositorWrapper, crvDepositor } = phase2;
+                it("litDepositorHelper has correct config", async () => {
+                    const { litDepositorHelper, crvDepositor } = phase2;
                     const { addresses } = config;
-                    expect(await crvDepositorWrapper.crvDeposit()).eq(crvDepositor.address);
-                    expect(await crvDepositorWrapper.BALANCER_VAULT()).eq(addresses.balancerVault);
-                    expect(await crvDepositorWrapper.LIT()).eq(addresses.token);
-                    expect(await crvDepositorWrapper.WETH()).eq(addresses.weth);
-                    expect(await crvDepositorWrapper.BAL_ETH_POOL_ID()).eq(addresses.balancerPoolId);
+                    expect(await litDepositorHelper.crvDeposit()).eq(crvDepositor.address);
+                    expect(await litDepositorHelper.BALANCER_VAULT()).eq(addresses.balancerVault);
+                    expect(await litDepositorHelper.LIT()).eq(addresses.token);
+                    expect(await litDepositorHelper.WETH()).eq(addresses.weth);
+                    expect(await litDepositorHelper.BAL_ETH_POOL_ID()).eq(addresses.balancerPoolId);
                 });
                 it("poolManagerProxy has correct config", async () => {
                     const { booster, poolManagerProxy, poolManagerSecondaryProxy } = phase2;

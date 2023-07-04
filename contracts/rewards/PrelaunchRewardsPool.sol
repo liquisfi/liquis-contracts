@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { ICrvDepositor } from "../interfaces/ICrvDepositor.sol";
-import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
+import { ILitDepositorHelper } from "../interfaces/ILitDepositorHelper.sol";
 import { ICrvVoteEscrow } from "../interfaces/ICrvVoteEscrow.sol";
 
 import { Math } from "../utils/Math.sol";
@@ -164,7 +164,7 @@ contract PrelaunchRewardsPool {
     function stakeLit(uint256 amount, uint256 minOut) external {
         lit.safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 bptReceived = ICrvDepositorWrapper(litConvertor).convertLitToBpt(amount, minOut);
+        uint256 bptReceived = ILitDepositorHelper(litConvertor).convertLitToBpt(amount, minOut);
 
         _processStake(bptReceived, msg.sender);
     }

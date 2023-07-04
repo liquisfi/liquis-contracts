@@ -16,7 +16,7 @@ import {
     VoterProxy,
     CvxCrvToken,
     ERC20,
-    CrvDepositorWrapper,
+    LitDepositorHelper,
     BaseRewardPool,
 } from "../../types/generated";
 import { getTimestamp, increaseTime } from "../../test-utils/time";
@@ -25,7 +25,7 @@ import { BN, simpleToExactAmount } from "../../test-utils/math";
 import { assertBNClose } from "../../test-utils";
 
 // This is no longer used
-describe("CrvDepositorWrapper", () => {
+describe("LitDepositorHelper", () => {
     let accounts: Signer[];
     let mocks: DeployMocksResult;
     let crvDepositor: CrvDepositor;
@@ -37,7 +37,7 @@ describe("CrvDepositorWrapper", () => {
     let aliceAddress: string;
     let multisigs: MultisigConfig;
     let crv: ERC20;
-    let crvDepositorWrapper: CrvDepositorWrapper;
+    let litDepositorHelper: LitDepositorHelper;
     let cvxCrvStaking: BaseRewardPool;
     let contracts: Phase5Deployed;
 
@@ -79,7 +79,7 @@ describe("CrvDepositorWrapper", () => {
         cvxCrv = contracts.cvxCrv.connect(alice);
         crv = mocks.lit.connect(alice);
         voterProxy = contracts.voterProxy;
-        crvDepositorWrapper = contracts.crvDepositorWrapper.connect(alice);
+        litDepositorHelper = contracts.litDepositorHelper.connect(alice);
         cvxCrvStaking = contracts.cvxCrvRewards;
 
         const tx = await mocks.crvBpt.connect(alice).approve(crvDepositor.address, ethers.constants.MaxUint256);
@@ -142,10 +142,10 @@ describe("CrvDepositorWrapper", () => {
             const feeDistro = await contracts.booster.feeTokens(crv.address);
             const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
 
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "10000");
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
 
-            await crv.approve(crvDepositorWrapper.address, amount);
-            await crvDepositorWrapper.deposit(amount, minOut, lock, stakeAddress);
+            await crv.approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress);
 
             const cvxCrvBalanceAfter = await cvxCrv.balanceOf(aliceAddress);
             const cvxCrvBalanceDelta = cvxCrvBalanceAfter.sub(cvxCrvBalanceBefore);
@@ -166,10 +166,10 @@ describe("CrvDepositorWrapper", () => {
             const feeDistro = await contracts.booster.feeTokens(crv.address);
             const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
 
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "10000");
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
 
-            await crv.approve(crvDepositorWrapper.address, amount);
-            await crvDepositorWrapper.deposit(amount, minOut, lock, stakeAddress);
+            await crv.approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
             const feeCrvBalanceAfter = await crv.balanceOf(feeDistro.rewards);

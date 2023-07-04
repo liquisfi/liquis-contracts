@@ -52,8 +52,8 @@ import {
     LiqMinter__factory,
     MockERC20,
     ConvexMasterChef__factory,
-    CrvDepositorWrapper,
-    CrvDepositorWrapper__factory,
+    LitDepositorHelper,
+    LitDepositorHelper__factory,
     IWeightedPool2TokensFactory__factory,
     IStablePoolFactory__factory,
     AuraPenaltyForwarder__factory,
@@ -213,7 +213,7 @@ interface Phase2Deployed extends Phase1Deployed {
     cvxCrvBpt: BalancerPoolDeployed;
     cvxCrvRewards: BaseRewardPool;
     crvDepositor: CrvDepositor;
-    crvDepositorWrapper: CrvDepositorWrapper;
+    litDepositorHelper: LitDepositorHelper;
     poolManager: PoolManagerV3;
     poolManagerProxy: PoolManagerProxy;
     poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
@@ -561,10 +561,10 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    const crvDepositorWrapper = await deployContract<CrvDepositorWrapper>(
+    const litDepositorHelper = await deployContract<LitDepositorHelper>(
         hre,
-        new CrvDepositorWrapper__factory(deployer),
-        "CrvDepositorWrapper",
+        new LitDepositorHelper__factory(deployer),
+        "LitDepositorHelper",
         [crvDepositor.address, config.balancerVault, config.lit, config.weth, config.balancerPoolId],
         {},
         debug,
@@ -598,7 +598,7 @@ async function deployPhase2(
             hre,
             new FlashOptionsExerciser__factory(deployer),
             "FlashOptionsExerciser",
-            [cvxCrv.address, booster.address, crvDepositorWrapper.address, cvxCrvRewards.address, cvxLocker.address],
+            [cvxCrv.address, booster.address, litDepositorHelper.address, cvxCrvRewards.address, cvxLocker.address],
             {},
             debug,
             waitForBlocks,
@@ -612,7 +612,7 @@ async function deployPhase2(
             hre,
             new PooledOptionsExerciser__factory(deployer),
             "PooledOptionsExerciser",
-            [cvxCrv.address, booster.address, crvDepositorWrapper.address, cvxCrvRewards.address, cvxLocker.address],
+            [cvxCrv.address, booster.address, litDepositorHelper.address, cvxCrvRewards.address, cvxLocker.address],
             {},
             debug,
             waitForBlocks,
@@ -626,7 +626,7 @@ async function deployPhase2(
         [
             config.tokenBpt,
             cvx.address,
-            crvDepositorWrapper.address,
+            litDepositorHelper.address,
             config.lit,
             crvDepositor.address,
             voterProxy.address,
@@ -643,7 +643,7 @@ async function deployPhase2(
     tx = await cvxLocker.setApprovals();
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await crvDepositorWrapper.setApprovals();
+    tx = await litDepositorHelper.setApprovals();
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await cvxLocker.transferOwnership(multisigs.daoMultisig);
@@ -727,14 +727,16 @@ async function deployPhase2(
     tx = await extraRewardsDistributor.transferOwnership(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await pooledOptionsExerciser.setOwner(multisigs.daoMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
+    if (chain != Chain.local) {
+        tx = await pooledOptionsExerciser.setOwner(multisigs.daoMultisig);
+        await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await flashOptionsExerciser.setOwner(multisigs.daoMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
+        tx = await flashOptionsExerciser.setOwner(multisigs.daoMultisig);
+        await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await prelaunchRewardsPool.setOwner(multisigs.daoMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
+        tx = await prelaunchRewardsPool.setOwner(multisigs.daoMultisig);
+        await waitForTx(tx, debug, waitForBlocks);
+    }
 
     // -----------------------------
     // 2.2. Token liquidity:
@@ -1029,7 +1031,7 @@ async function deployPhase2(
         cvxCrvBpt,
         cvxCrvRewards,
         crvDepositor,
-        crvDepositorWrapper,
+        litDepositorHelper,
         poolManager,
         cvxLocker,
         chef,
@@ -1146,7 +1148,7 @@ async function deployPhase4(
     const deployer = signer;
 
     const { token, gauges, feeDistribution } = config;
-    const { cvx, cvxCrv, cvxLocker, cvxCrvRewards, poolManager, crvDepositorWrapper } = deployment;
+    const { cvx, cvxCrv, cvxLocker, cvxCrvRewards, poolManager, litDepositorHelper } = deployment;
 
     // PRE-4: daoMultisig.setProtectPool(false)
     //        daoMultisig.setFeeInfo(bbaUSD distro)
@@ -1161,7 +1163,7 @@ async function deployPhase4(
         hre,
         new AuraClaimZap__factory(deployer),
         "AuraClaimZap",
-        [token, cvx.address, cvxCrv.address, crvDepositorWrapper.address, cvxCrvRewards.address, cvxLocker.address],
+        [token, cvx.address, cvxCrv.address, litDepositorHelper.address, cvxCrvRewards.address, cvxLocker.address],
         {},
         debug,
         waitForBlocks,
@@ -1285,7 +1287,7 @@ async function deployPhase6(
 
     const { token, gaugeController, voteOwnership, voteParameter, feeDistribution } = extConfig;
 
-    const { arbitratorVault, booster: boosterV1, cvxLocker, voterProxy, cvx, cvxCrv, crvDepositorWrapper } = deployment;
+    const { arbitratorVault, booster: boosterV1, cvxLocker, voterProxy, cvx, cvxCrv, litDepositorHelper } = deployment;
 
     let tx: ContractTransaction;
 
@@ -1429,7 +1431,7 @@ async function deployPhase6(
         hre,
         new AuraClaimZap__factory(deployer),
         "AuraClaimZap",
-        [token, cvx.address, cvxCrv.address, crvDepositorWrapper.address, cvxCrvRewards.address, cvxLocker.address],
+        [token, cvx.address, cvxCrv.address, litDepositorHelper.address, cvxCrvRewards.address, cvxLocker.address],
         {},
         debug,
         waitForBlocks,

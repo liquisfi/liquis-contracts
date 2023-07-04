@@ -10,7 +10,7 @@ import { IBooster } from "../interfaces/IBooster.sol";
 import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IBaseRewardPool } from "../interfaces/IBaseRewardPool.sol";
 import { IRewardPool4626 } from "../interfaces/IRewardPool4626.sol";
-import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
+import { ILitDepositorHelper } from "../interfaces/ILitDepositorHelper.sol";
 import { IBalancerVault, IAsset, IBalancerTwapOracle } from "../interfaces/balancer/BalancerV2.sol";
 
 // Note Oracle 0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30
@@ -113,7 +113,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
     address public owner;
     address public immutable operator;
     address public immutable liqLit;
-    address public immutable crvDepositorWrapper;
+    address public immutable litDepositorHelper;
     address public immutable lockerRewards;
     address public immutable liqLocker;
 
@@ -151,20 +151,20 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
     /**
      * @param _liqLit ERC20 token minted when locking LIT to veLIT in VoterProxy through crvDepositor.
      * @param _operator Booster main deposit contract; keeps track of pool info & user deposits; distributes rewards.
-     * @param _crvDepositorWrapper Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor.
+     * @param _litDepositorHelper Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor.
      * @param _lockerRewards BaseRewardPool where staking token is liqLIT
      * @param _liqLocker LiqLocker contract address
      */
     constructor(
         address _liqLit,
         address _operator,
-        address _crvDepositorWrapper,
+        address _litDepositorHelper,
         address _lockerRewards,
         address _liqLocker
     ) {
         liqLit = _liqLit;
         operator = _operator;
-        crvDepositorWrapper = _crvDepositorWrapper;
+        litDepositorHelper = _litDepositorHelper;
         lockerRewards = _lockerRewards;
         liqLocker = _liqLocker;
 
@@ -176,7 +176,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         IERC20(weth).safeApprove(olit, type(uint256).max);
         IERC20(lit).safeApprove(balVault, type(uint256).max);
 
-        IERC20(lit).safeApprove(crvDepositorWrapper, type(uint256).max);
+        IERC20(lit).safeApprove(litDepositorHelper, type(uint256).max);
 
         emit OwnerUpdated(msg.sender);
     }
@@ -343,10 +343,10 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         uint256 _outputBps,
         bool _stake
     ) internal {
-        uint256 minOut = ICrvDepositorWrapper(crvDepositorWrapper).getMinOut(amount, _outputBps);
+        uint256 minOut = ILitDepositorHelper(litDepositorHelper).getMinOut(amount, _outputBps);
         _stake == true
-            ? ICrvDepositorWrapper(crvDepositorWrapper).depositFor(msg.sender, amount, minOut, true, lockerRewards)
-            : ICrvDepositorWrapper(crvDepositorWrapper).depositFor(msg.sender, amount, minOut, true, address(0));
+            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, minOut, true, lockerRewards)
+            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, minOut, true, address(0));
     }
 
     function _balancerSwap(

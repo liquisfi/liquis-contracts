@@ -6,7 +6,7 @@ import {
     VoterProxy__factory,
     CvxCrvToken,
     BaseRewardPool,
-    CrvDepositorWrapper,
+    LitDepositorHelper,
     IERC20Extra,
     PoolManagerV3,
     PooledOptionsExerciser,
@@ -76,7 +76,7 @@ describe("Booster", () => {
     let cvxCrv: CvxCrvToken;
     let cvxLocker: LiqLocker;
 
-    let crvDepositorWrapper: CrvDepositorWrapper;
+    let litDepositorHelper: LitDepositorHelper;
     let poolManager: PoolManagerV3;
 
     let daoSigner: Signer;
@@ -195,13 +195,13 @@ describe("Booster", () => {
         );
         logContracts(phase2 as unknown as { [key: string]: { address: string } });
 
-        ({ booster, crvDepositorWrapper, poolManager, cvxCrvRewards, cvxCrv, cvxLocker } = phase2);
+        ({ booster, litDepositorHelper, poolManager, cvxCrvRewards, cvxCrv, cvxLocker } = phase2);
 
         pooledOptionsExerciser = await deployContract<PooledOptionsExerciser>(
             hre,
             new PooledOptionsExerciser__factory(deployer),
             "PooledOptionsExerciser",
-            [cvxCrv.address, booster.address, crvDepositorWrapper.address, cvxCrvRewards.address, cvxLocker.address],
+            [cvxCrv.address, booster.address, litDepositorHelper.address, cvxCrvRewards.address, cvxLocker.address],
             {},
             debug,
             waitForBlocks,
@@ -239,9 +239,9 @@ describe("Booster", () => {
         await lit.connect(litHolder).transfer(deployerAddress, e18.mul(1000000));
         console.log("deployerLitBalance: ", (await lit.balanceOf(deployerAddress)).toString());
 
-        await lit.connect(deployer).approve(crvDepositorWrapper.address, e18.mul(1000000));
-        const minOut = await crvDepositorWrapper.getMinOut(e18.mul(1000000), 9900);
-        await crvDepositorWrapper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS);
+        await lit.connect(deployer).approve(litDepositorHelper.address, e18.mul(1000000));
+        const minOut = await litDepositorHelper.getMinOut(e18.mul(1000000), 9900);
+        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS);
         console.log("deployerBptMinOut: ", +minOut);
         console.log("deployerVeLitBalance: ", (await velit.balanceOf(deployerAddress)).toString());
         console.log("voterProxyVeLitBalance: ", (await velit.balanceOf(voterProxy.address)).toString());
@@ -394,8 +394,8 @@ describe("Booster", () => {
             const owner = await pooledOptionsExerciser.owner();
             expect(owner).eq(await deployer.getAddress());
 
-            const crvDepositorWrapperVar = await pooledOptionsExerciser.crvDepositorWrapper();
-            expect(crvDepositorWrapperVar).eq(crvDepositorWrapper.address);
+            const litDepositorHelperVar = await pooledOptionsExerciser.litDepositorHelper();
+            expect(litDepositorHelperVar).eq(litDepositorHelper.address);
 
             const lockerRewards = await pooledOptionsExerciser.lockerRewards();
             expect(lockerRewards).eq(cvxCrvRewards.address);

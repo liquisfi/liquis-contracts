@@ -85,24 +85,24 @@ async function main(hre: HardhatRuntimeEnvironment) {
         name: "CrvDepositor",
     });
 
-    console.log(`Deploying CrvDepositorWrapper Contract to ${hre.network.name}`);
-    const CrvDepositorWrapper = await ethers.getContractFactory("CrvDepositorWrapper", deployer);
-    const crvDepositorWrapper = await CrvDepositorWrapper.deploy(
+    console.log(`Deploying LitDepositorHelper Contract to ${hre.network.name}`);
+    const LitDepositorHelper = await ethers.getContractFactory("LitDepositorHelper", deployer);
+    const litDepositorHelper = await LitDepositorHelper.deploy(
         crvDepositor.address,
         config.External.balancerVault,
         config.External.lit,
         config.External.weth,
         config.External.balancerPoolId,
     );
-    await crvDepositorWrapper.deployed();
-    console.log(`Deployed at: ${crvDepositorWrapper.address}`);
+    await litDepositorHelper.deployed();
+    console.log(`Deployed at: ${litDepositorHelper.address}`);
 
-    config.Deployments.crvDepositorWrapper = crvDepositorWrapper.address;
+    config.Deployments.litDepositorHelper = litDepositorHelper.address;
     writeConfigFile(config);
 
     await tenderly.verify({
-        address: crvDepositorWrapper.address,
-        name: "CrvDepositorWrapper",
+        address: litDepositorHelper.address,
+        name: "LitDepositorHelper",
     });
 
     console.log(`Deploying PrelaunchRewardsPool Contract to ${hre.network.name}`);
@@ -110,7 +110,7 @@ async function main(hre: HardhatRuntimeEnvironment) {
     const prelaunchRewardsPool = await PrelaunchRewardsPool.deploy(
         config.External.tokenBpt,
         config.Deployments.liq,
-        crvDepositorWrapper.address,
+        litDepositorHelper.address,
         config.External.lit,
         crvDepositor.address,
         config.Deployments.voterProxy,

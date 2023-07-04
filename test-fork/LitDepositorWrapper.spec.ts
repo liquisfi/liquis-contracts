@@ -7,7 +7,7 @@ import {
     CvxCrvToken,
     CrvDepositor,
     BaseRewardPool,
-    CrvDepositorWrapper,
+    LitDepositorHelper,
     IERC20Extra,
     PoolManagerV3,
 } from "../types/generated";
@@ -71,7 +71,7 @@ describe("Booster", () => {
     let voterProxy: VoterProxy;
 
     let crvDepositor: CrvDepositor;
-    let crvDepositorWrapper: CrvDepositorWrapper;
+    let litDepositorHelper: LitDepositorHelper;
     let poolManager: PoolManagerV3;
 
     let cvxCrvStaking: BaseRewardPool;
@@ -172,7 +172,7 @@ describe("Booster", () => {
         );
         logContracts(phase2 as unknown as { [key: string]: { address: string } });
 
-        ({ booster, cvxCrv, crvDepositor, crvDepositorWrapper, poolManager } = phase2);
+        ({ booster, cvxCrv, crvDepositor, litDepositorHelper, poolManager } = phase2);
 
         console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
         console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
@@ -226,10 +226,10 @@ describe("Booster", () => {
             const initLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
             const cvxCrvBalInit = await cvxCrv.balanceOf(deployerAddress);
             const amount = e18.mul(100000);
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "9900");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900");
 
-            await lit.connect(deployer).approve(crvDepositorWrapper.address, amount);
-            await crvDepositorWrapper.deposit(amount, minOut, true, ZERO_ADDRESS);
+            await lit.connect(deployer).approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS);
             const deployerVeLitBalance = await velit.balanceOf(deployerAddress);
 
             const endLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
@@ -251,15 +251,15 @@ describe("Booster", () => {
             const stakeAddress = await booster.lockRewards();
 
             await lit.connect(deployer).transfer(aliceAddress, e18.mul(50000));
-            await lit.connect(alice).approve(crvDepositorWrapper.address, e18.mul(10000));
+            await lit.connect(alice).approve(litDepositorHelper.address, e18.mul(10000));
 
             cvxCrvStaking = (await ethers.getContractAt("BaseRewardPool", stakeAddress, deployer)) as BaseRewardPool;
 
             const stakedBalanceBefore = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            const minOut = await crvDepositorWrapper.getMinOut(e18.mul(10000), "9900");
+            const minOut = await litDepositorHelper.getMinOut(e18.mul(10000), "9900");
 
-            await crvDepositorWrapper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress);
+            await litDepositorHelper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
 
@@ -312,12 +312,12 @@ describe("Booster", () => {
 
             const amount = e18.mul(1000);
 
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "10000");
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
 
-            await lit.connect(alice).approve(crvDepositorWrapper.address, amount);
+            await lit.connect(alice).approve(litDepositorHelper.address, amount);
 
             await expect(
-                crvDepositorWrapper.connect(alice).deposit(amount, minOut, lock, stakeAddress),
+                litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress),
             ).to.be.revertedWith("BAL#208");
         });
 
@@ -326,12 +326,12 @@ describe("Booster", () => {
             const stakeAddress = cvxCrvStaking.address;
 
             const amount = e18.mul(1000);
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "9950");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9950");
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            await lit.connect(alice).approve(crvDepositorWrapper.address, amount);
-            await crvDepositorWrapper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
+            await lit.connect(alice).approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
             expect(endBalStaked.sub(initBalStaked).gt(minOut));
@@ -347,12 +347,12 @@ describe("Booster", () => {
             await lit.connect(litHolder).transfer(aliceAddress, e18.mul(1000000));
 
             const amount = e18.mul(1000000);
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "9900");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900");
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            await lit.connect(alice).approve(crvDepositorWrapper.address, amount);
-            await crvDepositorWrapper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
+            await lit.connect(alice).approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 

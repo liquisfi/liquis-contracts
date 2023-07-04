@@ -297,14 +297,14 @@ xdescribe("Full Deployment", () => {
                     expect(await crvDepositor.incentiveCrv()).eq(0);
                     expect(await crvDepositor.cooldown()).eq(false);
                 });
-                it("crvDepositorWrapper has correct config", async () => {
-                    const { crvDepositorWrapper, crvDepositor } = phase2;
+                it("litDepositorHelper has correct config", async () => {
+                    const { litDepositorHelper, crvDepositor } = phase2;
                     const { addresses } = config;
-                    expect(await crvDepositorWrapper.crvDeposit()).eq(crvDepositor.address);
-                    expect(await crvDepositorWrapper.BALANCER_VAULT()).eq(addresses.balancerVault);
-                    expect(await crvDepositorWrapper.LIT()).eq(addresses.token);
-                    expect(await crvDepositorWrapper.WETH()).eq(addresses.weth);
-                    expect(await crvDepositorWrapper.BAL_ETH_POOL_ID()).eq(addresses.balancerPoolId);
+                    expect(await litDepositorHelper.crvDeposit()).eq(crvDepositor.address);
+                    expect(await litDepositorHelper.BALANCER_VAULT()).eq(addresses.balancerVault);
+                    expect(await litDepositorHelper.LIT()).eq(addresses.token);
+                    expect(await litDepositorHelper.WETH()).eq(addresses.weth);
+                    expect(await litDepositorHelper.BAL_ETH_POOL_ID()).eq(addresses.balancerPoolId);
                 });
                 it("poolManagerProxy has correct config", async () => {
                     const { booster, poolManagerProxy, poolManagerSecondaryProxy } = phase2;
@@ -874,14 +874,14 @@ xdescribe("Full Deployment", () => {
                     const balance = await phase3.cvxCrv.balanceOf(alice.address);
                     expect(balance).eq(simpleToExactAmount(500));
                 });
-                it("allows users to wrap crv via the crvDepositorWrapper", async () => {
-                    let tx = await crv.approve(phase3.crvDepositorWrapper.address, simpleToExactAmount(500));
+                it("allows users to wrap crv via the litDepositorHelper", async () => {
+                    let tx = await crv.approve(phase3.litDepositorHelper.address, simpleToExactAmount(500));
                     await waitForTx(tx, debug);
 
-                    const minOut = await phase3.crvDepositorWrapper.getMinOut(simpleToExactAmount(500), 9900);
+                    const minOut = await phase3.litDepositorHelper.getMinOut(simpleToExactAmount(500), 9900);
                     expect(minOut).gt(simpleToExactAmount(190));
 
-                    tx = await phase3.crvDepositorWrapper
+                    tx = await phase3.litDepositorHelper
                         .connect(alice.signer)
                         .deposit(simpleToExactAmount(500), minOut, true, ZERO_ADDRESS);
                     await waitForTx(tx, debug);
@@ -1122,13 +1122,13 @@ xdescribe("Full Deployment", () => {
                         expect(await feeCollector.feeDistro()).eq(addresses.feeDistribution);
                     });
                     it("has correct config for claimZap", async () => {
-                        const { claimZap, cvx, cvxCrv, crvDepositorWrapper, cvxLocker, cvxCrvRewards } = phase4;
+                        const { claimZap, cvx, cvxCrv, litDepositorHelper, cvxLocker, cvxCrvRewards } = phase4;
                         const { addresses } = config;
 
                         expect(await claimZap.crv()).eq(addresses.token);
                         expect(await claimZap.cvx()).eq(cvx.address);
                         expect(await claimZap.cvxCrv()).eq(cvxCrv.address);
-                        expect(await claimZap.crvDepositWrapper()).eq(crvDepositorWrapper.address);
+                        expect(await claimZap.crvDepositWrapper()).eq(litDepositorHelper.address);
                         expect(await claimZap.cvxCrvRewards()).eq(cvxCrvRewards.address);
                         expect(await claimZap.locker()).eq(cvxLocker.address);
                         expect(await claimZap.owner()).eq(deployerAddress);
