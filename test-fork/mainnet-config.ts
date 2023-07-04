@@ -34,7 +34,6 @@ import {
     ArbitratorVault__factory,
     AuraClaimZap__factory,
     ClaimFeesHelper__factory,
-    RewardPoolDepositWrapper__factory,
     TempBooster__factory,
     TempBooster,
     BoosterHelper__factory,
@@ -312,10 +311,6 @@ const getPhase4 = async (deployer: Signer): Promise<SystemDeployed> => ({
     ...(await getPhase3(deployer)),
     claimZap: AuraClaimZap__factory.connect("0x623B83755a39B12161A63748f3f595A530917Ab2", deployer),
     feeCollector: ClaimFeesHelper__factory.connect("0xa96CCC5B7f04c7Ab74a43F81e07C342fb9808cF1", deployer),
-    rewardDepositWrapper: RewardPoolDepositWrapper__factory.connect(
-        "0xB188b1CB84Fb0bA13cb9ee1292769F903A9feC59",
-        deployer,
-    ),
 });
 
 const getTempBooster = async (deployer: Signer): Promise<TempBooster> =>

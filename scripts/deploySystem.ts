@@ -1,6 +1,5 @@
 import { BigNumber as BN, ContractReceipt, ContractTransaction, Signer } from "ethers";
 import {
-    RewardPoolDepositWrapper,
     ExtraRewardsDistributor,
     AuraPenaltyForwarder,
     IGaugeController__factory,
@@ -65,7 +64,6 @@ import {
     LiqMerkleDrop__factory,
     ClaimFeesHelper,
     ClaimFeesHelper__factory,
-    RewardPoolDepositWrapper__factory,
     BoosterHelper,
     BoosterHelper__factory,
     GaugeMigrator,
@@ -242,7 +240,6 @@ interface Phase3Deployed extends Phase2Deployed {
 interface SystemDeployed extends Phase3Deployed {
     claimZap: AuraClaimZap;
     feeCollector: ClaimFeesHelper;
-    rewardDepositWrapper: RewardPoolDepositWrapper;
 }
 
 // Alias of phase 4 is the core system deployed.
@@ -1208,17 +1205,7 @@ async function deployPhase4(
         waitForBlocks,
     );
 
-    const rewardDepositWrapper = await deployContract<RewardPoolDepositWrapper>(
-        hre,
-        new RewardPoolDepositWrapper__factory(deployer),
-        "RewardPoolDepositWrapper",
-        [config.balancerVault],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    return { ...deployment, claimZap, feeCollector, rewardDepositWrapper };
+    return { ...deployment, claimZap, feeCollector };
 }
 
 async function deployTempBooster(

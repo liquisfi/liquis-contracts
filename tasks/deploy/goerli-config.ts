@@ -32,7 +32,6 @@ import {
     ArbitratorVault__factory,
     AuraClaimZap__factory,
     ClaimFeesHelper__factory,
-    RewardPoolDepositWrapper__factory,
     PoolManagerV4__factory,
     BoosterOwnerSecondary__factory,
     ExtraRewardStashV3__factory,
@@ -161,10 +160,6 @@ const getPhase4 = async (deployer: Signer): Promise<SystemDeployed> => ({
     ...(await getPhase3(deployer)),
     claimZap: AuraClaimZap__factory.connect("0x39c8bE679120fcE63c9bB6ED5c6bE8225C9f16b9", deployer),
     feeCollector: ClaimFeesHelper__factory.connect("0x43Cd36E200EE1e590a930c21Fd1f67bb90d7f8B3", deployer),
-    rewardDepositWrapper: RewardPoolDepositWrapper__factory.connect(
-        "0x9161Fb533BA46B48464F945E4520CDD0E8d4F223",
-        deployer,
-    ),
 });
 const getPhase6 = async (deployer: Signer): Promise<Phase6Deployed> => ({
     // same as phase 2  as goerli was never migrated.
