@@ -105,6 +105,9 @@ async function main(hre: HardhatRuntimeEnvironment) {
         name: "LitDepositorHelper",
     });
 
+    // Set contract approvals
+    await litDepositorHelper.setApprovals();
+
     console.log(`Deploying PrelaunchRewardsPool Contract to ${hre.network.name}`);
     const PrelaunchRewardsPool = await ethers.getContractFactory("PrelaunchRewardsPool", deployer);
     const prelaunchRewardsPool = await PrelaunchRewardsPool.deploy(
