@@ -85,6 +85,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         name: "CrvDepositor",
     });
 
+    // Set operator in cvxCrv token
+    await cvxCrv.setOperator(crvDepositor.address);
+
     console.log(`Deploying LitDepositorHelper Contract to ${hre.network.name}`);
     const LitDepositorHelper = await ethers.getContractFactory("LitDepositorHelper", deployer);
     const litDepositorHelper = await LitDepositorHelper.deploy(
