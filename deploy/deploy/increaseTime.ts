@@ -20,17 +20,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     );
 
     const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
+    const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
+
     console.log(`Start of vesting date: ${START_VESTING_DATE.toString()}`);
+    console.log(`Start of withdrawals date: ${START_WITHDRAWALS.toString()}`);
 
     let block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
     console.log("Current timestamp: ", block.timestamp);
 
-    const duration = parseInt(START_VESTING_DATE.toString()) || 86400;
+    const duration = parseInt(START_WITHDRAWALS.sub(block.timestamp).toString()) || 86400;
 
     const periodFinish = await prelaunchRewardsPool.periodFinish();
     console.log("Current periodFinish: ", +periodFinish);
 
-    await ethers.provider.send("evm_increaseTime", [86400]);
+    await ethers.provider.send("evm_increaseTime", [duration]);
     await ethers.provider.send("evm_mine", []);
 
     block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
