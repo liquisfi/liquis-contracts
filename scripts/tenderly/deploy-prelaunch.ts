@@ -21,6 +21,27 @@ const naming = {
 async function main(hre: HardhatRuntimeEnvironment) {
     const deployer = (await ethers.getSigners())[0];
 
+    console.log(`Deploying VoterProxy Contract to ${hre.network.name}`);
+
+    const VoterProxy = await ethers.getContractFactory("VoterProxy", deployer);
+    const voterProxy = await VoterProxy.deploy(
+        config.External.minter,
+        config.External.token,
+        config.External.tokenBpt,
+        config.External.votingEscrow,
+        config.External.gaugeController,
+    );
+    await voterProxy.deployed();
+    console.log(`Deployed at: ${voterProxy.address}`);
+
+    config.Deployments.voterProxy = voterProxy.address;
+    writeConfigFile(config);
+
+    // await tenderly.verify({
+    //     address: voterProxy.address,
+    //     name: "VoterProxy",
+    // });
+
     console.log(`Deploying Liq Contract to ${hre.network.name}`);
 
     let liq: Contract;
