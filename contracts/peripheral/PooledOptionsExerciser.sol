@@ -111,19 +111,18 @@ contract PooledOptionsExerciser {
 
     /**
      * @notice Claim oLIT rewards from liqLit staking and liqLocker
-     * @param _pids Booster pools ids array to claim rewards from
+     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      */
     function claimAndQueue(
-        uint256[] memory _pids,
+        address[] memory _rewardPools,
         bool _locker,
         bool _liqLocker
     ) external returns (uint256 amount) {
-        for (uint256 i = 0; i < _pids.length; i++) {
-            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+        for (uint256 i = 0; i < _rewardPools.length; i++) {
             // claim all the rewards, only oLIT is sent here, the rest directly to sender
-            amount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
+            amount += IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
@@ -143,25 +142,24 @@ contract PooledOptionsExerciser {
 
     /**
      * @notice Withdraw Bunni LpTokens and claim oLIT rewards from liqLit staking and liqLocker
-     * @param _pids Booster pools ids array to claim rewards from
+     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
      * @param _amounts Amounts of stakingToken (Liquis LpToken) array to withdraw per pool id
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      */
     function withdrawAndQueue(
-        uint256[] memory _pids,
+        address[] memory _rewardPools,
         uint256[] memory _amounts,
         bool _locker,
         bool _liqLocker
     ) external returns (uint256 amount) {
-        require(_pids.length == _amounts.length, "array length missmatch");
+        require(_rewardPools.length == _amounts.length, "array length missmatch");
 
-        for (uint256 i = 0; i < _pids.length; i++) {
-            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+        for (uint256 i = 0; i < _rewardPools.length; i++) {
             // sender will receive the Bunni LpTokens, already unwrapped
-            IRewardPool4626(pool.crvRewards).withdraw(_amounts[i], msg.sender, msg.sender);
+            IRewardPool4626(_rewardPools[i]).withdraw(_amounts[i], msg.sender, msg.sender);
             // claim all the rewards, only oLIT is sent here, the rest directly to sender
-            amount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
+            amount += IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {

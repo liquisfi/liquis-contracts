@@ -445,7 +445,7 @@ describe("Booster", () => {
 
             const earnedDeployer1 = await rewardPool1.earned(deployerAddress);
 
-            const tx = await pooledOptionsExerciser.claimAndQueue([0], false, false);
+            const tx = await pooledOptionsExerciser.claimAndQueue([rewardPool1.address], false, false);
 
             const receipt = await tx.wait();
             console.log("gasUsed claimAndQueue 1 pool:", receipt.cumulativeGasUsed.toNumber());
@@ -548,7 +548,9 @@ describe("Booster", () => {
             const totalQueuedMapping = await pooledOptionsExerciser.totalQueued(epoch);
             expect(totalQueuedMapping).gt(ZERO); // deployer and whale already deposited
 
-            const tx = await pooledOptionsExerciser.connect(alice).claimAndQueue([0, 1], false, false);
+            const tx = await pooledOptionsExerciser
+                .connect(alice)
+                .claimAndQueue([rewardPool1.address, rewardPool2.address], false, false);
 
             const receipt = await tx.wait();
             console.log(
@@ -897,7 +899,12 @@ describe("Booster", () => {
 
             const tx = await pooledOptionsExerciser
                 .connect(alice)
-                .withdrawAndQueue([0, 1], [stakingTokenBalAlice0, stakingTokenBalAlice1], false, false);
+                .withdrawAndQueue(
+                    [rewardPool1.address, rewardPool2.address],
+                    [stakingTokenBalAlice0, stakingTokenBalAlice1],
+                    false,
+                    false,
+                );
 
             const receipt = await tx.wait();
             console.log(
