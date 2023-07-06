@@ -558,7 +558,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            await flashOptionsExerciser.claimAndExercise([0], true, false, 300);
+            await flashOptionsExerciser.claimAndExercise([rewardPool1.address], true, false, 300);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -590,7 +590,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndLock([0], true, false, false, 300);
+            const tx = await flashOptionsExerciser.claimAndLock([rewardPool1.address], true, false, false, 300);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock, 1 pool, locker = true, liqLocker = false:",
@@ -674,7 +674,9 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndLock([0, 1], false, false, false, 300);
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .claimAndLock([rewardPool1.address, rewardPool2.address], false, false, false, 300);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 2 pools, locker = false, liqLocker = false:",
@@ -759,7 +761,9 @@ describe("Booster", () => {
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndExercise([0, 1], true, false, 300);
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .claimAndExercise([rewardPool1.address, rewardPool2.address], true, false, 300);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndExercise, locker = true, liqLocker = false:",
@@ -914,7 +918,9 @@ describe("Booster", () => {
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndExercise([0, 1], true, true, 300);
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .claimAndExercise([rewardPool1.address, rewardPool2.address], true, true, 300);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndExercise 2 pools, locker = true, liqLocker = true:",
@@ -964,7 +970,9 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndLock([0, 1], false, true, false, 300);
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .claimAndLock([rewardPool1.address, rewardPool2.address], false, true, false, 300);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 2 pools, locker = false, liqLocker = true:",
@@ -1007,7 +1015,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndLock([0], true, true, false, 300);
+            const tx = await flashOptionsExerciser.claimAndLock([rewardPool1.address], true, true, false, 300);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 1 pool, locker = true, liqLocker = true:",
@@ -1065,7 +1073,14 @@ describe("Booster", () => {
 
             const tx = await flashOptionsExerciser
                 .connect(alice)
-                .withdrawAndLock([0, 1], [stakingTokenBalAlice0, stakingTokenBalAlice1], false, true, false, 300);
+                .withdrawAndLock(
+                    [rewardPool1.address, rewardPool2.address],
+                    [stakingTokenBalAlice0, stakingTokenBalAlice1],
+                    false,
+                    true,
+                    false,
+                    300,
+                );
             const txData = await tx.wait();
             console.log(
                 "gasUsed withdrawAndLock 2 pools, locker = false, liqLocker = true:",
