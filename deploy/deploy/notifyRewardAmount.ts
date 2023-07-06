@@ -20,7 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const liqBal = await liq.balanceOf(deployer.address);
     console.log("Deployer LIT balance: ", +liqBal);
 
-    const amount = e18.mul(10000);
+    const amount = e18.mul(100000);
     console.log("amount:", +amount);
 
     let tx = await liq.approve(config.Deployments.prelaunchRewardsPool, amount);

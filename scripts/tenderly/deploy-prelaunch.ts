@@ -50,8 +50,8 @@ async function main(hre: HardhatRuntimeEnvironment) {
     });
 
     console.log(`Deploying LiqLit Contract to ${hre.network.name}`);
-    const CvxCrvToken = await ethers.getContractFactory("CvxCrvToken", deployer);
-    const cvxCrv = await CvxCrvToken.deploy(naming.cvxCrvName, naming.cvxCrvSymbol);
+    const cvxCrvToken = await ethers.getContractFactory("cvxCrvToken", deployer);
+    const cvxCrv = await cvxCrvToken.deploy(naming.cvxCrvName, naming.cvxCrvSymbol);
 
     await cvxCrv.deployed();
     console.log(`Deployed at: ${cvxCrv.address}`);
@@ -59,10 +59,10 @@ async function main(hre: HardhatRuntimeEnvironment) {
     config.Deployments.cvxCrv = cvxCrv.address;
     writeConfigFile(config);
 
-    await tenderly.verify({
-        address: cvxCrv.address,
-        name: "CvxCrvToken",
-    });
+    // await tenderly.verify({
+    //     address: cvxCrv.address,
+    //     name: "cvxCrvToken",
+    // });
 
     console.log(`Deploying CrvDepositor Contract to ${hre.network.name}`);
     const CrvDepositor = await ethers.getContractFactory("CrvDepositor", deployer);
@@ -80,13 +80,15 @@ async function main(hre: HardhatRuntimeEnvironment) {
     config.Deployments.crvDepositor = crvDepositor.address;
     writeConfigFile(config);
 
-    await tenderly.verify({
-        address: crvDepositor.address,
-        name: "CrvDepositor",
-    });
+    // await tenderly.verify({
+    //     address: crvDepositor.address,
+    //     name: "CrvDepositor",
+    // });
 
     // Set operator in cvxCrv token
-    await cvxCrv.setOperator(crvDepositor.address);
+    console.log("Setting crvDepositor as operator in liqLit token");
+    let tx = await cvxCrv.setOperator(crvDepositor.address);
+    await tx.wait();
 
     console.log(`Deploying LitDepositorHelper Contract to ${hre.network.name}`);
     const LitDepositorHelper = await ethers.getContractFactory("LitDepositorHelper", deployer);
@@ -109,7 +111,9 @@ async function main(hre: HardhatRuntimeEnvironment) {
     });
 
     // Set contract approvals
-    await litDepositorHelper.setApprovals();
+    console.log("Setting approvals in litDepositorHelper");
+    tx = await litDepositorHelper.setApprovals();
+    await tx.wait();
 
     console.log(`Deploying PrelaunchRewardsPool Contract to ${hre.network.name}`);
     const PrelaunchRewardsPool = await ethers.getContractFactory("PrelaunchRewardsPool", deployer);
