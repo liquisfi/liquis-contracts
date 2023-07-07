@@ -3,7 +3,7 @@ pragma solidity 0.8.11;
 
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { IBooster } from "../interfaces/IBooster.sol";
-import { IFeeDistributor } from "../interfaces/balancer/IFeeDistributor.sol";
+import { IFeeDistributor } from "../interfaces/bunni/IFeeDistributor.sol";
 
 /**
  * @title   ClaimFeesHelper
