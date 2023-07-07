@@ -715,6 +715,9 @@ async function deployPhase2(
     tx = await booster.setFees(550, 1100, 50, 0);
     await waitForTx(tx, debug, waitForBlocks);
 
+    tx = await booster.setFeeInfo(config.weth, config.feeDistribution);
+    await waitForTx(tx, debug, waitForBlocks);
+
     tx = await booster.setFeeManager(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
