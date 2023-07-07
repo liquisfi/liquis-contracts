@@ -39,7 +39,7 @@ const externalAddresses: ExtSystemConfig = {
     tokenWhale: "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB",
     minter: "0xF087521Ffca0Fa8A43F5C445773aB37C5f574DA0",
     votingEscrow: "0xf17d23136B4FeAd139f54fB766c8795faae09660",
-    feeDistribution: hreAddress,
+    feeDistribution: "0x951f99350d816c0E160A2C71DEfE828BdfC17f12", // Bunni FeeDistro
     gaugeController: "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218",
     gauges: ["0xd4d8E88bf09efCf3F5bf27135Ef12c1276d9063C", "0x471A34823DDd9506fe8dFD6BC5c2890e4114Fafe"], // Liquidity Gauge USDC/WETH & FRAX/USDC
     balancerVault: "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
@@ -81,14 +81,12 @@ const waitForBlocks = 0;
 
 describe("Booster", () => {
     let booster: Booster;
-    let boosterOwner: BoosterOwner;
     let flashOptionsExerciser: FlashOptionsExerciser;
 
     let cvxCrvRewards: BaseRewardPool;
     let cvxCrv: CvxCrvToken;
     let cvxLocker: LiqLocker;
 
-    let crvDepositor: CrvDepositor;
     let litDepositorHelper: LitDepositorHelper;
     let poolManager: PoolManagerV3;
 
@@ -124,11 +122,11 @@ describe("Booster", () => {
     const votingEscrowAddress: string = "0xf17d23136B4FeAd139f54fB766c8795faae09660";
     const gaugeControllerAddress: string = "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218";
 
-    const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C";
+    const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C"; // 10M
     const usdcHolderAddress: string = "0x55FE002aefF02F77364de339a1292923A15844B8";
     const wethHolderAddress: string = "0x57757E3D981446D585Af0D9Ae4d7DF6D64647806";
-    const crvBptHolderAddress: string = "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB";
-    const olitHolderAddress: string = "0x5f350bF5feE8e254D6077f8661E9C7B83a30364e"; // 224k
+    const crvBptHolderAddress: string = "0xb84dfdD51d18B1613432bfaE91dfcC48899D4151"; // 32k
+    const olitHolderAddress: string = "0x99c84A29040146F13a0F061d7a98C3122DA3E29e"; // 370k
 
     const lpTokenUsdcWethAddress: string = "0x680026A1C99a1eC9878431F730706810bFac9f31"; // Bunni USDC/WETH LP (BUNNI-LP)
     const lpTokenFraxUsdcAddress: string = "0x088DCFE115715030d441a544206CD970145F3941"; // Bunni FRAX/USDC LP (BUNNI-LP)
@@ -138,7 +136,7 @@ describe("Booster", () => {
 
     const bunniHubContractAddress: string = "0xb5087F95643A9a4069471A28d32C569D9bd57fE4";
 
-    const FORK_BLOCK_NUMBER: number = 16875673;
+    const FORK_BLOCK_NUMBER: number = 17641669;
 
     const setup = async () => {
         // Deploy Voter Proxy, get whitelisted on Bunni system
@@ -170,7 +168,7 @@ describe("Booster", () => {
         // Impersonate and fund crvBpt whale
         await impersonateAccount(crvBptHolderAddress, true);
         const crvBptHolder = await ethers.getSigner(crvBptHolderAddress);
-        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(100000));
+        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(32000));
         console.log("deployer funded with crvBpt: ", (await crvBpt.balanceOf(deployerAddress)).toString());
 
         // Instance of weth
@@ -297,8 +295,8 @@ describe("Booster", () => {
         const poolInfo1 = await booster.poolInfo(0);
 
         const rewardPool4626 = BaseRewardPool4626__factory.connect(poolInfo1.crvRewards, deployer);
-        await lpTokenUsdcWeth.connect(deployer).approve(rewardPool4626.address, e15.mul(20));
-        tx = await rewardPool4626.connect(deployer).deposit(e15.mul(20), deployerAddress);
+        await lpTokenUsdcWeth.connect(deployer).approve(rewardPool4626.address, e15.mul(10));
+        tx = await rewardPool4626.connect(deployer).deposit(e15.mul(10), deployerAddress);
         txData = await tx.wait();
         console.log("gasUsed deposited BaseReward:", txData.cumulativeGasUsed.toNumber());
 

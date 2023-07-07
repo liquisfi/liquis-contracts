@@ -33,7 +33,7 @@ const externalAddresses: ExtSystemConfig = {
     tokenWhale: "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB",
     minter: "0xF087521Ffca0Fa8A43F5C445773aB37C5f574DA0",
     votingEscrow: "0xf17d23136B4FeAd139f54fB766c8795faae09660",
-    feeDistribution: hreAddress,
+    feeDistribution: "0x951f99350d816c0E160A2C71DEfE828BdfC17f12", // Bunni FeeDistro
     gaugeController: "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218",
     gauges: ["0xd4d8E88bf09efCf3F5bf27135Ef12c1276d9063C", "0x471A34823DDd9506fe8dFD6BC5c2890e4114Fafe"], // Liquidity Gauge USDC/WETH & FRAX/USDC
     balancerVault: "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
@@ -99,11 +99,11 @@ describe("Booster", () => {
     const votingEscrowAddress: string = "0xf17d23136B4FeAd139f54fB766c8795faae09660";
     const gaugeControllerAddress: string = "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218";
 
-    const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C";
+    const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C"; // 10M
     const wethHolderAddress: string = "0x57757E3D981446D585Af0D9Ae4d7DF6D64647806";
-    const crvBptHolderAddress: string = "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB";
+    const crvBptHolderAddress: string = "0xb84dfdD51d18B1613432bfaE91dfcC48899D4151"; // 32k
 
-    const FORK_BLOCK_NUMBER: number = 16875673;
+    const FORK_BLOCK_NUMBER: number = 17641669;
 
     const setup = async () => {
         // Deploy Voter Proxy, get whitelisted on Bunni system
@@ -136,7 +136,7 @@ describe("Booster", () => {
         // Impersonate and fund crvBpt whale
         await impersonateAccount(crvBptHolderAddress, true);
         const crvBptHolder = await ethers.getSigner(crvBptHolderAddress);
-        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(100000));
+        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(32000));
         console.log("Deployer funded with crvBpt: ", (await crvBpt.balanceOf(deployerAddress)).toString());
 
         // Instance of weth
@@ -226,7 +226,7 @@ describe("Booster", () => {
             const initLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
             const cvxCrvBalInit = await cvxCrv.balanceOf(deployerAddress);
             const amount = e18.mul(100000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9900");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9800");
 
             await lit.connect(deployer).approve(litDepositorHelper.address, amount);
             await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS);
@@ -273,8 +273,8 @@ describe("Booster", () => {
             const lock = true;
             const stakeAddress = ZERO_ADDRESS; // No stake
 
-            await crvBpt.connect(deployer).transfer(aliceAddress, e18.mul(10000));
-            await crvBpt.connect(alice).approve(crvDepositor.address, e18.mul(10000));
+            await crvBpt.connect(deployer).transfer(aliceAddress, e18.mul(5000));
+            await crvBpt.connect(alice).approve(crvDepositor.address, e18.mul(5000));
 
             const crvBptBalance = await crvBpt.balanceOf(aliceAddress);
             const amount = crvBptBalance.mul(10).div(100);
