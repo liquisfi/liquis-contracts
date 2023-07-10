@@ -537,8 +537,8 @@ describe("Booster", () => {
 
             await booster.connect(daoSigner).addVotingContract(cvx.address);
 
-            const votingContracts0 = await booster.votingContracts(1);
-            expect(votingContracts0).eq(cvx.address);
+            const votingContracts1 = await booster.votingContracts(1);
+            expect(votingContracts1).eq(cvx.address);
 
             isRegistered = await booster.validVotingContracts(cvx.address);
             assert.isTrue(isRegistered);
