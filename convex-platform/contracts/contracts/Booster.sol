@@ -21,8 +21,9 @@ contract Booster is ReentrancyGuard {
     using SafeMath for uint256;
 
     address public immutable crv;
-    address public immutable voteOwnership;
-    address public immutable voteParameter;
+
+    address[] public votingContracts;
+    mapping(address => bool) public validVotingContracts;
 
     uint256 public lockIncentive = 825; //incentive to crv stakers
     uint256 public stakerIncentive = 825; //incentive to native token stakers
@@ -93,27 +94,23 @@ contract Booster is ReentrancyGuard {
     event FeeInfoUpdated(address feeDistro, address lockFees, address feeToken);
     event FeeInfoChanged(address feeDistro, bool active);
 
+    event UpdateVotingContracts(address[] votingContracts);
+
     /**
      * @dev Constructor doing what constructors do. It is noteworthy that
      *      a lot of basic config is set to 0 - expecting subsequent calls to setFeeInfo etc.
      * @param _staker                 VoterProxy (locks the crv and adds to all gauges)
      * @param _minter                 CVX token, or the thing that mints it
      * @param _crv                    CRV
-     * @param _voteOwnership          Address of the Curve DAO responsible for ownership stuff
-     * @param _voteParameter          Address of the Curve DAO responsible for param updates
      */
     constructor(
         address _staker,
         address _minter,
-        address _crv,
-        address _voteOwnership,
-        address _voteParameter
+        address _crv
     ) public {
         staker = _staker;
         minter = _minter;
         crv = _crv;
-        voteOwnership = _voteOwnership;
-        voteParameter = _voteParameter;
         isShutdown = false;
 
         owner = msg.sender;
@@ -495,7 +492,7 @@ contract Booster is ReentrancyGuard {
             IStaker(staker).withdraw(lptoken,gauge, _amount);
         }
 
-        //some gauges claim rewards when withdrawing, stash them in a seperate contract until next claim
+        //some gauges claim rewards when withdrawing, stash them in a separate contract until next claim
         //do not call if shutdown since stashes wont have access
         address stash = pool.stash;
         if(stash != address(0) && !isShutdown && !pool.shutdown){
@@ -562,7 +559,7 @@ contract Booster is ReentrancyGuard {
      */
     function vote(uint256 _voteId, address _votingAddress, bool _support) external returns(bool){
         require(msg.sender == voteDelegate, "!auth");
-        require(_votingAddress == voteOwnership || _votingAddress == voteParameter, "!voteAddr");
+        require(validVotingContracts[_votingAddress], "!voteAddr");
         
         IStaker(staker).vote(_voteId,_votingAddress,_support);
         return true;
@@ -579,6 +576,17 @@ contract Booster is ReentrancyGuard {
         }
         return true;
     }
+
+    /**
+     * @notice Adds a new Timeless on-chain DAO voting contract to the votingContracts array
+     */
+    function addVotingContract(address _votingContract) external {
+        require(msg.sender == voteDelegate, "!auth");
+		require(!validVotingContracts[_votingContract], "already registered");
+		validVotingContracts[_votingContract] = true;
+		votingContracts.push(_votingContract);
+		emit UpdateVotingContracts(votingContracts);
+	}
 
     /**
      * @notice Allows a stash to claim secondary rewards from a gauge
@@ -615,7 +623,7 @@ contract Booster is ReentrancyGuard {
         address gauge = pool.gauge;
 
         // If there is idle CRV in the Booster we need to transfer it out
-        // in order that our accounting doesn't get scewed.
+        // in order that our accounting doesn't get screwed.
         uint256 crvBBalBefore = IERC20(crv).balanceOf(address(this));
         uint256 crvVBalBefore = IERC20(crv).balanceOf(staker);
         uint256 crvBalBefore = crvBBalBefore.add(crvVBalBefore);
