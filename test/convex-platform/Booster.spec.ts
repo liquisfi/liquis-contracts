@@ -1,6 +1,6 @@
 import { assertBNClosePercent } from "./../../test-utils/assertions";
 import hre, { ethers } from "hardhat";
-import { expect } from "chai";
+import { expect, assert } from "chai";
 import { deployPhase1, deployPhase2, deployPhase3, deployPhase4, SystemDeployed } from "../../scripts/deploySystem";
 import { deployMocks, DeployMocksResult, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
 import {
@@ -49,6 +49,9 @@ describe("Booster", () => {
 
     let alice: Signer;
     let aliceAddress: string;
+
+    let randomSigner: Signer;
+    let randomAddress: string;
 
     const setup = async () => {
         mocks = await deployMocks(hre, deployer);
@@ -108,6 +111,8 @@ describe("Booster", () => {
         deployer = accounts[0];
         deployerAddress = await deployer.getAddress();
         daoSigner = accounts[6];
+        randomSigner = accounts[9];
+        randomAddress = await accounts[10].getAddress();
     });
 
     describe("managing system revenue fees", async () => {
@@ -499,6 +504,52 @@ describe("Booster", () => {
             await expect(
                 booster.connect(bridgeDelegate).distributeL2Fees(simpleToExactAmount(4324)),
             ).to.be.revertedWith("Too many L2 Fees");
+        });
+    });
+
+    describe("voting Contracts flexibility", async () => {
+        before(async () => {
+            await setup();
+        });
+
+        it("in initialization votingContracts array is empty", async () => {
+            const votingContractsLength = booster.votingContracts.length;
+            expect(votingContractsLength).eq(0);
+        });
+
+        it("reverts if it is not the daoSigner", async () => {
+            await expect(booster.connect(randomSigner).addVotingContract(randomAddress)).to.be.revertedWith("!auth");
+        });
+
+        it("adds a new votingContract, array is updated", async () => {
+            await booster.connect(daoSigner).addVotingContract(cvxLocker.address);
+
+            const votingContracts0 = await booster.votingContracts(0);
+            expect(votingContracts0).eq(cvxLocker.address);
+
+            const isRegistered = await booster.validVotingContracts(cvxLocker.address);
+            assert.isTrue(isRegistered);
+        });
+
+        it("contract is not registered, validVotingContracts return false", async () => {
+            let isRegistered = await booster.validVotingContracts(cvx.address);
+            assert.isFalse(isRegistered);
+
+            await booster.connect(daoSigner).addVotingContract(cvx.address);
+
+            const votingContracts0 = await booster.votingContracts(1);
+            expect(votingContracts0).eq(cvx.address);
+
+            isRegistered = await booster.validVotingContracts(cvx.address);
+            assert.isTrue(isRegistered);
+        });
+
+        it("reverts if caller is not daoSigner", async () => {
+            await expect(booster.connect(randomSigner).vote(3, randomAddress, false)).to.be.revertedWith("!auth");
+        });
+
+        it("reverts if target address is not registered", async () => {
+            await expect(booster.connect(daoSigner).vote(3, randomAddress, false)).to.be.revertedWith("!voteAddr");
         });
     });
 });
