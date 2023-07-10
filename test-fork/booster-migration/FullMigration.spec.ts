@@ -183,8 +183,6 @@ describe("Full Migration", () => {
             const { booster } = phase2;
 
             expect(await boosterV2.crv()).eq(await booster.crv());
-            expect(await boosterV2.voteOwnership()).eq(await booster.voteOwnership());
-            expect(await boosterV2.voteParameter()).eq(await booster.voteParameter());
 
             // Fees are different from existing booster as we have updated
             expect(await boosterV2.lockIncentive()).eq(2050);

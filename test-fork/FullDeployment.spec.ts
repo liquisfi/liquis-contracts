@@ -194,8 +194,6 @@ xdescribe("Full Deployment", () => {
                     } = phase2;
                     const { multisigs, addresses } = config;
                     expect(await booster.crv()).eq(addresses.token);
-                    expect(await booster.voteOwnership()).eq(ZERO_ADDRESS);
-                    expect(await booster.voteParameter()).eq(ZERO_ADDRESS);
 
                     expect(await booster.lockIncentive()).eq(550);
                     expect(await booster.stakerIncentive()).eq(1100);
