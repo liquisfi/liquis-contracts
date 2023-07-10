@@ -343,7 +343,7 @@ async function deployPhase2(
     const deployerAddress = await deployer.getAddress();
     const balHelper = new AssetHelpers(config.weth);
 
-    const { token, tokenBpt, votingEscrow, gaugeController, voteOwnership, voteParameter } = config;
+    const { token, tokenBpt, votingEscrow, gaugeController } = config;
     const { voterProxy } = deployment;
 
     console.log("Current chain connected:", hre.network.name);
@@ -409,7 +409,7 @@ async function deployPhase2(
         hre,
         new Booster__factory(deployer),
         "Booster",
-        [voterProxy.address, cvx.address, token, voteOwnership, voteParameter],
+        [voterProxy.address, cvx.address, token],
         {},
         debug,
         waitForBlocks,
@@ -1290,7 +1290,7 @@ async function deployPhase6(
     const deployer = signer;
     const deployerAddress = await deployer.getAddress();
 
-    const { token, gaugeController, voteOwnership, voteParameter, feeDistribution } = extConfig;
+    const { token, gaugeController, feeDistribution } = extConfig;
 
     const { arbitratorVault, booster: boosterV1, cvxLocker, voterProxy, cvx, cvxCrv, litDepositorHelper } = deployment;
 
@@ -1300,7 +1300,7 @@ async function deployPhase6(
         hre,
         new Booster__factory(deployer),
         "Booster",
-        [voterProxy.address, cvx.address, token, voteOwnership, voteParameter],
+        [voterProxy.address, cvx.address, token],
         {},
         debug,
         waitForBlocks,
