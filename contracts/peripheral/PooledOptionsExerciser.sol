@@ -120,18 +120,23 @@ contract PooledOptionsExerciser {
         bool _locker,
         bool _liqLocker
     ) external returns (uint256 amount) {
+        uint256 oLitBalBefore = IERC20(olit).balanceOf(address(this));
+
         for (uint256 i = 0; i < _rewardPools.length; i++) {
             // claim all the rewards, only oLIT is sent here, the rest directly to sender
-            amount += IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
+            IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
-            amount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+            IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
         }
 
         if (_liqLocker) {
-            amount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
+            ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
+
+        uint256 oLitBalAfter = IERC20(olit).balanceOf(address(this));
+        amount = oLitBalAfter.sub(oLitBalBefore);
 
         // queue claimed oLIT rewards
         queued[msg.sender][epoch] += amount;
@@ -155,20 +160,25 @@ contract PooledOptionsExerciser {
     ) external returns (uint256 amount) {
         require(_rewardPools.length == _amounts.length, "array length missmatch");
 
+        uint256 oLitBalBefore = IERC20(olit).balanceOf(address(this));
+
         for (uint256 i = 0; i < _rewardPools.length; i++) {
             // sender will receive the Bunni LpTokens, already unwrapped
             IRewardPool4626(_rewardPools[i]).withdraw(_amounts[i], msg.sender, msg.sender);
             // claim all the rewards, only oLIT is sent here, the rest directly to sender
-            amount += IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
+            IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
-            amount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+            IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
         }
 
         if (_liqLocker) {
-            amount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
+            ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
+
+        uint256 oLitBalAfter = IERC20(olit).balanceOf(address(this));
+        amount = oLitBalAfter.sub(oLitBalBefore);
 
         // queue claimed oLIT rewards
         queued[msg.sender][epoch] += amount;
