@@ -21,7 +21,7 @@ contract PrelaunchRewardsPool {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable rewardToken;
+    IERC20 public rewardToken;
     IERC20 public immutable stakingToken;
     IERC20 public immutable lit;
     uint256 public constant duration = 7 days;
@@ -321,6 +321,15 @@ contract PrelaunchRewardsPool {
         emit VoterProxyUpdated(_voterProxy);
     }
 
+    function updateRewardToken(address _rewardToken) external onlyAuthorized onlyBeforeDate(START_VESTING_DATE) {
+        require(
+            rewardToken.balanceOf(address(this)) <= IERC20(_rewardToken).balanceOf(address(this)),
+            "Not valid switch"
+        );
+
+        rewardToken = IERC20(_rewardToken);
+    }
+
     /**
      * @dev Allows the owner to pull the renounced balances from people that withdrew
      */
@@ -352,6 +361,11 @@ contract PrelaunchRewardsPool {
 
     modifier onlyAfterDate(uint256 limitDate) {
         require(block.timestamp > limitDate, "Currently not possible");
+        _;
+    }
+
+    modifier onlyBeforeDate(uint256 limitDate) {
+        require(block.timestamp < limitDate, "No longer possible");
         _;
     }
 }
