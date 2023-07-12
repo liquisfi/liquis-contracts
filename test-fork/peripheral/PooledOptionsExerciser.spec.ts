@@ -752,7 +752,17 @@ describe("Booster", () => {
             const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
             const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
 
-            const tx = await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, 100);
+            const expectedLit = queuedDeployer.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
+
+            // Check revert as well
+            const expectedMinOutForRevert = await litDepositorHelper.getMinOut(expectedLit, 10000);
+            await expect(
+                pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, expectedMinOutForRevert),
+            ).to.be.revertedWith("BAL#208"); // BPT_OUT_MIN_AMOUNT
+
+            const expectedMinOut = await litDepositorHelper.getMinOut(expectedLit, 9900);
+
+            const tx = await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, expectedMinOut);
             const receipt = await tx.wait();
             console.log("gasUsed withdrawAndLock, stake = true:", receipt.cumulativeGasUsed.toNumber());
 
@@ -769,7 +779,6 @@ describe("Booster", () => {
             }
 
             const amount = args[2];
-            const expectedLit = queuedDeployer.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
             expect(expectedLit).eq(amount);
 
             const litBalAfter = await lit.balanceOf(deployerAddress);
@@ -787,7 +796,7 @@ describe("Booster", () => {
             const withdrawn = await pooledOptionsExerciser.withdrawn(deployerAddress, epoch.sub(1));
             expect(withdrawn).gt(ZERO);
 
-            await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, 100);
+            await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, 1);
 
             const litBalAfter = await lit.balanceOf(deployerAddress);
             expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
@@ -807,7 +816,17 @@ describe("Booster", () => {
             const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
             const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
 
-            const tx = await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, 100);
+            const expectedLit = queuedAlice.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
+
+            // Check revert as well
+            const expectedMinOutForRevert = await litDepositorHelper.getMinOut(expectedLit, 10000);
+            await expect(
+                pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), true, expectedMinOutForRevert),
+            ).to.be.revertedWith("BAL#208"); // BPT_OUT_MIN_AMOUNT
+
+            const expectedMinOut = await litDepositorHelper.getMinOut(expectedLit, 9950);
+
+            const tx = await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, expectedMinOut);
             const receipt = await tx.wait();
             console.log("gasUsed withdrawAndLock, stake = false:", receipt.cumulativeGasUsed.toNumber());
 
@@ -824,7 +843,6 @@ describe("Booster", () => {
             }
 
             const amount = args[2];
-            const expectedLit = queuedAlice.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
             expect(expectedLit).eq(amount);
 
             const litBalAfter = await lit.balanceOf(aliceAddress);
@@ -845,7 +863,7 @@ describe("Booster", () => {
             const withdrawn = await pooledOptionsExerciser.withdrawn(aliceAddress, epoch.sub(1));
             expect(withdrawn).gt(ZERO);
 
-            await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, 100);
+            await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, 1);
 
             const litBalAfter = await lit.balanceOf(aliceAddress);
             expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
