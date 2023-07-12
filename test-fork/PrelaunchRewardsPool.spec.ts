@@ -745,4 +745,169 @@ describe("PrelaunchRewardsPool", () => {
             });
         });
     });
+
+    describe("StakingRewardsPool Test for rewardToken switch", () => {
+        let newLiq: MockERC20;
+        before(async () => {
+            await setup();
+
+            // deploy newLiq
+            newLiq = await deployContract<MockERC20>(
+                hre,
+                new MockERC20__factory(deployer),
+                "MockERC20",
+                ["LiqToken", "LIQ", 18, deployerAddress, 10000000],
+                {},
+                debug,
+                waitForBlocks,
+            );
+        });
+
+        describe("Reward handling functions", () => {
+            it("users deposit and owner notifies 100000 oldLiq as rewards", async () => {
+                for (const bptHolder of bptHolders) {
+                    await impersonateAccount(bptHolder.address, true);
+
+                    const holder = await ethers.getSigner(bptHolder.address);
+                    const amount = await stakingToken.balanceOf(holder.address);
+
+                    // add some stakes to the stakingPool
+                    await stakingToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
+                    await prelaunchRewardsPool.connect(holder).stake(bptHolder.amount);
+
+                    const stakes = await prelaunchRewardsPool.balances(await holder.getAddress());
+                    expect(stakes).eq(bptHolder.amount);
+
+                    const timestamp = await getTimestamp();
+
+                    const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
+                    expect(timestamp).lt(START_WITHDRAWALS);
+
+                    await expect(prelaunchRewardsPool.connect(holder).claim()).to.be.revertedWith(
+                        "Currently not possible",
+                    );
+                }
+
+                // add some rewards to distribute
+                await liq.approve(prelaunchRewardsPool.address, e18.mul(100000));
+                await prelaunchRewardsPool.notifyRewardAmount(e18.mul(100000));
+            });
+
+            it("reverts when setting new rewardToken if amount is lower than committed", async () => {
+                const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
+                const timestamp = await getTimestamp();
+                expect(timestamp).lt(START_VESTING_DATE);
+
+                await expect(prelaunchRewardsPool.updateRewardToken(newLiq.address)).to.be.revertedWith(
+                    "Not valid switch",
+                );
+            });
+
+            it("transfers amount of netLiq and sets it as new rewardToken", async () => {
+                const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
+                const timestamp = await getTimestamp();
+                expect(timestamp).lt(START_VESTING_DATE);
+
+                await newLiq.transfer(prelaunchRewardsPool.address, e18.mul(100000));
+
+                await prelaunchRewardsPool.updateRewardToken(newLiq.address);
+
+                const newRewardToken = await prelaunchRewardsPool.rewardToken();
+                expect(newRewardToken).eq(newLiq.address);
+            });
+
+            it("users convert to liqLit and staking tokens are pulled into crvDepositor", async () => {
+                // Create the initial lock
+                await crvBpt.transfer(voterProxy.address, e18.mul(10000));
+                await voterProxy.setDepositor(crvDepositor.address);
+                await cvxCrv.setOperator(crvDepositor.address);
+                await crvDepositor.initialLock();
+
+                await prelaunchRewardsPool.setCrvDepositor(crvDepositor.address);
+                expect(await prelaunchRewardsPool.crvDepositor()).eq(crvDepositor.address);
+
+                const initialSupply = await prelaunchRewardsPool.totalSupply();
+                let reducedSupply: BigNumber = ZERO;
+
+                const balanceDepositorBefore = await stakingToken.balanceOf(votingEscrowAddress);
+
+                const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
+                await increaseTime(ONE_WEEK.mul(9));
+
+                const timestamp = await getTimestamp();
+                expect(timestamp).gt(START_VESTING_DATE);
+
+                for (const bptHolder of bptHolders) {
+                    await impersonateAccount(bptHolder.address, true);
+                    const holder = await ethers.getSigner(bptHolder.address);
+
+                    const earned = await prelaunchRewardsPool.earned(bptHolder.address);
+
+                    await prelaunchRewardsPool.connect(holder).convert();
+
+                    const stakes = await prelaunchRewardsPool.balances(bptHolder.address);
+                    expect(stakes).eq(ZERO);
+
+                    const isVestingUser = await prelaunchRewardsPool.isVestingUser(bptHolder.address);
+                    assert.isTrue(isVestingUser); // users are now vestingUsers
+
+                    const rewardsUser = await prelaunchRewardsPool.rewards(bptHolder.address);
+                    expect(earned).eq(rewardsUser);
+                }
+
+                for (let i = 0; i < bptHolders.length; i++) {
+                    reducedSupply = reducedSupply.add(bptHolders[i].amount);
+                }
+
+                const endSupply = await prelaunchRewardsPool.totalSupply();
+                expect(endSupply).eq(initialSupply.sub(reducedSupply));
+
+                const balanceDepositorAfter = await stakingToken.balanceOf(votingEscrowAddress);
+                expect(balanceDepositorAfter.sub(balanceDepositorBefore)).eq(reducedSupply); // tokens are pulled from the prelaunchRewardsPool
+            });
+
+            it("reverts when setting new rewardToken if timestamp is post start vesting date ", async () => {
+                const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
+                const timestamp = await getTimestamp();
+                expect(timestamp).gt(START_VESTING_DATE);
+
+                await expect(prelaunchRewardsPool.updateRewardToken(liq.address)).to.be.revertedWith(
+                    "No longer possible",
+                );
+            });
+
+            it("stakers who converted claim all of the newLiq as vesting after 6 months", async () => {
+                await increaseTime(ONE_WEEK.mul(26));
+
+                let totalAmount: BigNumber = ZERO;
+
+                for (const bptHolder of bptHolders) {
+                    const newLiqBalBefore = await newLiq.balanceOf(bptHolder.address);
+                    expect(newLiqBalBefore).eq(ZERO);
+
+                    await impersonateAccount(bptHolder.address, true);
+
+                    const holder = await ethers.getSigner(bptHolder.address);
+
+                    const timestamp = await getTimestamp();
+                    const endVestingTimestamp = await prelaunchRewardsPool.END_VESTING_DATE();
+                    expect(timestamp).gt(endVestingTimestamp);
+
+                    await prelaunchRewardsPool.connect(holder).claim();
+
+                    const newLiqBalAfter = await newLiq.balanceOf(bptHolder.address);
+                    totalAmount = totalAmount.add(newLiqBalAfter.sub(newLiqBalBefore));
+                }
+                assertBNClosePercent(totalAmount, e18.mul(100000), "0.001");
+
+                // Users claim newLiq
+                const newLiqPrelaunchBal = await newLiq.balanceOf(prelaunchRewardsPool.address);
+                expect(newLiqPrelaunchBal).lt(e15); // Small dust due to decimals operations
+
+                // Old liq stays in the contract
+                const oldLiqPrelaunchBal = await liq.balanceOf(prelaunchRewardsPool.address);
+                assertBNClosePercent(oldLiqPrelaunchBal, e18.mul(100000), "0.001");
+            });
+        });
+    });
 });
