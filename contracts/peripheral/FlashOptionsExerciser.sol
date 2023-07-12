@@ -419,7 +419,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
 
         // swap the necessary lit into weth, swap must start with a non-zero amount in
         if (vars.amountNeeded > 0) {
-            vars.amountIn = vars.amountToRepay.mul(1e18).div(vars.price);
+            vars.amountIn = vars.amountNeeded.mul(1e18).div(vars.price);
             // apply our accepted slippage to amountIn
             vars.maxAmountIn = vars.amountIn.mul(basisOne.add(vars.maxSlippage)).div(basisOne);
             _balancerSwap(vars.amountNeeded, vars.maxAmountIn, IAsset(lit), IAsset(weth));
