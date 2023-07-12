@@ -281,13 +281,13 @@ contract PooledOptionsExerciser {
      * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
      * @param _epoch Epoch for which to withdraw and lock LIT
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _maxSlippage Max accepted slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _minOut Units of BPT to expect as output
      * @return withdrawn_ The amount of LIT rewards withdrawn and locked
      */
     function withdrawAndLock(
         uint256 _epoch,
         bool _stake,
-        uint256 _maxSlippage
+        uint256 _minOut
     ) external returns (uint256 withdrawn_) {
         // only withdraw past epochs
         require(_epoch < epoch, "epoch not withdrawable");
@@ -305,20 +305,19 @@ contract PooledOptionsExerciser {
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
         // note, convert _maxSlippage to _outputBps param used in BalInvestor
-        _convertLitToLiqLit(withdrawn_, basisOne.sub(_maxSlippage), _stake);
+        _convertLitToLiqLit(withdrawn_, _minOut, _stake);
 
         emit Withdrawn(msg.sender, _epoch, withdrawn_);
     }
 
     function _convertLitToLiqLit(
         uint256 amount,
-        uint256 _outputBps,
+        uint256 _minOut,
         bool _stake
     ) internal {
-        uint256 minOut = ILitDepositorHelper(litDepositorHelper).getMinOut(amount, _outputBps);
         _stake == true
-            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, minOut, true, lockerRewards)
-            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, minOut, true, address(0));
+            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, lockerRewards)
+            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, address(0));
     }
 
     /**
