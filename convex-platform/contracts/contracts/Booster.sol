@@ -95,7 +95,7 @@ contract Booster is ReentrancyGuard {
     event FeeInfoUpdated(address feeDistro, address lockFees, address feeToken);
     event FeeInfoChanged(address feeDistro, bool active);
 
-    event AddedVotingContract(address newVotingContract);
+    event UpdateVotingContract(address votingContract, bool active);
 
     /**
      * @dev Constructor doing what constructors do. It is noteworthy that
@@ -590,13 +590,12 @@ contract Booster is ReentrancyGuard {
     }
 
     /**
-     * @notice Adds a new Timeless on-chain DAO voting contract to the validVotingContracts mapping
+     * @notice Enables or disables a Timeless on-chain DAO voting contract
      */
-    function addVotingContract(address _votingContract) external {
+    function updateVotingContract(address _votingContract, bool _active) external {
         require(msg.sender == voteManager, "!auth");
-		require(!validVotingContracts[_votingContract], "already registered");
-		validVotingContracts[_votingContract] = true;
-		emit AddedVotingContract(_votingContract);
+		validVotingContracts[_votingContract] = _active;
+		emit UpdateVotingContract(_votingContract, _active);
 	}
 
     /**

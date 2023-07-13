@@ -519,16 +519,18 @@ describe("Booster", () => {
         });
 
         it("reverts if it is not the daoSigner", async () => {
-            await expect(booster.connect(randomSigner).addVotingContract(randomAddress)).to.be.revertedWith("!auth");
+            await expect(booster.connect(randomSigner).updateVotingContract(randomAddress, true)).to.be.revertedWith(
+                "!auth",
+            );
         });
 
         it("adds a new votingContract, event with correct address is emitted", async () => {
-            const tx = await booster.connect(daoSigner).addVotingContract(cvxLocker.address);
+            const tx = await booster.connect(daoSigner).updateVotingContract(cvxLocker.address, true);
 
             const receipt = await tx.wait();
 
             const events = receipt.events?.filter(x => {
-                return x.event == "AddedVotingContract";
+                return x.event == "UpdateVotingContract";
             });
             if (!events) {
                 throw new Error("No events found");
@@ -542,6 +544,9 @@ describe("Booster", () => {
             const addressRegistered = args[0];
             expect(addressRegistered).eq(cvxLocker.address);
 
+            const isActive = args[1];
+            assert.isTrue(isActive);
+
             const isRegistered = await booster.validVotingContracts(cvxLocker.address);
             assert.isTrue(isRegistered);
         });
@@ -550,12 +555,12 @@ describe("Booster", () => {
             let isRegistered = await booster.validVotingContracts(cvx.address);
             assert.isFalse(isRegistered);
 
-            const tx = await booster.connect(daoSigner).addVotingContract(cvx.address);
+            const tx = await booster.connect(daoSigner).updateVotingContract(cvx.address, true);
 
             const receipt = await tx.wait();
 
             const events = receipt.events?.filter(x => {
-                return x.event == "AddedVotingContract";
+                return x.event == "UpdateVotingContract";
             });
             if (!events) {
                 throw new Error("No events found");
@@ -569,8 +574,41 @@ describe("Booster", () => {
             const addressRegistered = args[0];
             expect(addressRegistered).eq(cvx.address);
 
+            const isActive = args[1];
+            assert.isTrue(isActive);
+
             isRegistered = await booster.validVotingContracts(cvx.address);
             assert.isTrue(isRegistered);
+        });
+
+        it("disables a contract from votingContracts mapping", async () => {
+            let isRegistered = await booster.validVotingContracts(cvx.address);
+            assert.isTrue(isRegistered);
+
+            const tx = await booster.connect(daoSigner).updateVotingContract(cvx.address, false);
+
+            const receipt = await tx.wait();
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "UpdateVotingContract";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const addressRegistered = args[0];
+            expect(addressRegistered).eq(cvx.address);
+
+            const isActive = args[1];
+            assert.isFalse(isActive);
+
+            isRegistered = await booster.validVotingContracts(cvx.address);
+            assert.isFalse(isRegistered);
         });
 
         it("reverts if caller is not daoSigner", async () => {
