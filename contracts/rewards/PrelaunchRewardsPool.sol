@@ -326,6 +326,7 @@ contract PrelaunchRewardsPool {
             rewardToken.balanceOf(address(this)) <= IERC20(_rewardToken).balanceOf(address(this)),
             "Not valid switch"
         );
+        require(ICrvVoteEscrow(escrow).balanceOf(voterProxy) == 0, "Activated");
 
         rewardToken = IERC20(_rewardToken);
     }

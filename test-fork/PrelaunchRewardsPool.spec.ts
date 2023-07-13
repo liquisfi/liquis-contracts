@@ -816,7 +816,11 @@ describe("PrelaunchRewardsPool", () => {
                 expect(newRewardToken).eq(newLiq.address);
             });
 
-            it("users convert to liqLit and staking tokens are pulled into crvDepositor", async () => {
+            it("reverts when setting new rewardToken if timestamp is within deadline but balance of VoterProxy > 0 ", async () => {
+                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
+                const timestamp = await getTimestamp();
+                expect(timestamp).lt(START_WITHDRAWALS); // Deadline is within target
+
                 // Create the initial lock
                 await crvBpt.transfer(voterProxy.address, e18.mul(10000));
                 await voterProxy.setDepositor(crvDepositor.address);
@@ -826,6 +830,10 @@ describe("PrelaunchRewardsPool", () => {
                 await prelaunchRewardsPool.setCrvDepositor(crvDepositor.address);
                 expect(await prelaunchRewardsPool.crvDepositor()).eq(crvDepositor.address);
 
+                await expect(prelaunchRewardsPool.updateRewardToken(liq.address)).to.be.revertedWith("Activated");
+            });
+
+            it("users convert to liqLit and staking tokens are pulled into crvDepositor", async () => {
                 const initialSupply = await prelaunchRewardsPool.totalSupply();
                 let reducedSupply: BigNumber = ZERO;
 
