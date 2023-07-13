@@ -141,7 +141,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         uint256 maxAmountIn;
         uint256 amountNeeded;
         uint256 wethBal;
-        uint256 maxSlippage;
+        uint256 maxGrossSlippage;
     }
 
     event OwnerUpdated(address newOwner);
@@ -197,22 +197,22 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @notice User converts their olit into liqLit, sends it back to the user or stakes it in liqLit staking
      * @param _amount The amount of oLIT to exercise and lock
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _maxSlippage Max accepted slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _maxGrossSlippage Max accepted gross slippage expressed in bps (1% = 100, 0.5% = 50)
      * @return claimed The amount of LIT claimed and locked
      */
     function exerciseAndLock(
         uint256 _amount,
         bool _stake,
-        uint256 _maxSlippage
+        uint256 _maxGrossSlippage
     ) external returns (uint256 claimed) {
         IERC20(olit).safeTransferFrom(msg.sender, address(this), _amount);
 
-        _exerciseOptions(_amount, _maxSlippage);
+        _exerciseOptions(_amount, _maxGrossSlippage);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        // note, convert _maxSlippage to _outputBps param used in BalInvestor
+        // note, convert _maxGrossSlippage to _outputBps param used in BalInvestor
         claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxSlippage), _stake);
+        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxGrossSlippage), _stake);
     }
 
     /**
@@ -220,13 +220,13 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
-     * @param _maxSlippage Max accepted slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _maxGrossSlippage Max accepted gross slippage expressed in bps (1% = 100, 0.5% = 50)
      */
     function claimAndExercise(
         address[] memory _rewardPools,
         bool _locker,
         bool _liqLocker,
-        uint256 _maxSlippage
+        uint256 _maxGrossSlippage
     ) external {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _rewardPools.length; i++) {
@@ -242,7 +242,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount, _maxSlippage);
+        _exerciseOptions(olitAmount, _maxGrossSlippage);
 
         // send lit to sender
         _transferLitToSender();
@@ -261,7 +261,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _maxSlippage Max accepted slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _maxGrossSlippage Max accepted gross slippage expressed in bps (1% = 100, 0.5% = 50)
      * @return claimed The amount of LIT rewards claimed and locked
      */
     function claimAndLock(
@@ -269,7 +269,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         bool _locker,
         bool _liqLocker,
         bool _stake,
-        uint256 _maxSlippage
+        uint256 _maxGrossSlippage
     ) external returns (uint256 claimed) {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _rewardPools.length; i++) {
@@ -285,12 +285,12 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount, _maxSlippage);
+        _exerciseOptions(olitAmount, _maxGrossSlippage);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        // note, convert _maxSlippage to _outputBps param used in BalInvestor
+        // note, convert _maxGrossSlippage to _outputBps param used in BalInvestor
         claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxSlippage), _stake);
+        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxGrossSlippage), _stake);
     }
 
     /**
@@ -299,7 +299,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _maxSlippage Max accepted slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _maxGrossSlippage Max accepted gross slippage expressed in bps (1% = 100, 0.5% = 50)
      * @return claimed The amount of LIT rewards claimed and locked
      */
     function withdrawAndLock(
@@ -308,7 +308,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         bool _locker,
         bool _liqLocker,
         bool _stake,
-        uint256 _maxSlippage
+        uint256 _maxGrossSlippage
     ) external returns (uint256 claimed) {
         require(_rewardPools.length == _amounts.length, "array length missmatch");
 
@@ -328,12 +328,12 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount, _maxSlippage);
+        _exerciseOptions(olitAmount, _maxGrossSlippage);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        // note, convert _maxSlippage to _outputBps param used in BalInvestor
+        // note, convert _maxGrossSlippage to _outputBps param used in BalInvestor
         claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxSlippage), _stake);
+        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxGrossSlippage), _stake);
     }
 
     function _convertLitToLiqLit(
@@ -370,14 +370,14 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         );
     }
 
-    function _exerciseOptions(uint256 _olitAmount, uint256 _maxSlippage) internal {
+    function _exerciseOptions(uint256 _olitAmount, uint256 _maxGrossSlippage) internal {
         if (_olitAmount == 0) return;
 
         // amount of weth needed to process the olit, rounded up
         uint256 amount = (_olitAmount * IOracle(olitOracle).getPrice()) / 1e18 + 1;
 
         // encode _olitAmount to avoid an extra balanceOf call in next function
-        bytes memory userData = abi.encode(_olitAmount, _maxSlippage);
+        bytes memory userData = abi.encode(_olitAmount, _maxGrossSlippage);
 
         IPool(aavePool).flashLoanSimple(address(this), weth, amount, userData, referralCode);
     }
@@ -394,7 +394,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
 
         LocalVariablesFlashLoan memory vars;
 
-        (vars.olitAmount, vars.maxSlippage) = abi.decode(params, (uint256, uint256));
+        (vars.olitAmount, vars.maxGrossSlippage) = abi.decode(params, (uint256, uint256));
 
         // exercise the olit into lit
         IOLit(olit).exercise(vars.olitAmount, amount, address(this), block.timestamp);
@@ -417,8 +417,8 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             vars.amountNeeded = vars.amountToRepay.sub(vars.wethBal);
 
             vars.amountIn = vars.amountNeeded.mul(1e18).div(vars.price);
-            // apply our accepted slippage to amountIn
-            vars.maxAmountIn = vars.amountIn.mul(basisOne.add(vars.maxSlippage)).div(basisOne);
+            // apply our accepted gross slippage to amountIn
+            vars.maxAmountIn = vars.amountIn.mul(basisOne.add(vars.maxGrossSlippage)).div(basisOne);
 
             // swap the necessary lit into weth, swap must start with a non-zero amount in
             _balancerSwap(vars.amountNeeded, vars.maxAmountIn, IAsset(lit), IAsset(weth));
