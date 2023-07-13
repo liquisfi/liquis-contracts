@@ -809,9 +809,7 @@ describe("Booster", () => {
             await expect(flashOptionsExerciser.connect(randomUser).setOwner(randomUserAddress)).to.be.revertedWith(
                 "!auth",
             );
-            await expect(flashOptionsExerciser.connect(randomUser).setOracleParams(100, 10)).to.be.revertedWith(
-                "!auth",
-            );
+
             await expect(flashOptionsExerciser.connect(randomUser).setReferralCode(10)).to.be.revertedWith("!auth");
         });
 

@@ -121,12 +121,8 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
     address public immutable lit = 0xfd0205066521550D7d7AB19DA8F72bb004b4C341;
     address public immutable olit = 0x627fee87d0D9D2c55098A06ac805Db8F98B158Aa;
     address public immutable olitOracle = 0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30;
-    address public immutable balOracle = 0x9232a548DD9E81BaC65500b5e0d918F8Ba93675C;
     address public immutable weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public immutable aavePool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
-
-    uint256 public secs;
-    uint256 public ago;
 
     uint16 internal referralCode; // Aave referral code
 
@@ -145,7 +141,6 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
     }
 
     event OwnerUpdated(address newOwner);
-    event SetOracleParams(uint256 secs, uint256 ago);
     event SetReferralCode(uint16 referralCode);
 
     /**
@@ -169,9 +164,6 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         liqLocker = _liqLocker;
 
         owner = msg.sender;
-
-        secs = 1800;
-        ago = 0;
 
         IERC20(weth).safeApprove(olit, type(uint256).max);
         IERC20(lit).safeApprove(balVault, type(uint256).max);
@@ -197,22 +189,22 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @notice User converts their olit into liqLit, sends it back to the user or stakes it in liqLit staking
      * @param _amount The amount of oLIT to exercise and lock
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _maxGrossSlippage Max accepted gross slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _minExchangeRate Param calculated off-chain based on olitAmount and BalancerQueries queryJoin
      * @return claimed The amount of LIT claimed and locked
      */
     function exerciseAndLock(
         uint256 _amount,
         bool _stake,
-        uint256 _maxGrossSlippage
+        uint256 _minExchangeRate
     ) external returns (uint256 claimed) {
         IERC20(olit).safeTransferFrom(msg.sender, address(this), _amount);
 
-        _exerciseOptions(_amount, _maxGrossSlippage);
+        _exerciseOptions(_amount);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        // note, convert _maxGrossSlippage to _outputBps param used in BalInvestor
+        uint256 minOut = (_minExchangeRate * _amount) / 1e18;
         claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxGrossSlippage), _stake);
+        if (claimed > 0) _convertLitToLiqLit(claimed, minOut, _stake);
     }
 
     /**
@@ -220,13 +212,13 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
-     * @param _maxGrossSlippage Max accepted gross slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _minOut Min amount of LIT the user expects to receive
      */
     function claimAndExercise(
         address[] memory _rewardPools,
         bool _locker,
         bool _liqLocker,
-        uint256 _maxGrossSlippage
+        uint256 _minOut
     ) external {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _rewardPools.length; i++) {
@@ -242,14 +234,15 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount, _maxGrossSlippage);
+        _exerciseOptions(olitAmount);
 
         // send lit to sender
-        _transferLitToSender();
+        _transferLitToSender(_minOut);
     }
 
-    function _transferLitToSender() internal {
+    function _transferLitToSender(uint256 _minOut) internal {
         uint256 litBal = IERC20(lit).balanceOf(address(this));
+        require(litBal >= _minOut, "slipped");
         if (litBal > 0) {
             IERC20(lit).safeTransfer(msg.sender, litBal);
         }
@@ -261,7 +254,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _maxGrossSlippage Max accepted gross slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _minExchangeRate Param calculated off-chain based on olitAmount and BalancerQueries queryJoin
      * @return claimed The amount of LIT rewards claimed and locked
      */
     function claimAndLock(
@@ -269,7 +262,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         bool _locker,
         bool _liqLocker,
         bool _stake,
-        uint256 _maxGrossSlippage
+        uint256 _minExchangeRate
     ) external returns (uint256 claimed) {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _rewardPools.length; i++) {
@@ -285,12 +278,12 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount, _maxGrossSlippage);
+        _exerciseOptions(olitAmount);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        // note, convert _maxGrossSlippage to _outputBps param used in BalInvestor
+        uint256 minOut = (_minExchangeRate * olitAmount) / 1e18;
         claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxGrossSlippage), _stake);
+        if (claimed > 0) _convertLitToLiqLit(claimed, minOut, _stake);
     }
 
     /**
@@ -299,7 +292,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _maxGrossSlippage Max accepted gross slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _minExchangeRate Param calculated off-chain based on olitAmount and BalancerQueries queryJoin
      * @return claimed The amount of LIT rewards claimed and locked
      */
     function withdrawAndLock(
@@ -308,7 +301,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         bool _locker,
         bool _liqLocker,
         bool _stake,
-        uint256 _maxGrossSlippage
+        uint256 _minExchangeRate
     ) external returns (uint256 claimed) {
         require(_rewardPools.length == _amounts.length, "array length missmatch");
 
@@ -328,23 +321,22 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
-        _exerciseOptions(olitAmount, _maxGrossSlippage);
+        _exerciseOptions(olitAmount);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        // note, convert _maxGrossSlippage to _outputBps param used in BalInvestor
+        uint256 minOut = (_minExchangeRate * olitAmount) / 1e18;
         claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, basisOne.sub(_maxGrossSlippage), _stake);
+        if (claimed > 0) _convertLitToLiqLit(claimed, minOut, _stake);
     }
 
     function _convertLitToLiqLit(
         uint256 amount,
-        uint256 _outputBps,
+        uint256 _minOut,
         bool _stake
     ) internal {
-        uint256 minOut = ILitDepositorHelper(litDepositorHelper).getMinOut(amount, _outputBps);
         _stake == true
-            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, minOut, true, lockerRewards)
-            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, minOut, true, address(0));
+            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, lockerRewards)
+            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, address(0));
     }
 
     function _balancerSwap(
@@ -370,14 +362,14 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         );
     }
 
-    function _exerciseOptions(uint256 _olitAmount, uint256 _maxGrossSlippage) internal {
+    function _exerciseOptions(uint256 _olitAmount) internal {
         if (_olitAmount == 0) return;
 
         // amount of weth needed to process the olit, rounded up
         uint256 amount = (_olitAmount * IOracle(olitOracle).getPrice()) / 1e18 + 1;
 
         // encode _olitAmount to avoid an extra balanceOf call in next function
-        bytes memory userData = abi.encode(_olitAmount, _maxGrossSlippage);
+        bytes memory userData = abi.encode(_olitAmount);
 
         IPool(aavePool).flashLoanSimple(address(this), weth, amount, userData, referralCode);
     }
@@ -394,7 +386,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
 
         LocalVariablesFlashLoan memory vars;
 
-        (vars.olitAmount, vars.maxGrossSlippage) = abi.decode(params, (uint256, uint256));
+        vars.olitAmount = abi.decode(params, (uint256));
 
         // exercise the olit into lit
         IOLit(olit).exercise(vars.olitAmount, amount, address(this), block.timestamp);
@@ -402,23 +394,11 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         // currently flashloan fee = 5, but that could vary
         vars.amountToRepay = amount.add(premium);
 
-        IBalancerTwapOracle.OracleAverageQuery[] memory queries = new IBalancerTwapOracle.OracleAverageQuery[](1);
-        queries[0] = IBalancerTwapOracle.OracleAverageQuery({
-            variable: IBalancerTwapOracle.Variable.PAIR_PRICE,
-            secs: secs,
-            ago: ago
-        });
-
-        // calculate the price weth/lit in 1e18 e.g price = 1e14
-        vars.price = IBalancerTwapOracle(balOracle).getTimeWeightedAverage(queries)[0];
-
         vars.wethBal = IERC20(weth).balanceOf(address(this));
         if (vars.wethBal < vars.amountToRepay) {
             vars.amountNeeded = vars.amountToRepay.sub(vars.wethBal);
 
-            vars.amountIn = vars.amountNeeded.mul(1e18).div(vars.price);
-            // apply our accepted gross slippage to amountIn
-            vars.maxAmountIn = vars.amountIn.mul(basisOne.add(vars.maxGrossSlippage)).div(basisOne);
+            vars.maxAmountIn = IERC20(lit).balanceOf(address(this));
 
             // swap the necessary lit into weth, swap must start with a non-zero amount in
             _balancerSwap(vars.amountNeeded, vars.maxAmountIn, IAsset(lit), IAsset(weth));
@@ -428,18 +408,6 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         IERC20(asset).safeIncreaseAllowance(aavePool, vars.amountToRepay);
 
         return true;
-    }
-
-    /**
-     * @param _secs The size of the window to take the TWAP value over in seconds.
-     * @param _ago The number of seconds in the past to take the TWAP from.
-     * The window would be (block.timestamp - secs - ago, block.timestamp - ago]
-     */
-    function setOracleParams(uint256 _secs, uint256 _ago) external {
-        require(msg.sender == owner, "!auth");
-        secs = _secs;
-        ago = _ago;
-        emit SetOracleParams(_secs, _ago);
     }
 
     /**
