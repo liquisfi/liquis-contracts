@@ -415,13 +415,12 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         vars.wethBal = IERC20(weth).balanceOf(address(this));
         if (vars.wethBal < vars.amountToRepay) {
             vars.amountNeeded = vars.amountToRepay.sub(vars.wethBal);
-        } // else -> amountNeeded = 0;
 
-        // swap the necessary lit into weth, swap must start with a non-zero amount in
-        if (vars.amountNeeded > 0) {
             vars.amountIn = vars.amountNeeded.mul(1e18).div(vars.price);
             // apply our accepted slippage to amountIn
             vars.maxAmountIn = vars.amountIn.mul(basisOne.add(vars.maxSlippage)).div(basisOne);
+
+            // swap the necessary lit into weth, swap must start with a non-zero amount in
             _balancerSwap(vars.amountNeeded, vars.maxAmountIn, IAsset(lit), IAsset(weth));
         }
 
