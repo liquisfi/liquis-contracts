@@ -794,9 +794,9 @@ describe("PrelaunchRewardsPool", () => {
             });
 
             it("reverts when setting new rewardToken if amount is lower than committed", async () => {
-                const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
+                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
                 const timestamp = await getTimestamp();
-                expect(timestamp).lt(START_VESTING_DATE);
+                expect(timestamp).lt(START_WITHDRAWALS);
 
                 await expect(prelaunchRewardsPool.updateRewardToken(newLiq.address)).to.be.revertedWith(
                     "Not valid switch",
@@ -804,9 +804,9 @@ describe("PrelaunchRewardsPool", () => {
             });
 
             it("transfers amount of netLiq and sets it as new rewardToken", async () => {
-                const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
+                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
                 const timestamp = await getTimestamp();
-                expect(timestamp).lt(START_VESTING_DATE);
+                expect(timestamp).lt(START_WITHDRAWALS);
 
                 await newLiq.transfer(prelaunchRewardsPool.address, e18.mul(100000));
 
@@ -831,11 +831,11 @@ describe("PrelaunchRewardsPool", () => {
 
                 const balanceDepositorBefore = await stakingToken.balanceOf(votingEscrowAddress);
 
-                const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
-                await increaseTime(ONE_WEEK.mul(9));
+                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
+                await increaseTime(ONE_WEEK.mul(11));
 
                 const timestamp = await getTimestamp();
-                expect(timestamp).gt(START_VESTING_DATE);
+                expect(timestamp).gt(START_WITHDRAWALS);
 
                 for (const bptHolder of bptHolders) {
                     await impersonateAccount(bptHolder.address, true);
@@ -866,10 +866,10 @@ describe("PrelaunchRewardsPool", () => {
                 expect(balanceDepositorAfter.sub(balanceDepositorBefore)).eq(reducedSupply); // tokens are pulled from the prelaunchRewardsPool
             });
 
-            it("reverts when setting new rewardToken if timestamp is post start vesting date ", async () => {
-                const START_VESTING_DATE = await prelaunchRewardsPool.START_VESTING_DATE();
+            it("reverts when setting new rewardToken if timestamp is post withdrawals date ", async () => {
+                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
                 const timestamp = await getTimestamp();
-                expect(timestamp).gt(START_VESTING_DATE);
+                expect(timestamp).gt(START_WITHDRAWALS);
 
                 await expect(prelaunchRewardsPool.updateRewardToken(liq.address)).to.be.revertedWith(
                     "No longer possible",

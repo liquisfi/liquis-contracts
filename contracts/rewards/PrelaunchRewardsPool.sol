@@ -321,7 +321,7 @@ contract PrelaunchRewardsPool {
         emit VoterProxyUpdated(_voterProxy);
     }
 
-    function updateRewardToken(address _rewardToken) external onlyAuthorized onlyBeforeDate(START_VESTING_DATE) {
+    function updateRewardToken(address _rewardToken) external onlyAuthorized onlyBeforeDate(START_WITHDRAWALS) {
         require(
             rewardToken.balanceOf(address(this)) <= IERC20(_rewardToken).balanceOf(address(this)),
             "Not valid switch"
