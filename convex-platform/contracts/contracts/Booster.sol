@@ -22,7 +22,6 @@ contract Booster is ReentrancyGuard {
 
     address public immutable crv;
 
-    address[] public votingContracts;
     mapping(address => bool) public validVotingContracts;
 
     uint256 public lockIncentive = 825; //incentive to crv stakers
@@ -42,6 +41,7 @@ contract Booster is ReentrancyGuard {
     address public tokenFactory;
     address public rewardArbitrator;
     address public voteDelegate;
+    address public voteManager;
     address public treasury;
     address public stakerRewards; //cvx rewards
     address public lockRewards; //cvxCrv rewards(crv)
@@ -88,13 +88,14 @@ contract Booster is ReentrancyGuard {
     event FactoriesUpdated(address rewardFactory, address stashFactory, address tokenFactory);
     event ArbitratorUpdated(address newArbitrator);
     event VoteDelegateUpdated(address newVoteDelegate);
+    event VoteManagerUpdated(address newVoteManager);
     event RewardContractsUpdated(address lockRewards, address stakerRewards);
     event FeesUpdated(uint256 lockIncentive, uint256 stakerIncentive, uint256 earmarkIncentive, uint256 platformFee);
     event TreasuryUpdated(address newTreasury);
     event FeeInfoUpdated(address feeDistro, address lockFees, address feeToken);
     event FeeInfoChanged(address feeDistro, bool active);
 
-    event UpdateVotingContracts(address[] votingContracts);
+    event AddedVotingContract(address newVotingContract);
 
     /**
      * @dev Constructor doing what constructors do. It is noteworthy that
@@ -117,6 +118,7 @@ contract Booster is ReentrancyGuard {
         voteDelegate = msg.sender;
         feeManager = msg.sender;
         poolManager = msg.sender;
+        voteManager = msg.sender;
         treasury = address(0);
 
         emit OwnerUpdated(msg.sender);
@@ -199,6 +201,16 @@ contract Booster is ReentrancyGuard {
         voteDelegate = _voteDelegate;
 
         emit VoteDelegateUpdated(_voteDelegate);
+    }
+
+    /**
+     * @notice Vote Manager has the rights to add new voting contracts
+     */
+    function setVoteManager(address _voteManager) external {
+        require(msg.sender==owner, "!auth");
+        voteManager = _voteManager;
+
+        emit VoteManagerUpdated(_voteManager);
     }
 
     /**
@@ -578,14 +590,13 @@ contract Booster is ReentrancyGuard {
     }
 
     /**
-     * @notice Adds a new Timeless on-chain DAO voting contract to the votingContracts array
+     * @notice Adds a new Timeless on-chain DAO voting contract to the validVotingContracts mapping
      */
     function addVotingContract(address _votingContract) external {
-        require(msg.sender == voteDelegate, "!auth");
+        require(msg.sender == voteManager, "!auth");
 		require(!validVotingContracts[_votingContract], "already registered");
 		validVotingContracts[_votingContract] = true;
-		votingContracts.push(_votingContract);
-		emit UpdateVotingContracts(votingContracts);
+		emit AddedVotingContract(_votingContract);
 	}
 
     /**
