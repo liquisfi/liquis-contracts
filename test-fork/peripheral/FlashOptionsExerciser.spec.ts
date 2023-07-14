@@ -2,11 +2,9 @@ import hre, { ethers } from "hardhat";
 import { expect, assert } from "chai";
 import {
     Booster,
-    BoosterOwner,
     VoterProxy,
     VoterProxy__factory,
     CvxCrvToken,
-    CrvDepositor,
     BaseRewardPool,
     BaseRewardPool4626__factory,
     LitDepositorHelper,
@@ -14,12 +12,19 @@ import {
     PoolManagerV3,
     FlashOptionsExerciser,
     LiqLocker,
+    IBalancerHelpers,
+    IBalancerHelpers__factory,
+    IBalancerVault,
+    IBalancerVault__factory,
 } from "../../types/generated";
-import { Signer } from "ethers";
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
 import { increaseTime } from "../../test-utils/time";
 import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../../test-utils/constants";
 import { deployContract, waitForTx } from "../../tasks/utils";
 import { impersonateAccount } from "../../test-utils";
+
+import { WeightedPoolEncoder } from "@balancer-labs/balancer-js";
+import { JoinPoolRequestStruct, FundManagementStruct, BatchSwapStepStruct } from "../../types/generated/IBalancerVault";
 
 import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../../scripts/deploySystem";
 import { getMockDistro } from "../../scripts/deployMocks";
@@ -51,6 +56,7 @@ const externalAddresses: ExtSystemConfig = {
         stablePool: "0x8df6EfEc5547e31B0eb7d1291B511FF8a2bf987c",
         bootstrappingPool: "0x751A0bC0e3f75b38e01Cf25bFCE7fF36DE1C87DE",
     },
+    balancerHelpers: "0x5aDDCCa35b7A0D07C74063c48700C8590E87864E",
     weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     wethWhale: "0x57757E3D981446D585Af0D9Ae4d7DF6D64647806",
     voteOwnership: hreAddress,
@@ -65,15 +71,6 @@ const naming = {
     cvxCrvName: "Aura BAL",
     cvxCrvSymbol: "auraBAL",
     tokenFactoryNamePostfix: " Aura Deposit",
-};
-
-type Pool = {
-    lptoken: string;
-    token: string;
-    gauge: string;
-    crvRewards: string;
-    stash: string;
-    shutdown: boolean;
 };
 
 const debug = false;
@@ -112,6 +109,10 @@ describe("Booster", () => {
     let rewardPool1: BaseRewardPool;
     let rewardPool2: BaseRewardPool;
 
+    let balancerHelpers: IBalancerHelpers;
+    let balancerVault: IBalancerVault;
+    let olitOracle: Contract;
+
     const smartWalletCheckerContractAddress: string = "0x0ccdf95baf116ede5251223ca545d0ed02287a8f";
     const smartWalletCheckerOwnerAddress: string = "0x9a8fee232dcf73060af348a1b62cdb0a19852d13";
 
@@ -135,6 +136,8 @@ describe("Booster", () => {
     const usdcAddress: string = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
     const bunniHubContractAddress: string = "0xb5087F95643A9a4069471A28d32C569D9bd57fE4";
+
+    const olitOracleAddress: string = "0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30";
 
     const FORK_BLOCK_NUMBER: number = 17641669;
 
@@ -354,6 +357,16 @@ describe("Booster", () => {
 
         console.log("oLitBoosterBalance: ", (await olit.balanceOf(booster.address)).toString());
         console.log("bobOLitBalance: ", (await olit.balanceOf(bobAddress)).toString());
+
+        balancerHelpers = IBalancerHelpers__factory.connect(externalAddresses.balancerHelpers, deployer);
+
+        balancerVault = IBalancerVault__factory.connect(externalAddresses.balancerVault, deployer);
+
+        olitOracle = new ethers.Contract(
+            olitOracleAddress,
+            ["function getPrice() external returns (uint256)"],
+            deployer,
+        );
     };
 
     before(async () => {
@@ -375,6 +388,76 @@ describe("Booster", () => {
         aliceAddress = await alice.getAddress();
         bobAddress = await bob.getAddress();
     });
+
+    async function getBptMinOut(maxAmountsIn: BigNumber[], sender: string, recipient: string): Promise<BigNumber> {
+        // Use a minimumBPT of 1 because we need to call queryJoin with amounts in to get the BPT amount out
+        const userData = WeightedPoolEncoder.joinExactTokensInForBPTOut(maxAmountsIn, 1);
+        const joinPoolRequest: JoinPoolRequestStruct = {
+            assets: [externalAddresses.weth, externalAddresses.lit],
+            maxAmountsIn,
+            userData,
+            fromInternalBalance: false,
+        };
+
+        const [bptOut] = await balancerHelpers.callStatic.queryJoin(
+            externalAddresses.balancerPoolId,
+            sender,
+            recipient,
+            joinPoolRequest,
+        );
+
+        const SLIPPAGE: BigNumberish = 9900;
+        const SLIPPAGE_SCALE: BigNumberish = 10000;
+
+        // Apply slippage to bptOut
+        const bptOutWithSlippage = bptOut.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+        return bptOutWithSlippage;
+    }
+
+    async function getLitPerOLitAmount(olitAmount: BigNumber, sender: string): Promise<BigNumber> {
+        const SLIPPAGE: BigNumberish = 10100;
+        const SLIPPAGE_SCALE: BigNumberish = 10000;
+
+        const price = await olitOracle.callStatic.getPrice();
+
+        const wethNeeded = olitAmount.mul(price).div(e18);
+        // Apply slippage to olit oracle
+        const wethNeededWithSlippage = wethNeeded.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+
+        const litNeededToRepay = await getLitNeeded(sender, wethNeededWithSlippage);
+        // Apply slippage to lit swap
+        const litNeededToRepayWithSlippage = litNeededToRepay.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+
+        const litLeft = olitAmount.sub(litNeededToRepayWithSlippage);
+        return litLeft;
+    }
+
+    async function getLitNeeded(sender: string, amount: BigNumberish): Promise<BigNumber> {
+        const swaps: BatchSwapStepStruct[] = [
+            {
+                poolId: externalAddresses.balancerPoolId,
+                assetInIndex: 1, // LIT Index
+                assetOutIndex: 0, // WETH Index
+                amount: amount,
+                userData: ethers.utils.defaultAbiCoder.encode(["uint256"], [0]),
+            },
+        ];
+        const assets: string[] = [externalAddresses.weth, externalAddresses.lit];
+        const funds: FundManagementStruct = {
+            sender,
+            fromInternalBalance: false,
+            recipient: sender,
+            toInternalBalance: false,
+        };
+        const query = await balancerVault.callStatic.queryBatchSwap(
+            1, // kind: GIVEN_OUT
+            swaps,
+            assets,
+            funds,
+        );
+
+        return query.slice(-1)[0].abs();
+    }
 
     describe("new FlashOptionsExerciser with flashloan functionality", async () => {
         before(async () => {
@@ -450,14 +533,23 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
-            await olit.connect(olitWhale).approve(flashOptionsExerciser.address, e18.mul(10000));
-            await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(10000), false, 300);
+            const olitAmount = e18.mul(10000);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+
+            await olit.connect(olitWhale).approve(flashOptionsExerciser.address, olitAmount);
+            await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(olitAmount, false, minExchangeRate);
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
             console.log("liqLitWhaleBalAfter: ", liqLitWhaleBalAfter.toString());
 
-            expect(olitWhaleBalBefore.sub(olitWhaleBalAfter)).eq(e18.mul(10000));
+            expect(olitWhaleBalBefore.sub(olitWhaleBalAfter)).eq(olitAmount);
             expect(liqLitWhaleBalAfter).gt(liqLitWhaleBalBefore);
 
             expect(stakingBalBefore).eq(ZERO);
