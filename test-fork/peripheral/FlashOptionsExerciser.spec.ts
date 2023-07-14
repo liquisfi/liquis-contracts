@@ -648,7 +648,23 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            await flashOptionsExerciser.claimAndExercise([rewardPool1.address], true, false, 300);
+            const earnedDeployer = await rewardPool1.earned(deployerAddress);
+            console.log("earnedDeployer: ", +earnedDeployer);
+
+            const litExpected = await getLitPerOLitAmount(earnedDeployer, deployerAddress);
+            console.log("litExpected: ", +litExpected);
+
+            // Check revert
+            await expect(
+                flashOptionsExerciser.claimAndExercise(
+                    [rewardPool1.address],
+                    true,
+                    false,
+                    litExpected.mul(10300).div(10000),
+                ),
+            ).to.be.revertedWith("slipped");
+
+            await flashOptionsExerciser.claimAndExercise([rewardPool1.address], true, false, litExpected);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);

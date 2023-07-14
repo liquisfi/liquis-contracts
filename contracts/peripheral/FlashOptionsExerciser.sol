@@ -211,14 +211,14 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
-     * @param _minExchangeRate The minimal accepted oLIT to LIT exchange rate
+     * @param _minOut Min amount of LIT the user expects to receive
      * @return claimed The amount of LIT claimed and sent to caller
      */
     function claimAndExercise(
         address[] memory _rewardPools,
         bool _locker,
         bool _liqLocker,
-        uint256 _minExchangeRate
+        uint256 _minOut
     ) external returns (uint256 claimed) {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _rewardPools.length; i++) {
@@ -238,7 +238,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         _exerciseOptions(olitAmount);
 
         // send lit to sender
-        claimed = _transferLitToSender(olitAmount, _minExchangeRate);
+        claimed = _transferLitToSender(olitAmount, _minOut);
     }
 
     /**
@@ -320,10 +320,9 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         claimed = _convertLitToLiqLit(olitAmount, _minExchangeRate, _stake);
     }
 
-    function _transferLitToSender(uint256 _olitAmount, uint256 _minExchangeRate) internal returns (uint256 litOut) {
-        uint256 minOut = (_minExchangeRate * _olitAmount) / 1e18;
+    function _transferLitToSender(uint256 _olitAmount, uint256 _minOut) internal returns (uint256 litOut) {
         litOut = IERC20(lit).balanceOf(address(this));
-        require(litOut >= minOut, "slipped");
+        require(litOut >= _minOut, "slipped");
         if (litOut > 0) {
             IERC20(lit).safeTransfer(msg.sender, litOut);
         }
