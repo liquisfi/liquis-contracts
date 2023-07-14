@@ -404,7 +404,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             vars.amountNeeded = vars.amountToRepay.sub(vars.wethBal);
 
             // it is fine to max by balance because we control for slippage with _minExchangeRate
-            vars.maxAmountIn = IERC20(lit).balanceOf(address(this));
+            vars.maxAmountIn = vars.olitAmount;
 
             // swap the necessary lit into weth, swap must start with a non-zero amount in
             _balancerSwap(vars.amountNeeded, vars.maxAmountIn, IAsset(lit), IAsset(weth));
