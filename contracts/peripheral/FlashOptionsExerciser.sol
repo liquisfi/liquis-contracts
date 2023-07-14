@@ -189,8 +189,8 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @notice User converts their olit into liqLit, sends it back to the user or stakes it in liqLit staking
      * @param _amount The amount of oLIT to exercise and lock
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _minExchangeRate Param calculated off-chain based on olitAmount and BalancerQueries queryJoin
-     * @return claimed The amount of LIT claimed and locked
+     * @param _minExchangeRate The minimal accepted oLIT to BAL-20WETH-80LIT exchange rate
+     * @return claimed The amount of BAL-20WETH-80LIT claimed and locked
      */
     function exerciseAndLock(
         uint256 _amount,
@@ -199,12 +199,11 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
     ) external returns (uint256 claimed) {
         IERC20(olit).safeTransferFrom(msg.sender, address(this), _amount);
 
+        // convert oLIT to LIT by exercising the option
         _exerciseOptions(_amount);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        uint256 minOut = (_minExchangeRate * _amount) / 1e18;
-        claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, minOut, _stake);
+        claimed = _convertLitToLiqLit(_amount, _minExchangeRate, _stake);
     }
 
     /**
@@ -212,14 +211,15 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
-     * @param _minOut Min amount of LIT the user expects to receive
+     * @param _minExchangeRate The minimal accepted oLIT to LIT exchange rate
+     * @return claimed The amount of LIT claimed and sent to caller
      */
     function claimAndExercise(
         address[] memory _rewardPools,
         bool _locker,
         bool _liqLocker,
-        uint256 _minOut
-    ) external {
+        uint256 _minExchangeRate
+    ) external returns (uint256 claimed) {
         uint256 olitAmount = 0;
         for (uint256 i = 0; i < _rewardPools.length; i++) {
             // claim all the rewards, only olit is sent here, the rest directly to sender
@@ -234,18 +234,11 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
+        // convert oLIT to LIT by exercising the option
         _exerciseOptions(olitAmount);
 
         // send lit to sender
-        _transferLitToSender(_minOut);
-    }
-
-    function _transferLitToSender(uint256 _minOut) internal {
-        uint256 litBal = IERC20(lit).balanceOf(address(this));
-        require(litBal >= _minOut, "slipped");
-        if (litBal > 0) {
-            IERC20(lit).safeTransfer(msg.sender, litBal);
-        }
+        claimed = _transferLitToSender(olitAmount, _minExchangeRate);
     }
 
     /**
@@ -254,8 +247,8 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _minExchangeRate Param calculated off-chain based on olitAmount and BalancerQueries queryJoin
-     * @return claimed The amount of LIT rewards claimed and locked
+     * @param _minExchangeRate The minimal accepted oLIT to BAL-20WETH-80LIT exchange rate
+     * @return claimed The amount of BAL-20WETH-80LIT rewards claimed and locked
      */
     function claimAndLock(
         address[] memory _rewardPools,
@@ -278,12 +271,11 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
+        // convert oLIT to LIT by exercising the option
         _exerciseOptions(olitAmount);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        uint256 minOut = (_minExchangeRate * olitAmount) / 1e18;
-        claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, minOut, _stake);
+        claimed = _convertLitToLiqLit(olitAmount, _minExchangeRate, _stake);
     }
 
     /**
@@ -292,8 +284,8 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _minExchangeRate Param calculated off-chain based on olitAmount and BalancerQueries queryJoin
-     * @return claimed The amount of LIT rewards claimed and locked
+     * @param _minExchangeRate The minimal accepted oLIT to BAL-20WETH-80LIT exchange rate
+     * @return claimed The amount of BAL-20WETH-80LIT rewards claimed and locked
      */
     function withdrawAndLock(
         address[] memory _rewardPools,
@@ -321,22 +313,35 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
             olitAmount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
 
+        // convert oLIT to LIT by exercising the option
         _exerciseOptions(olitAmount);
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
-        uint256 minOut = (_minExchangeRate * olitAmount) / 1e18;
-        claimed = IERC20(lit).balanceOf(address(this));
-        if (claimed > 0) _convertLitToLiqLit(claimed, minOut, _stake);
+        claimed = _convertLitToLiqLit(olitAmount, _minExchangeRate, _stake);
+    }
+
+    function _transferLitToSender(uint256 _olitAmount, uint256 _minExchangeRate) internal returns (uint256 litOut) {
+        uint256 minOut = (_minExchangeRate * _olitAmount) / 1e18;
+        litOut = IERC20(lit).balanceOf(address(this));
+        require(litOut >= minOut, "slipped");
+        if (litOut > 0) {
+            IERC20(lit).safeTransfer(msg.sender, litOut);
+        }
     }
 
     function _convertLitToLiqLit(
-        uint256 amount,
-        uint256 _minOut,
+        uint256 _olitAmount,
+        uint256 _minExchangeRate,
         bool _stake
-    ) internal {
-        _stake == true
-            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, lockerRewards)
-            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, address(0));
+    ) internal returns (uint256 bptOut) {
+        uint256 minOut = (_minExchangeRate * _olitAmount) / 1e18;
+        uint256 claimed = IERC20(lit).balanceOf(address(this));
+
+        if (claimed > 0) {
+            bptOut = _stake == true
+                ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, claimed, minOut, true, lockerRewards)
+                : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, claimed, minOut, true, address(0));
+        } // otherwise bptBalance = 0
     }
 
     function _balancerSwap(
@@ -388,7 +393,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
 
         vars.olitAmount = abi.decode(params, (uint256));
 
-        // exercise the olit into lit
+        // exercise oLit option burns olitAmount of oLIT and mints olitAmount of LIT
         IOLit(olit).exercise(vars.olitAmount, amount, address(this), block.timestamp);
 
         // currently flashloan fee = 5, but that could vary
@@ -398,6 +403,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         if (vars.wethBal < vars.amountToRepay) {
             vars.amountNeeded = vars.amountToRepay.sub(vars.wethBal);
 
+            // it is fine to max by balance because we control for slippage with _minExchangeRate
             vars.maxAmountIn = IERC20(lit).balanceOf(address(this));
 
             // swap the necessary lit into weth, swap must start with a non-zero amount in

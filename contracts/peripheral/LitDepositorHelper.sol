@@ -47,8 +47,8 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
         uint256 _minOut,
         bool _lock,
         address _stakeAddress
-    ) external {
-        _depositFor(msg.sender, _amount, _minOut, _lock, _stakeAddress);
+    ) external returns (uint256 bptOut) {
+        bptOut = _depositFor(msg.sender, _amount, _minOut, _lock, _stakeAddress);
     }
 
     function depositFor(
@@ -57,8 +57,8 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
         uint256 _minOut,
         bool _lock,
         address _stakeAddress
-    ) external {
-        _depositFor(_for, _amount, _minOut, _lock, _stakeAddress);
+    ) external returns (uint256 bptOut) {
+        bptOut = _depositFor(_for, _amount, _minOut, _lock, _stakeAddress);
     }
 
     function _depositFor(
@@ -67,10 +67,10 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
         uint256 _minOut,
         bool _lock,
         address _stakeAddress
-    ) internal {
+    ) internal returns (uint256 bptOut) {
         _investBalToPool(_amount, _minOut);
-        uint256 bptBalance = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
-        ICrvDepositor(crvDeposit).depositFor(_for, bptBalance, _lock, _stakeAddress);
+        bptOut = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
+        ICrvDepositor(crvDeposit).depositFor(_for, bptOut, _lock, _stakeAddress);
     }
 
     /**
@@ -78,12 +78,12 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
      * @param _amount Units of LIT to deposit
      * @param _minOut Units of BPT to expect as output
      */
-    function convertLitToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptBalance) {
+    function convertLitToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptOut) {
         _investBalToPool(_amount, _minOut);
 
-        bptBalance = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
-        if (bptBalance > 0) {
-            IERC20(BALANCER_POOL_TOKEN).safeTransfer(msg.sender, bptBalance);
+        bptOut = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
+        if (bptOut > 0) {
+            IERC20(BALANCER_POOL_TOKEN).safeTransfer(msg.sender, bptOut);
         }
     }
 }

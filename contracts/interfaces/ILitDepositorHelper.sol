@@ -2,14 +2,12 @@
 pragma solidity 0.8.11;
 
 interface ILitDepositorHelper {
-    function getMinOut(uint256, uint256) external view returns (uint256);
-
     function deposit(
         uint256 _amount,
         uint256 _minOut,
         bool _lock,
         address _stakeAddress
-    ) external;
+    ) external returns (uint256 bptOut);
 
     function depositFor(
         address _for,
@@ -17,7 +15,7 @@ interface ILitDepositorHelper {
         uint256 _minOut,
         bool _lock,
         address _stakeAddress
-    ) external;
+    ) external returns (uint256 bptOut);
 
-    function convertLitToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptBalance);
+    function convertLitToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptOut);
 }
