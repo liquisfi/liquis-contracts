@@ -57,13 +57,13 @@ const externalAddresses: ExtSystemConfig = {
 };
 
 const naming = {
-    cvxName: "Aura",
-    cvxSymbol: "AURA",
-    vlCvxName: "Vote Locked Aura",
-    vlCvxSymbol: "vlAURA",
-    cvxCrvName: "Aura BAL",
-    cvxCrvSymbol: "auraBAL",
-    tokenFactoryNamePostfix: " Aura Deposit",
+    cvxName: "Liquis",
+    cvxSymbol: "LIQ",
+    vlCvxName: "Vote Locked Liq",
+    vlCvxSymbol: "vlLIQ",
+    cvxCrvName: "Liq Lit",
+    cvxCrvSymbol: "liqLit",
+    tokenFactoryNamePostfix: " Liquis Deposit",
 };
 
 const debug = false;
