@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-0.8/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-0.8/utils/Address.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-0.8/security/ReentrancyGuard.sol";
 
 import { IBooster } from "../interfaces/IBooster.sol";
 import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
@@ -28,7 +29,7 @@ interface IOracle {
  * @notice  Allows for claiming oLIT from RewardPools, exercise it and lock LIT received.
  * @dev     Implements a pooled exercise model where oLIT are queued and exercised in two steps.
  */
-contract PooledOptionsExerciser {
+contract PooledOptionsExerciser is ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -119,7 +120,7 @@ contract PooledOptionsExerciser {
         address[] memory _rewardPools,
         bool _locker,
         bool _liqLocker
-    ) external returns (uint256 amount) {
+    ) external nonReentrant returns (uint256 amount) {
         uint256 oLitBalBefore = IERC20(olit).balanceOf(address(this));
 
         for (uint256 i = 0; i < _rewardPools.length; i++) {
@@ -157,7 +158,7 @@ contract PooledOptionsExerciser {
         uint256[] memory _amounts,
         bool _locker,
         bool _liqLocker
-    ) external returns (uint256 amount) {
+    ) external nonReentrant returns (uint256 amount) {
         require(_rewardPools.length == _amounts.length, "array length missmatch");
 
         uint256 oLitBalBefore = IERC20(olit).balanceOf(address(this));
