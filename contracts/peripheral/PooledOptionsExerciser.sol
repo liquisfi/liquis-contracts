@@ -261,10 +261,8 @@ contract PooledOptionsExerciser is ReentrancyGuard {
         // only withdraw past epochs
         require(_epoch < epoch, "epoch not withdrawable");
 
-        // update withdrawn balance
-        // note, totalQueued > 0 for all past epochs
-        uint256 share = queued[msg.sender][_epoch].mul(1e18).div(totalQueued[_epoch]);
-        withdrawn_ = share.mul(totalWithdrawable[_epoch]).div(1e18).sub(withdrawn[msg.sender][_epoch]);
+        // compute withdrawable LIT rewards for caller and _epoch
+        withdrawn_ = _withdrawable(msg.sender, _epoch);
 
         // return if nothing claimable
         if (withdrawn_ == 0) return 0;
@@ -293,10 +291,8 @@ contract PooledOptionsExerciser is ReentrancyGuard {
         // only withdraw past epochs
         require(_epoch < epoch, "epoch not withdrawable");
 
-        // update withdrawn balance
-        // note, totalQueued > 0 for all past epochs
-        uint256 share = queued[msg.sender][_epoch].mul(1e18).div(totalQueued[_epoch]);
-        withdrawn_ = share.mul(totalWithdrawable[_epoch]).div(1e18).sub(withdrawn[msg.sender][_epoch]);
+        // compute withdrawable LIT rewards for caller and _epoch
+        withdrawn_ = _withdrawable(msg.sender, _epoch);
 
         // return if nothing claimable
         if (withdrawn_ == 0) return 0;
@@ -319,6 +315,23 @@ contract PooledOptionsExerciser is ReentrancyGuard {
         _stake == true
             ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, lockerRewards)
             : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, address(0));
+    }
+
+    /**
+     * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
+     * @param account The account for which to query withdrawable LIT
+     * @param _epoch Epoch for which to query withdrawable LIT
+     * @return withdrawable The amount of withdrawable LIT rewards
+     */
+    function withdrawable(address account, uint256 _epoch) external view returns (uint256 withdrawable) {
+        withdrawable = _withdrawable(account, _epoch);
+    }
+
+    // internal function to view withdrawable LIT rewards by account and epoch
+    function _withdrawable(address account, uint256 _epoch) internal view returns (uint256 withdrawable) {
+        // note, totalQueued > 0 for all past epochs
+        uint256 share = queued[account][_epoch].mul(1e18).div(totalQueued[_epoch]);
+        withdrawable = share.mul(totalWithdrawable[_epoch]).div(1e18).sub(withdrawn[account][_epoch]);
     }
 
     /**

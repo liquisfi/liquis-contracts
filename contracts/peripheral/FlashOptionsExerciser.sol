@@ -320,6 +320,34 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         claimed = _convertLitToLiqLit(olitAmount, _minExchangeRate, _stake);
     }
 
+    /**
+     * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
+     * @param account The account for which to query earned rewards
+     * @param _rewardPools BaseRewardPools4626 addresses array to claim rewards from
+     * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
+     * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
+     * @return earned The amount of oLIT earned
+     * @dev Can be used to compute _minExchangeRate among other things
+     */
+    function earned(
+        address account,
+        address[] memory _rewardPools,
+        bool _locker,
+        bool _liqLocker
+    ) external view returns (uint256 earned) {
+        for (uint256 i = 0; i < _rewardPools.length; i++) {
+            earned += IBaseRewardPool(_rewardPools[i]).earned(account);
+        }
+
+        if (_locker) {
+            earned += IBaseRewardPool(lockerRewards).earned(account);
+        }
+
+        if (_liqLocker) {
+            earned += ILiqLocker(liqLocker).earned(account, olit);
+        }
+    }
+
     function _transferLitToSender(uint256 _olitAmount, uint256 _minOut) internal returns (uint256 litOut) {
         litOut = IERC20(lit).balanceOf(address(this));
         require(litOut >= _minOut, "slipped");
