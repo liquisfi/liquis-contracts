@@ -793,44 +793,19 @@ describe("PrelaunchRewardsPool", () => {
                 await prelaunchRewardsPool.notifyRewardAmount(e18.mul(100000));
             });
 
-            it("reverts when setting new rewardToken if amount is lower than committed", async () => {
-                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
-                const timestamp = await getTimestamp();
-                expect(timestamp).lt(START_WITHDRAWALS);
-
-                await expect(prelaunchRewardsPool.updateRewardToken(newLiq.address)).to.be.revertedWith(
-                    "Not valid switch",
+            it("reverts when insufficent balance or allowance on new rewardToken", async () => {
+                await expect(prelaunchRewardsPool.setRewardToken(newLiq.address)).to.be.revertedWith(
+                    "ERC20: transfer amount exceeds allowance",
                 );
             });
 
             it("transfers amount of netLiq and sets it as new rewardToken", async () => {
-                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
-                const timestamp = await getTimestamp();
-                expect(timestamp).lt(START_WITHDRAWALS);
+                await newLiq.increaseAllowance(prelaunchRewardsPool.address, e18.mul(100000));
 
-                await newLiq.transfer(prelaunchRewardsPool.address, e18.mul(100000));
-
-                await prelaunchRewardsPool.updateRewardToken(newLiq.address);
+                await prelaunchRewardsPool.setRewardToken(newLiq.address);
 
                 const newRewardToken = await prelaunchRewardsPool.rewardToken();
                 expect(newRewardToken).eq(newLiq.address);
-            });
-
-            it("reverts when setting new rewardToken if timestamp is within deadline but balance of VoterProxy > 0 ", async () => {
-                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
-                const timestamp = await getTimestamp();
-                expect(timestamp).lt(START_WITHDRAWALS); // Deadline is within target
-
-                // Create the initial lock
-                await crvBpt.transfer(voterProxy.address, e18.mul(10000));
-                await voterProxy.setDepositor(crvDepositor.address);
-                await cvxCrv.setOperator(crvDepositor.address);
-                await crvDepositor.initialLock();
-
-                await prelaunchRewardsPool.setCrvDepositor(crvDepositor.address);
-                expect(await prelaunchRewardsPool.crvDepositor()).eq(crvDepositor.address);
-
-                await expect(prelaunchRewardsPool.updateRewardToken(liq.address)).to.be.revertedWith("Activated");
             });
 
             it("users convert to liqLit and staking tokens are pulled into crvDepositor", async () => {
@@ -872,16 +847,6 @@ describe("PrelaunchRewardsPool", () => {
 
                 const balanceDepositorAfter = await stakingToken.balanceOf(votingEscrowAddress);
                 expect(balanceDepositorAfter.sub(balanceDepositorBefore)).eq(reducedSupply); // tokens are pulled from the prelaunchRewardsPool
-            });
-
-            it("reverts when setting new rewardToken if timestamp is post withdrawals date ", async () => {
-                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
-                const timestamp = await getTimestamp();
-                expect(timestamp).gt(START_WITHDRAWALS);
-
-                await expect(prelaunchRewardsPool.updateRewardToken(liq.address)).to.be.revertedWith(
-                    "No longer possible",
-                );
             });
 
             it("stakers who converted claim all of the newLiq as vesting after 6 months", async () => {

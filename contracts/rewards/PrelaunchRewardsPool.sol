@@ -62,6 +62,7 @@ contract PrelaunchRewardsPool {
     event OwnerUpdated(address newOwner);
     event CrvDepositorUpdated(address indexed crvDepositor);
     event VoterProxyUpdated(address indexed voterProxy);
+    event RewardTokenUpdated(address indexed rewardToken);
 
     /**
      * @dev Initializes variables, approves lit and sets target dates.
@@ -321,14 +322,12 @@ contract PrelaunchRewardsPool {
         emit VoterProxyUpdated(_voterProxy);
     }
 
-    function updateRewardToken(address _rewardToken) external onlyAuthorized onlyBeforeDate(START_WITHDRAWALS) {
-        require(
-            rewardToken.balanceOf(address(this)) <= IERC20(_rewardToken).balanceOf(address(this)),
-            "Not valid switch"
-        );
-        require(ICrvVoteEscrow(escrow).balanceOf(voterProxy) == 0, "Activated");
+    function setRewardToken(address _rewardToken) external onlyAuthorized {
+        IERC20(_rewardToken).safeTransferFrom(owner, address(this), rewardToken.balanceOf(address(this)));
 
         rewardToken = IERC20(_rewardToken);
+
+        emit RewardTokenUpdated(_rewardToken);
     }
 
     /**
