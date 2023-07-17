@@ -321,17 +321,17 @@ contract PooledOptionsExerciser is ReentrancyGuard {
      * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
      * @param account The account for which to query withdrawable LIT
      * @param _epoch Epoch for which to query withdrawable LIT
-     * @return withdrawable The amount of withdrawable LIT rewards
+     * @return withdrawable_ The amount of withdrawable LIT rewards
      */
-    function withdrawable(address account, uint256 _epoch) external view returns (uint256 withdrawable) {
-        withdrawable = _withdrawable(account, _epoch);
+    function withdrawable(address account, uint256 _epoch) external view returns (uint256 withdrawable_) {
+        withdrawable_ = _withdrawable(account, _epoch);
     }
 
     // internal function to view withdrawable LIT rewards by account and epoch
-    function _withdrawable(address account, uint256 _epoch) internal view returns (uint256 withdrawable) {
+    function _withdrawable(address account, uint256 _epoch) internal view returns (uint256 withdrawable_) {
         // note, totalQueued > 0 for all past epochs
         uint256 share = queued[account][_epoch].mul(1e18).div(totalQueued[_epoch]);
-        withdrawable = share.mul(totalWithdrawable[_epoch]).div(1e18).sub(withdrawn[account][_epoch]);
+        withdrawable_ = share.mul(totalWithdrawable[_epoch]).div(1e18).sub(withdrawn[account][_epoch]);
     }
 
     /**
