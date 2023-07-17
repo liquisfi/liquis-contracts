@@ -3,7 +3,7 @@ import { Signer } from "ethers";
 import { expect } from "chai";
 import { deployPhase1, deployPhase2, deployPhase3, deployPhase4, SystemDeployed } from "../../scripts/deploySystem";
 import { deployMocks, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
-import { AuraLocker, MockERC20, MockERC20__factory, ExtraRewardsDistributor } from "../../types/generated";
+import { LiqLocker, MockERC20, MockERC20__factory, ExtraRewardsDistributor } from "../../types/generated";
 import { impersonateAccount } from "../../test-utils/fork";
 import { ONE_WEEK } from "../../test-utils/constants";
 import { increaseTime, getTimestamp } from "../../test-utils/time";
@@ -18,7 +18,7 @@ describe("ExtraRewardsDistributor", () => {
     let contracts: SystemDeployed;
     let mockErc20: MockERC20;
     let mockErc20X: MockERC20;
-    let auraLocker: AuraLocker;
+    let liqLocker: LiqLocker;
 
     let deployer: Signer;
     let alice: Signer;
@@ -55,15 +55,15 @@ describe("ExtraRewardsDistributor", () => {
         rob = accounts[3];
 
         distributor = contracts.extraRewardsDistributor.connect(alice);
-        auraLocker = contracts.cvxLocker.connect(alice);
+        liqLocker = contracts.cvxLocker.connect(alice);
 
         operatorAccount = await impersonateAccount(contracts.booster.address);
         await contracts.cvx
             .connect(operatorAccount.signer)
             .mint(operatorAccount.address, simpleToExactAmount(100000, 18));
         await contracts.cvx.connect(operatorAccount.signer).transfer(aliceAddress, simpleToExactAmount(200));
-        await contracts.cvx.connect(alice).approve(auraLocker.address, simpleToExactAmount(200));
-        await auraLocker.lock(aliceAddress, simpleToExactAmount(1));
+        await contracts.cvx.connect(alice).approve(liqLocker.address, simpleToExactAmount(200));
+        await liqLocker.lock(aliceAddress, simpleToExactAmount(1));
 
         mockErc20 = await new MockERC20__factory(alice).deploy("MockERC20", "mk20", 18, aliceAddress, 1000);
         await mockErc20.connect(alice).transfer(bobAddress, simpleToExactAmount(200));
@@ -91,7 +91,7 @@ describe("ExtraRewardsDistributor", () => {
     }
 
     it("initial configuration is correct", async () => {
-        expect(await distributor.auraLocker(), "auraLocker").to.eq(auraLocker.address);
+        expect(await distributor.liqLocker(), "liqLocker").to.eq(liqLocker.address);
         expect(await distributor.owner(), "owner").to.eq(await deployer.getAddress());
     });
 
@@ -153,11 +153,11 @@ describe("ExtraRewardsDistributor", () => {
             // Simulates two more epochs and checkpoints locker.
             await increaseTime(ONE_WEEK); //  new epoch
             await increaseTime(ONE_WEEK); //  new epoch
-            await auraLocker.checkpointEpoch();
-            const epoch = (await auraLocker.findEpochId(await getTimestamp())).toNumber();
+            await liqLocker.checkpointEpoch();
+            const epoch = (await liqLocker.findEpochId(await getTimestamp())).toNumber();
 
             // Then add a reward to the current epoch.
-            // There is a gap of one epoch between distributor.rewardEpochs, distributor.rewardData and auraLocker
+            // There is a gap of one epoch between distributor.rewardEpochs, distributor.rewardData and liqLocker
 
             const fundAmount = simpleToExactAmount(1);
             const aliceLastClaim = await distributor.userClaims(mockErc20.address, aliceAddress);
@@ -185,14 +185,14 @@ describe("ExtraRewardsDistributor", () => {
             expect(await distributor.rewardEpochs(mockErc20.address, 3), "reward epoch at index").to.eq(5);
         });
         it("fails if adds reward to a future epoch", async () => {
-            const epoch = (await auraLocker.findEpochId(await getTimestamp())).toNumber();
+            const epoch = (await liqLocker.findEpochId(await getTimestamp())).toNumber();
             await expect(
                 distributor.addRewardToEpoch(mockErc20.address, simpleToExactAmount(1), epoch + 1),
             ).revertedWith("Cannot assign to the future");
         });
         it("fails if cannot backdate a reward", async () => {
             const fundAmount = simpleToExactAmount(1);
-            const latestEpoch = (await auraLocker.epochCount()).toNumber() - 1;
+            const latestEpoch = (await liqLocker.epochCount()).toNumber() - 1;
             const rewardCount = (await distributor.rewardEpochsCount(mockErc20.address)).toNumber();
             const backDatedEpoch = latestEpoch - 1;
             expect(backDatedEpoch, "back dated epoch is not in the future").to.lt(latestEpoch);
@@ -206,9 +206,9 @@ describe("ExtraRewardsDistributor", () => {
         });
         it("does not allow claiming until the epoch has finished", async () => {
             const fundAmount = simpleToExactAmount(1);
-            const lockDuration = await auraLocker.lockDuration();
+            const lockDuration = await liqLocker.lockDuration();
             const timestamp0 = await getTimestamp();
-            let epoch = (await auraLocker.findEpochId(timestamp0)).toNumber();
+            let epoch = (await liqLocker.findEpochId(timestamp0)).toNumber();
 
             // 1.- Verify there are no rewards to claim initially
             const claimableRewardStep0 = await distributor.claimableRewards(bobAddress, mockErc20.address);
@@ -216,8 +216,8 @@ describe("ExtraRewardsDistributor", () => {
 
             // 2.- Add to the current epoch, bob locks and more rewards.
             await contracts.cvx.connect(operatorAccount.signer).transfer(bobAddress, simpleToExactAmount(200));
-            await contracts.cvx.connect(bob).approve(auraLocker.address, simpleToExactAmount(200));
-            await auraLocker.connect(bob).lock(bobAddress, simpleToExactAmount(10));
+            await contracts.cvx.connect(bob).approve(liqLocker.address, simpleToExactAmount(200));
+            await liqLocker.connect(bob).lock(bobAddress, simpleToExactAmount(10));
 
             await verifyAddRewards(bob, fundAmount, epoch);
 
@@ -229,7 +229,7 @@ describe("ExtraRewardsDistributor", () => {
 
             // 4.- Advance to the next epoch.
             await increaseTime(ONE_WEEK); //  new epoch + rewards
-            epoch = (await auraLocker.findEpochId(await getTimestamp())).toNumber();
+            epoch = (await liqLocker.findEpochId(await getTimestamp())).toNumber();
             await verifyAddRewards(bob, fundAmount, epoch);
 
             // 5.- Verify there are no rewards to claim as the lock time has not being reached.
@@ -243,7 +243,7 @@ describe("ExtraRewardsDistributor", () => {
 
             // 6.- Test there are rewards to claim after lock duration has been reached.
             await increaseTime(lockDuration); //  unlock rewards for bob
-            await auraLocker.checkpointEpoch();
+            await liqLocker.checkpointEpoch();
 
             // Verify there are rewards to claim!
             expect(await distributor.claimableRewards(bobAddress, mockErc20.address), "rewards available").to.gt(0);
@@ -291,11 +291,11 @@ describe("ExtraRewardsDistributor", () => {
         });
         it("adds reward to the latest epoch", async () => {
             // Given the token already received rewards
-            await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
+            await liqLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
             await increaseTime(ONE_WEEK);
-            await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
+            await liqLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
 
-            const epoch = (await auraLocker.epochCount()).toNumber() - 1;
+            const epoch = (await liqLocker.epochCount()).toNumber() - 1;
             const fundAmount = simpleToExactAmount(10);
             await mockErc20X.connect(alice).approve(distributor.address, fundAmount);
             const senderBalanceBefore = await mockErc20X.balanceOf(aliceAddress);
@@ -463,23 +463,23 @@ describe("ExtraRewardsDistributor", () => {
         before(async () => {
             // Add some rewards to  be able to forfeit them later.
             await mockErc20.connect(alice).approve(distributor.address, simpleToExactAmount(100));
-            await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
+            await liqLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
 
             await increaseTime(ONE_WEEK);
             const fundAmount = simpleToExactAmount(1);
-            await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
+            await liqLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
             await distributor.connect(alice).addReward(mockErc20.address, fundAmount);
-            let epoch = (await auraLocker.findEpochId(await getTimestamp())).toNumber();
+            let epoch = (await liqLocker.findEpochId(await getTimestamp())).toNumber();
             await verifyAddRewards(alice, fundAmount, epoch);
 
             await increaseTime(ONE_WEEK);
-            await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
-            epoch = (await auraLocker.findEpochId(await getTimestamp())).toNumber();
+            await liqLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
+            epoch = (await liqLocker.findEpochId(await getTimestamp())).toNumber();
             await verifyAddRewards(alice, fundAmount, epoch);
 
             await increaseTime(ONE_WEEK);
-            await auraLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
-            epoch = (await auraLocker.findEpochId(await getTimestamp())).toNumber();
+            await liqLocker.connect(alice).lock(aliceAddress, simpleToExactAmount(10));
+            epoch = (await liqLocker.findEpochId(await getTimestamp())).toNumber();
             await verifyAddRewards(alice, fundAmount, epoch);
         });
         it("fails if the index is in the past or the future", async () => {

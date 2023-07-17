@@ -31,7 +31,8 @@
         "types/**/*",
         "test-utils/**/*",
         "scripts/**/*",
-        "docs/**/*.js"
+        "docs/**/*.js",
+        "deploy/**/*"
     ],
     "files": [
         "./index.ts",

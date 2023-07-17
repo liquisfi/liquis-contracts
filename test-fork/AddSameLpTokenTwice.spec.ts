@@ -1,7 +1,7 @@
 import hre, { ethers, network } from "hardhat";
 import { BigNumberish, Signer } from "ethers";
 import { impersonateAccount, simpleToExactAmount } from "../test-utils";
-import { config } from "../tasks/deploy/mainnet-config";
+import { config } from "./mainnet-config";
 import { expect } from "chai";
 import {
     MockCurveGauge,

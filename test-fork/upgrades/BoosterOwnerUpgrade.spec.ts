@@ -5,7 +5,7 @@ import { Signer } from "ethers";
 import { Account, BoosterOwnerSecondary, BoosterOwnerSecondary__factory, IERC20__factory } from "../../types";
 import { impersonateAccount, increaseTime, ZERO_ADDRESS } from "../../test-utils";
 
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { Phase6Deployed } from "../../scripts/deploySystem";
 import { deployContract } from "../../tasks/utils";
 

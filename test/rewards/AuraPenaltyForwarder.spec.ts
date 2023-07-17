@@ -7,7 +7,7 @@ import { ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
 import { impersonateAccount } from "../../test-utils/fork";
 import { BN, simpleToExactAmount } from "../../test-utils/math";
 import { getTimestamp, increaseTime } from "../../test-utils/time";
-import { AuraPenaltyForwarder, AuraToken, ExtraRewardsDistributor } from "../../types/generated";
+import { AuraPenaltyForwarder, LiqToken, ExtraRewardsDistributor } from "../../types/generated";
 
 describe("AuraPenaltyForwarder", () => {
     let accounts: Signer[];
@@ -17,7 +17,7 @@ describe("AuraPenaltyForwarder", () => {
     let aliceAddress: string;
     let aliceInitialBalance: BN;
     let distributor: ExtraRewardsDistributor;
-    let cvx: AuraToken;
+    let cvx: LiqToken;
 
     // Testing contract
     let penaltyForwarder: AuraPenaltyForwarder;
@@ -98,7 +98,7 @@ describe("AuraPenaltyForwarder", () => {
             const distributorBalanceBefore = await cvx.balanceOf(distributor.address);
             const penaltyForwarderBalanceBefore = await cvx.balanceOf(penaltyForwarder.address);
 
-            // Increase time to avoid dividing by zero at ExtraRewardsDistributor._addReward , auraLocker.totalSupplyAtEpoch
+            // Increase time to avoid dividing by zero at ExtraRewardsDistributor._addReward , liqLocker.totalSupplyAtEpoch
             await increaseTime(ONE_WEEK);
 
             expect(penaltyForwarderBalanceBefore, "penalty forwarder balance").to.gt(0);

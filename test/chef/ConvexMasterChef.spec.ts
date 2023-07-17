@@ -23,7 +23,7 @@ import {
     ZERO_ADDRESS,
 } from "../../test-utils";
 import { assertBNClose } from "../../test-utils/assertions";
-import { AuraToken, ConvexMasterChef, MockERC20, MockERC20__factory } from "../../types/generated";
+import { LiqToken, ConvexMasterChef, MockERC20, MockERC20__factory } from "../../types/generated";
 
 interface PoolInfo {
     lpToken: string;
@@ -43,7 +43,7 @@ const numberOfBlocksIn4Years = blocksInDay.mul(365).mul(4); // 4 years
 describe("ConvexMasterChef", () => {
     let accounts: Signer[];
     let mocks: DeployMocksResult;
-    let cvx: AuraToken;
+    let cvx: LiqToken;
     let chef: ConvexMasterChef;
     let alice: Signer;
     let aliceAddress: string;

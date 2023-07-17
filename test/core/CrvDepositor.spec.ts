@@ -7,13 +7,16 @@ import {
     CrvDepositor,
     VoterProxy,
     CvxCrvToken,
+    ERC20__factory,
     ERC20,
-    CrvDepositorWrapper,
+    LitDepositorHelper,
     BaseRewardPool,
 } from "../../types/generated";
 import { getTimestamp, increaseTime } from "../../test-utils/time";
-import { ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
+import { ONE_WEEK, ZERO_ADDRESS, ZERO } from "../../test-utils/constants";
 import { simpleToExactAmount } from "../../test-utils/math";
+
+// Note this one is better to test via mainnet fork
 
 describe("CrvDepositor", () => {
     let accounts: Signer[];
@@ -27,7 +30,7 @@ describe("CrvDepositor", () => {
     let aliceAddress: string;
     let multisigs: MultisigConfig;
     let crv: ERC20;
-    let crvDepositorWrapper: CrvDepositorWrapper;
+    let litDepositorHelper: LitDepositorHelper;
     let cvxCrvStaking: BaseRewardPool;
 
     before(async () => {
@@ -57,9 +60,9 @@ describe("CrvDepositor", () => {
 
         crvDepositor = contracts.crvDepositor.connect(alice);
         cvxCrv = contracts.cvxCrv.connect(alice);
-        crv = mocks.crv.connect(alice);
+        crv = mocks.lit.connect(alice);
         voterProxy = contracts.voterProxy;
-        crvDepositorWrapper = contracts.crvDepositorWrapper.connect(alice);
+        litDepositorHelper = contracts.litDepositorHelper.connect(alice);
         cvxCrvStaking = contracts.cvxCrvRewards;
 
         const tx = await mocks.crvBpt.connect(alice).approve(crvDepositor.address, ethers.constants.MaxUint256);
@@ -73,11 +76,11 @@ describe("CrvDepositor", () => {
     });
 
     describe("basic flow of locking", () => {
-        it("locks up for a year initially", async () => {
+        it("locks up for 4 years initially", async () => {
             const unlockTime = await mocks.votingEscrow.lockTimes(voterProxy.address);
             const now = await getTimestamp();
-            expect(unlockTime).gt(now.add(ONE_WEEK.mul(51)));
-            expect(unlockTime).lt(now.add(ONE_WEEK.mul(53)));
+            expect(unlockTime).gt(now.add(ONE_WEEK.mul(51 * 4)));
+            expect(unlockTime).lt(now.add(ONE_WEEK.mul(53 * 4)));
         });
 
         it("deposit", async () => {
@@ -93,7 +96,7 @@ describe("CrvDepositor", () => {
             const cvxCrvAfter = await cvxCrv.balanceOf(aliceAddress);
             expect(cvxCrvAfter.sub(cvxCrvBefore)).to.equal(amount);
         });
-        it("increases lock to a year again", async () => {
+        it("increases lock to 4 years again", async () => {
             const unlockTimeBefore = await mocks.votingEscrow.lockTimes(voterProxy.address);
 
             await increaseTime(ONE_WEEK.mul(2));
@@ -105,8 +108,8 @@ describe("CrvDepositor", () => {
             expect(unlockTimeAfter).gt(unlockTimeBefore);
 
             const after = await getTimestamp();
-            expect(unlockTimeAfter).gt(after.add(ONE_WEEK.mul(51)));
-            expect(unlockTimeAfter).lt(after.add(ONE_WEEK.mul(53)));
+            expect(unlockTimeAfter).gt(after.add(ONE_WEEK.mul(51 * 4)));
+            expect(unlockTimeAfter).lt(after.add(ONE_WEEK.mul(53 * 4)));
         });
     });
 
@@ -119,9 +122,9 @@ describe("CrvDepositor", () => {
 
             const cvxCrvBalanceBefore = await cvxCrv.balanceOf(aliceAddress);
 
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "10000");
-            await crv.approve(crvDepositorWrapper.address, amount);
-            await crvDepositorWrapper.deposit(amount, minOut, lock, stakeAddress);
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
+            await crv.approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress);
 
             const cvxCrvBalanceAfter = await cvxCrv.balanceOf(aliceAddress);
             const cvxCrvBalanceDelta = cvxCrvBalanceAfter.sub(cvxCrvBalanceBefore);
@@ -136,9 +139,9 @@ describe("CrvDepositor", () => {
 
             const stakedBalanceBefore = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            const minOut = await crvDepositorWrapper.getMinOut(amount, "10000");
-            await crv.approve(crvDepositorWrapper.address, amount);
-            await crvDepositorWrapper.deposit(amount, minOut, lock, stakeAddress);
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
+            await crv.approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
             expect(stakedBalanceAfter.sub(stakedBalanceBefore)).to.equal(minOut);

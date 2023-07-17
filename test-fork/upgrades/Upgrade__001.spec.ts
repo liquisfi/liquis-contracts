@@ -31,7 +31,7 @@ import {
     ZERO_ADDRESS,
 } from "../../test-utils";
 
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { Phase2Deployed, Phase6Deployed } from "../../scripts/deploySystem";
 import { deployContract } from "../../tasks/utils";
 import { PoolInfoStruct } from "../../types/generated/IBooster";

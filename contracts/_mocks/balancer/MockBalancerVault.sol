@@ -43,7 +43,7 @@ contract MockBalancerVault {
             }
         }
 
-        MockBalancerPoolToken(poolToken).mint(recipient, (amount * 1e18) / price);
+        MockBalancerPoolToken(poolToken).mint(recipient, amount);
     }
 
     function exitPool(

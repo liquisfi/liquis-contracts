@@ -33,11 +33,14 @@ import {
     increaseTime,
     simpleToExactAmount,
 } from "../../test-utils";
+import { getAddress } from "ethers/lib/utils";
 
 describe("StashToken", () => {
     let accounts: Signer[];
     let mocks: DeployMocksResult;
     let deployer: Signer;
+    let alice: Signer;
+    let aliceAddress: string;
     let multisigs: MultisigConfig;
     let phase2: Phase2Deployed;
     let phase6: Phase6Deployed;
@@ -53,6 +56,8 @@ describe("StashToken", () => {
     before(async () => {
         accounts = await ethers.getSigners();
         deployer = accounts[0];
+        alice = accounts[1];
+        aliceAddress = await alice.getAddress();
         // Full deployment with mocks
         mocks = await deployMocks(hre, deployer);
         multisigs = await getMockMultisigs(accounts[0], accounts[0], accounts[0]);
@@ -77,6 +82,7 @@ describe("StashToken", () => {
             await deployer.getAddress(),
             simpleToExactAmount(2, 39),
         );
+
         await phase2.booster.connect((await impersonateAccount(phase2.boosterOwner.address)).signer).shutdownSystem();
         await phase2.voterProxy.connect(voterProxyOwnerAccount.signer).setOperator(phase6.booster.address);
         const gauge = mocks.gauges[pid];
@@ -102,6 +108,26 @@ describe("StashToken", () => {
 
         stashToken = StashToken__factory.connect(stashTokenAddress, boosterAccount.signer);
         lpToken = IERC20__factory.connect(await gauge.lp_token(), deployer);
+
+        // need to add booster as reward distributor for crv in Locker
+        let tx = await phase2.cvxLocker.approveRewardDistributor(mocks.crv.address, phase6.booster.address, true);
+
+        // need to make an initial lock require(lockedSupply >= 1e20, "!balance");
+        const operatorAccount = await impersonateAccount(phase2.booster.address);
+        tx = await phase2.cvx
+            .connect(operatorAccount.signer)
+            .mint(operatorAccount.address, simpleToExactAmount(101, 18));
+        await tx.wait();
+
+        const cvxAmount = simpleToExactAmount(101);
+        tx = await phase2.cvx.connect(operatorAccount.signer).transfer(aliceAddress, cvxAmount);
+        await tx.wait();
+
+        tx = await phase2.cvx.connect(alice).approve(phase2.cvxLocker.address, cvxAmount);
+        await tx.wait();
+
+        tx = await phase2.cvxLocker.connect(alice).lock(aliceAddress, cvxAmount);
+        await tx.wait();
     });
 
     it("initial configuration is correct", async () => {

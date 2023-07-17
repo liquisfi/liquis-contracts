@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { network } from "hardhat";
 import {
-    IFeeDistributor,
-    IFeeDistributor__factory,
+    MockFeeDistributor,
+    MockFeeDistributor__factory,
     ClaimFeesHelper,
     ClaimFeesHelper__factory,
     IERC20__factory,
@@ -24,7 +24,7 @@ const balWhaleAddress = "0x3c221e16a342a5ec114f7259a37ef42b0597c251";
 const bbausdWhaleAddress = "0x68d019f64a7aa97e2d4e7363aee42251d08124fb";
 
 describe("ClaimFeesHelper", () => {
-    let feeDistributor: IFeeDistributor;
+    let feeDistributor: MockFeeDistributor;
     let claimFeesHelper: ClaimFeesHelper;
     let booster: Booster;
     let signer: Signer;
@@ -51,7 +51,7 @@ describe("ClaimFeesHelper", () => {
         keeper = await impersonate(keeperAddress);
 
         signer = keeper;
-        feeDistributor = IFeeDistributor__factory.connect(feeDistributorAddress, signer);
+        feeDistributor = MockFeeDistributor__factory.connect(feeDistributorAddress, signer);
         booster = Booster__factory.connect(boosterAddress, signer);
 
         balWhale = (await impersonateAccount(balWhaleAddress)).signer;

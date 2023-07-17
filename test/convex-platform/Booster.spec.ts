@@ -1,11 +1,13 @@
 import { assertBNClosePercent } from "./../../test-utils/assertions";
 import hre, { ethers } from "hardhat";
-import { expect } from "chai";
+import { expect, assert } from "chai";
 import { deployPhase1, deployPhase2, deployPhase3, deployPhase4, SystemDeployed } from "../../scripts/deploySystem";
 import { deployMocks, DeployMocksResult, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
 import {
     Booster,
     BoosterOwner,
+    LiqToken,
+    LiqLocker,
     ERC20__factory,
     BaseRewardPool__factory,
     MockFeeDistributor__factory,
@@ -14,6 +16,7 @@ import {
 } from "../../types/generated";
 import { Signer } from "ethers";
 import { getTimestamp, increaseTime, increaseTimeTo } from "../../test-utils/time";
+import { impersonateAccount } from "../../test-utils";
 import { simpleToExactAmount } from "../../test-utils/math";
 import { DEAD_ADDRESS, ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
 import { deployContract } from "../../tasks/utils";
@@ -38,11 +41,17 @@ describe("Booster", () => {
     let contracts: SystemDeployed;
     let daoSigner: Signer;
 
+    let cvx: LiqToken;
+    let cvxLocker: LiqLocker;
+
     let deployer: Signer;
     let deployerAddress: string;
 
     let alice: Signer;
     let aliceAddress: string;
+
+    let randomSigner: Signer;
+    let randomAddress: string;
 
     const setup = async () => {
         mocks = await deployMocks(hre, deployer);
@@ -65,7 +74,7 @@ describe("Booster", () => {
         await phase3.boosterOwner.connect(daoSigner).setFeeInfo(mocks.crv.address, mocks.feeDistribution.address);
         contracts = await deployPhase4(hre, deployer, phase3, mocks.addresses);
 
-        ({ booster, boosterOwner } = contracts);
+        ({ booster, boosterOwner, cvx, cvxLocker } = contracts);
 
         pool = await booster.poolInfo(0);
 
@@ -80,6 +89,21 @@ describe("Booster", () => {
 
         alice = accounts[1];
         aliceAddress = await alice.getAddress();
+
+        // need to make an initial lock require(lockedSupply >= 1e20, "!balance");
+        const operatorAccount = await impersonateAccount(booster.address);
+        let tx = await cvx.connect(operatorAccount.signer).mint(operatorAccount.address, simpleToExactAmount(101, 18));
+        await tx.wait();
+
+        const cvxAmount = simpleToExactAmount(101);
+        tx = await cvx.connect(operatorAccount.signer).transfer(aliceAddress, cvxAmount);
+        await tx.wait();
+
+        tx = await cvx.connect(alice).approve(cvxLocker.address, cvxAmount);
+        await tx.wait();
+
+        tx = await cvxLocker.connect(alice).lock(aliceAddress, cvxAmount);
+        await tx.wait();
     };
 
     before(async () => {
@@ -87,6 +111,8 @@ describe("Booster", () => {
         deployer = accounts[0];
         deployerAddress = await deployer.getAddress();
         daoSigner = accounts[6];
+        randomSigner = accounts[9];
+        randomAddress = await accounts[10].getAddress();
     });
 
     describe("managing system revenue fees", async () => {
@@ -137,7 +163,7 @@ describe("Booster", () => {
             const balsBefore = await Promise.all([
                 await mocks.crv.balanceOf((await booster.poolInfo(0)).crvRewards), // reward pool
                 await mocks.crv.balanceOf(await booster.lockRewards()), // cvxCrv
-                await mocks.crv.balanceOf(await booster.stakerRewards()), // auraStakingProxy
+                await mocks.crv.balanceOf(await booster.stakerRewards()), // stakingProxy
                 await mocks.crv.balanceOf(aliceAddress), // alice
                 await mocks.crv.balanceOf(await booster.treasury()), // platform
             ]);
@@ -150,7 +176,7 @@ describe("Booster", () => {
             const balsAfter = await Promise.all([
                 await mocks.crv.balanceOf((await booster.poolInfo(0)).crvRewards), // reward pool
                 await mocks.crv.balanceOf(await booster.lockRewards()), // cvxCrv
-                await mocks.crv.balanceOf(await booster.stakerRewards()), // auraStakingProxy
+                await mocks.crv.balanceOf(await booster.stakerRewards()), // stakingProxy
                 await mocks.crv.balanceOf(aliceAddress), // alice
                 await mocks.crv.balanceOf(await booster.treasury()), // platform
             ]);
@@ -478,6 +504,137 @@ describe("Booster", () => {
             await expect(
                 booster.connect(bridgeDelegate).distributeL2Fees(simpleToExactAmount(4324)),
             ).to.be.revertedWith("Too many L2 Fees");
+        });
+    });
+
+    describe("Manage Voting Contracts", async () => {
+        let daoSignerAddress: string;
+        before(async () => {
+            await setup();
+
+            daoSignerAddress = await daoSigner.getAddress();
+
+            // Initialize voteManager to daoSigner, accounts[6] in tests
+            await boosterOwner.connect(daoSigner).setVoteManager(daoSignerAddress);
+        });
+
+        it("reverts if it is not the daoSigner", async () => {
+            await expect(booster.connect(randomSigner).updateVotingContract(randomAddress, true)).to.be.revertedWith(
+                "!auth",
+            );
+        });
+
+        it("adds a new votingContract, event with correct address is emitted", async () => {
+            const tx = await booster.connect(daoSigner).updateVotingContract(cvxLocker.address, true);
+
+            const receipt = await tx.wait();
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "UpdateVotingContract";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const addressRegistered = args[0];
+            expect(addressRegistered).eq(cvxLocker.address);
+
+            const isActive = args[1];
+            assert.isTrue(isActive);
+
+            const isRegistered = await booster.validVotingContracts(cvxLocker.address);
+            assert.isTrue(isRegistered);
+        });
+
+        it("contract is not registered, validVotingContracts return false", async () => {
+            let isRegistered = await booster.validVotingContracts(cvx.address);
+            assert.isFalse(isRegistered);
+
+            const tx = await booster.connect(daoSigner).updateVotingContract(cvx.address, true);
+
+            const receipt = await tx.wait();
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "UpdateVotingContract";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const addressRegistered = args[0];
+            expect(addressRegistered).eq(cvx.address);
+
+            const isActive = args[1];
+            assert.isTrue(isActive);
+
+            isRegistered = await booster.validVotingContracts(cvx.address);
+            assert.isTrue(isRegistered);
+        });
+
+        it("disables a contract from votingContracts mapping", async () => {
+            let isRegistered = await booster.validVotingContracts(cvx.address);
+            assert.isTrue(isRegistered);
+
+            const tx = await booster.connect(daoSigner).updateVotingContract(cvx.address, false);
+
+            const receipt = await tx.wait();
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "UpdateVotingContract";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const addressRegistered = args[0];
+            expect(addressRegistered).eq(cvx.address);
+
+            const isActive = args[1];
+            assert.isFalse(isActive);
+
+            isRegistered = await booster.validVotingContracts(cvx.address);
+            assert.isFalse(isRegistered);
+        });
+
+        it("reverts if caller is not daoSigner", async () => {
+            await expect(booster.connect(randomSigner).vote(3, randomAddress, false)).to.be.revertedWith("!auth");
+        });
+
+        it("reverts if target address is not registered", async () => {
+            await expect(booster.connect(daoSigner).vote(3, randomAddress, false)).to.be.revertedWith("!voteAddr");
+        });
+
+        it("reverts setting a new voteManager if not owner", async () => {
+            await expect(boosterOwner.setVoteManager(deployerAddress)).to.be.revertedWith("!owner");
+
+            await expect(boosterOwner.connect(randomSigner).setVoteManager(deployerAddress)).to.be.revertedWith(
+                "!owner",
+            );
+        });
+
+        it("sets a new voteManager, state variable is properly updated", async () => {
+            const actualVoteManager = await booster.voteManager();
+            expect(actualVoteManager).eq(daoSignerAddress);
+
+            await boosterOwner.connect(daoSigner).setVoteManager(deployerAddress);
+
+            const newVoteManager = await booster.voteManager();
+            expect(newVoteManager).eq(deployerAddress);
         });
     });
 });

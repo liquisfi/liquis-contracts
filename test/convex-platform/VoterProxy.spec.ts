@@ -10,8 +10,8 @@ import {
     MockERC20,
     MockERC20__factory,
     ExtraRewardsDistributor,
-    AuraLocker,
-    AuraToken,
+    LiqLocker,
+    LiqToken,
     BoosterOwner,
     PoolManagerSecondaryProxy,
     PoolManagerV3,
@@ -49,8 +49,8 @@ describe("VoterProxy", () => {
     let booster: Booster;
     let extraRewardsDistributor: ExtraRewardsDistributor;
     let mocks: DeployMocksResult;
-    let auraLocker: AuraLocker;
-    let cvx: AuraToken;
+    let liqLocker: LiqLocker;
+    let cvx: LiqToken;
     let poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
     let boosterOwner: BoosterOwner;
     let poolManager: PoolManagerV3;
@@ -87,7 +87,7 @@ describe("VoterProxy", () => {
         voterProxy = contracts.voterProxy;
         booster = contracts.booster;
         extraRewardsDistributor = contracts.extraRewardsDistributor;
-        auraLocker = contracts.cvxLocker;
+        liqLocker = contracts.cvxLocker;
         cvx = contracts.cvx;
         boosterOwner = contracts.boosterOwner;
         poolManagerSecondaryProxy = contracts.poolManagerSecondaryProxy;
@@ -217,8 +217,8 @@ describe("VoterProxy", () => {
 
             const cvxAmount = simpleToExactAmount(10);
 
-            await cvx.approve(auraLocker.address, cvxAmount);
-            await auraLocker.lock(deployerAddress, cvxAmount);
+            await cvx.approve(liqLocker.address, cvxAmount);
+            await liqLocker.lock(deployerAddress, cvxAmount);
             await increaseTime(86400 * 7);
 
             await extraRewardsDistributor.connect(daoMultisig).modifyWhitelist(voterProxy.address, true);

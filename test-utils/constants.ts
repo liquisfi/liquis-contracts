@@ -13,6 +13,22 @@ export const MAX_UINT256 = BN.from(2).pow(256).sub(1);
 export const MAX_INT128 = BN.from(2).pow(127).sub(1);
 export const MIN_INT128 = BN.from(2).pow(127).mul(-1);
 
+export const e4: BN = BN.from(10).pow(4);
+export const e6: BN = BN.from(10).pow(6);
+export const e15: BN = BN.from(10).pow(15);
+export const e18: BN = BN.from(10).pow(18);
+export const gwei: BN = BN.from(10).pow(9);
+
+export const SIX_HOURS: number = 6 * 60 * 60;
+const P: number = 100000;
+
+export const e18ToDecimal = (number: BN): number => number.mul(P).div(e18).toNumber() / P;
+export const bnToDecimal = (number: BN, decimals?: BN): number =>
+    number
+        .mul(P)
+        .div(BN.from(10).pow(decimals || 18))
+        .toNumber() / P;
+
 export const ZERO = BN.from(0);
 export const ONE_MIN = BN.from(60);
 export const TEN_MINS = BN.from(60 * 10);

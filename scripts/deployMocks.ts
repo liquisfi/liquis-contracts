@@ -1,6 +1,6 @@
 import { ONE_WEEK, ZERO_ADDRESS, ZERO_KEY } from "./../test-utils/constants";
 import { simpleToExactAmount } from "./../test-utils/math";
-import { Signer } from "ethers";
+import { Signer, BigNumber } from "ethers";
 import { parseEther } from "ethers/lib/utils";
 import {
     MockERC20__factory,
@@ -29,6 +29,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 interface DeployMocksResult {
     lptoken: MockERC20;
     crv: MockERC20;
+    lit: MockERC20;
     crvMinter: MockCurveMinter;
     voting: MockVoting;
     votingEscrow: MockCurveVoteEscrow;
@@ -59,12 +60,14 @@ function getMockDistro(): DistroList {
                 merkleRoot: ZERO_KEY,
                 startDelay: ONE_WEEK,
                 length: ONE_WEEK.mul(3),
+                totalClaims: BigNumber.from(15),
                 amount: simpleToExactAmount(2.5, 24),
             },
             {
                 merkleRoot: ZERO_KEY,
                 startDelay: ONE_WEEK.mul(26),
                 length: ONE_WEEK.mul(8),
+                totalClaims: BigNumber.from(15),
                 amount: simpleToExactAmount(1, 24),
             },
         ],
@@ -121,11 +124,21 @@ async function deployMocks(hre: HardhatRuntimeEnvironment, signer: Signer, debug
     // 1. Deployments
     // -----------------------------
 
+    // oLit token for mocks
     const crv = await deployContract<MockERC20>(
         hre,
         new MockERC20__factory(deployer),
         "MockCRV",
         ["mockCrv", "mockCrv", 18, deployerAddress, 10000000],
+        {},
+        debug,
+    );
+
+    const lit = await deployContract<MockERC20>(
+        hre,
+        new MockERC20__factory(deployer),
+        "MockLIT",
+        ["mockLit", "mockLit", 18, deployerAddress, 10000000],
         {},
         debug,
     );
@@ -264,6 +277,7 @@ async function deployMocks(hre: HardhatRuntimeEnvironment, signer: Signer, debug
     return {
         lptoken,
         crv,
+        lit,
         crvMinter,
         voting,
         votingEscrow,
@@ -276,6 +290,7 @@ async function deployMocks(hre: HardhatRuntimeEnvironment, signer: Signer, debug
         weth,
         addresses: {
             token: crv.address,
+            lit: lit.address,
             tokenBpt: crvBpt.address,
             tokenWhale: deployerAddress,
             minter: crvMinter.address,

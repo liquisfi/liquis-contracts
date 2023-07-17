@@ -13,6 +13,7 @@ interface IOwner {
     function poolLength() external view returns(uint256);
     function poolInfo(uint256) external view returns(address,address,address,address,address,bool);
     function setVoteDelegate(address _voteDelegate) external;
+    function setVoteManager(address _voteManager) external;
     function setFeeManager(address _feeM) external;
     function setOwner(address _owner) external;
 
@@ -41,6 +42,7 @@ interface IBoosterOwner {
     function updateFeeInfo(address _feeToken, bool _active) external;
     function setFeeManager(address _feeM) external;
     function setVoteDelegate(address _voteDelegate) external;
+    function setVoteManager(address _voteManager) external;
     function shutdownSystem() external;
     function queueForceShutdown() external;
     function forceShutdownSystem() external;
@@ -155,6 +157,10 @@ contract BoosterOwner is IBoosterOwner{
 
     function setVoteDelegate(address _voteDelegate) external override onlyOwner{
         IOwner(booster).setVoteDelegate(_voteDelegate);
+    }
+
+    function setVoteManager(address _voteManager) external override onlyOwner{
+        IOwner(booster).setVoteManager(_voteManager);
     }
 
     function shutdownSystem() external override onlyOwner{

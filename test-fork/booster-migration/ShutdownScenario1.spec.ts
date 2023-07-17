@@ -4,7 +4,7 @@ import { formatEther } from "ethers/lib/utils";
 
 import { deployContract } from "../../tasks/utils";
 import { Phase2Deployed } from "scripts/deploySystem";
-import { config } from "../../tasks/deploy/mainnet-config";
+import { config } from "../mainnet-config";
 import { impersonateAccount, ZERO } from "../../test-utils";
 import {
     Account,
@@ -69,13 +69,7 @@ describe("System shutdown", () => {
                 hre,
                 new Booster__factory(protocolDao.signer),
                 "Booster",
-                [
-                    phase2.voterProxy.address,
-                    phase2.cvx.address,
-                    config.addresses.token,
-                    config.addresses.voteOwnership,
-                    config.addresses.voteParameter,
-                ],
+                [phase2.voterProxy.address, phase2.cvx.address, config.addresses.token],
                 {},
                 debug,
                 waitForBlocks,
