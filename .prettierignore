@@ -20,6 +20,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-#Convex files
+# Convex files
 convex-platform/contracts
 convex-platform/README.md
+
+# tenderly json
+scripts/tenderly/contracts.tenderly.json
+scripts/tenderly/contracts.json

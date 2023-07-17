@@ -9,23 +9,13 @@ import {
     deployPhase3,
     deployPhase4,
     deployPhase6,
-    deployPhase7,
     deployTempBooster,
 } from "../../scripts/deploySystem";
 import { config } from "./mainnet-config";
 import { ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
-import { simpleToExactAmount } from "../../test-utils/math";
-import { waitForTx, deployContract } from "../utils";
-import {
-    ChefForwarder,
-    ChefForwarder__factory,
-    SiphonToken,
-    SiphonToken__factory,
-    MasterChefRewardHook,
-    MasterChefRewardHook__factory,
-    AuraMerkleDropV2,
-    AuraMerkleDropV2__factory,
-} from "../../types/generated";
+import { deployContract } from "../utils";
+import { LiqMerkleDrop, LiqMerkleDrop__factory } from "../../types/generated";
+import { BigNumber } from "ethers";
 
 task("deploy:mainnet:1").setAction(async function (_: TaskArguments, hre) {
     const deployer = await getSigner(hre);
@@ -99,17 +89,6 @@ task("deploy:mainnet:6").setAction(async function (_: TaskArguments, hre) {
     );
     logContracts(phase6 as unknown as { [key: string]: { address: string } });
 });
-task("deploy:mainnet:7").setAction(async function (_: TaskArguments, hre) {
-    const deployer = await getSigner(hre);
-
-    const phase2 = await config.getPhase2(deployer);
-
-    // ~~~~~~~~~~~~~~~
-    // ~~~ PHASE 7 ~~~
-    // ~~~~~~~~~~~~~~~
-    const phase7 = await deployPhase7(hre, deployer, phase2, "0x7b3307af981F55C8D6cd22350b08C39Ec7Ec481B", true, 3);
-    logContracts(phase7 as unknown as { [key: string]: { address: string } });
-});
 
 task("deploy:mainnet:temp-booster").setAction(async function (_: TaskArguments, hre) {
     const deployer = await getSigner(hre);
@@ -129,10 +108,14 @@ task("deploy:mainnet:merkledrop")
             throw console.error("invalid hash");
         }
 
-        const airdrop = await deployContract<AuraMerkleDropV2>(
+        const SCALE = BigNumber.from(10).pow(18);
+        const AMOUNT = SCALE.mul(100000);
+        const TOTAL_COUNT = BigNumber.from(30);
+
+        const airdrop = await deployContract<LiqMerkleDrop>(
             hre,
-            new AuraMerkleDropV2__factory(deployer),
-            "AuraMerkleDropV2",
+            new LiqMerkleDrop__factory(deployer),
+            "LiqMerkleDrop",
             [
                 config.multisigs.treasuryMultisig,
                 hash,
@@ -140,6 +123,8 @@ task("deploy:mainnet:merkledrop")
                 phase2.cvxLocker.address,
                 0,
                 ONE_WEEK.mul(26),
+                TOTAL_COUNT,
+                AMOUNT,
             ],
             {},
             true,
@@ -182,67 +167,4 @@ task("mainnet:getStashes").setAction(async function (_: TaskArguments, hre) {
         }
     }
     console.log(gaugesWithRewardTokens);
-});
-
-task("mainnet:siphon").setAction(async function (_: TaskArguments, hre) {
-    const debug = true;
-    const waitForBlocks = 3;
-    const mintAmount = simpleToExactAmount("1");
-
-    const signer = await getSigner(hre);
-    const phase2 = await config.getPhase2(signer);
-
-    const protocolMultisig = config.multisigs.daoMultisig;
-    // auraBAL reward stash address
-    const stashAddress = "0xF801a238a1Accc7A63b429E8c343B198d51fbbb9";
-
-    // deploy chef forwarded
-    const chefForwarder = await deployContract<ChefForwarder>(
-        hre,
-        new ChefForwarder__factory(signer),
-        "ChefForwarder",
-        [phase2.chef.address],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    // deploy chef forwarded siphon token
-    await deployContract<SiphonToken>(
-        hre,
-        new SiphonToken__factory(signer),
-        "SiphonTokenBribes",
-        [chefForwarder.address, mintAmount],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    // deploy master chef reward hook
-    const masterChefRewardHook = await deployContract<MasterChefRewardHook>(
-        hre,
-        new MasterChefRewardHook__factory(signer),
-        "MasterChefRewardHook",
-        [stashAddress, phase2.chef.address, phase2.cvx.address],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    // deploy master chef reward hook siphon token
-    await deployContract<SiphonToken>(
-        hre,
-        new SiphonToken__factory(signer),
-        "SiphonTokenBribes",
-        [masterChefRewardHook.address, mintAmount],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    // transfer ownership to protocolDAO
-    let tx = await chefForwarder.transferOwnership(protocolMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
-    tx = await masterChefRewardHook.transferOwnership(protocolMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
 });

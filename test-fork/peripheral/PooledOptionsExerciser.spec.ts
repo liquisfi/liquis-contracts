@@ -6,7 +6,7 @@ import {
     VoterProxy__factory,
     CvxCrvToken,
     BaseRewardPool,
-    CrvDepositorWrapper,
+    LitDepositorHelper,
     IERC20Extra,
     PoolManagerV3,
     PooledOptionsExerciser,
@@ -37,7 +37,7 @@ const externalAddresses: ExtSystemConfig = {
     tokenWhale: "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB",
     minter: "0xF087521Ffca0Fa8A43F5C445773aB37C5f574DA0",
     votingEscrow: "0xf17d23136B4FeAd139f54fB766c8795faae09660",
-    feeDistribution: hreAddress,
+    feeDistribution: "0x951f99350d816c0E160A2C71DEfE828BdfC17f12", // Bunni FeeDistro
     gaugeController: "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218",
     gauges: ["0xd4d8E88bf09efCf3F5bf27135Ef12c1276d9063C", "0x471A34823DDd9506fe8dFD6BC5c2890e4114Fafe"], // Liquidity Gauge USDC/WETH & FRAX/USDC
     balancerVault: "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
@@ -56,13 +56,13 @@ const externalAddresses: ExtSystemConfig = {
 };
 
 const naming = {
-    cvxName: "Aura",
-    cvxSymbol: "AURA",
-    vlCvxName: "Vote Locked Aura",
-    vlCvxSymbol: "vlAURA",
-    cvxCrvName: "Aura BAL",
-    cvxCrvSymbol: "auraBAL",
-    tokenFactoryNamePostfix: " Aura Deposit",
+    cvxName: "Liquis",
+    cvxSymbol: "LIQ",
+    vlCvxName: "Vote Locked Liq",
+    vlCvxSymbol: "vlLIQ",
+    cvxCrvName: "Liq Lit",
+    cvxCrvSymbol: "liqLit",
+    tokenFactoryNamePostfix: " Liquis Deposit",
 };
 
 const debug = false;
@@ -76,10 +76,8 @@ describe("Booster", () => {
     let cvxCrv: CvxCrvToken;
     let cvxLocker: LiqLocker;
 
-    let crvDepositorWrapper: CrvDepositorWrapper;
+    let litDepositorHelper: LitDepositorHelper;
     let poolManager: PoolManagerV3;
-
-    let daoSigner: Signer;
 
     let lit: IERC20Extra;
     let olit: IERC20Extra;
@@ -113,11 +111,11 @@ describe("Booster", () => {
     const votingEscrowAddress: string = "0xf17d23136B4FeAd139f54fB766c8795faae09660";
     const gaugeControllerAddress: string = "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218";
 
-    const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C";
+    const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C"; // 10M
     const usdcHolderAddress: string = "0x55FE002aefF02F77364de339a1292923A15844B8";
     const wethHolderAddress: string = "0x57757E3D981446D585Af0D9Ae4d7DF6D64647806";
-    const crvBptHolderAddress: string = "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB";
-    const olitHolderAddress: string = "0x5f350bF5feE8e254D6077f8661E9C7B83a30364e"; // 224k
+    const crvBptHolderAddress: string = "0xb84dfdD51d18B1613432bfaE91dfcC48899D4151"; // 32k
+    const olitHolderAddress: string = "0x99c84A29040146F13a0F061d7a98C3122DA3E29e"; // 370k
 
     const lpTokenUsdcWethAddress: string = "0x680026A1C99a1eC9878431F730706810bFac9f31"; // Bunni USDC/WETH LP (BUNNI-LP)
     const lpTokenFraxUsdcAddress: string = "0x088DCFE115715030d441a544206CD970145F3941"; // Bunni FRAX/USDC LP (BUNNI-LP)
@@ -127,7 +125,7 @@ describe("Booster", () => {
 
     const bunniHubContractAddress: string = "0xb5087F95643A9a4069471A28d32C569D9bd57fE4";
 
-    const FORK_BLOCK_NUMBER: number = 16875673;
+    const FORK_BLOCK_NUMBER: number = 17641669;
 
     const setup = async () => {
         // Deploy Voter Proxy, get whitelisted on Bunni system
@@ -159,7 +157,7 @@ describe("Booster", () => {
         // Impersonate and fund crvBpt whale
         await impersonateAccount(crvBptHolderAddress, true);
         const crvBptHolder = await ethers.getSigner(crvBptHolderAddress);
-        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(100000));
+        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(32000));
         console.log("deployer funded with crvBpt: ", (await crvBpt.balanceOf(deployerAddress)).toString());
 
         // Instance of weth
@@ -195,13 +193,13 @@ describe("Booster", () => {
         );
         logContracts(phase2 as unknown as { [key: string]: { address: string } });
 
-        ({ booster, crvDepositorWrapper, poolManager, cvxCrvRewards, cvxCrv, cvxLocker } = phase2);
+        ({ booster, litDepositorHelper, poolManager, cvxCrvRewards, cvxCrv, cvxLocker } = phase2);
 
         pooledOptionsExerciser = await deployContract<PooledOptionsExerciser>(
             hre,
             new PooledOptionsExerciser__factory(deployer),
             "PooledOptionsExerciser",
-            [cvxCrv.address, booster.address, crvDepositorWrapper.address, cvxCrvRewards.address, cvxLocker.address],
+            [cvxCrv.address, booster.address, litDepositorHelper.address, cvxCrvRewards.address, cvxLocker.address],
             {},
             debug,
             waitForBlocks,
@@ -217,11 +215,11 @@ describe("Booster", () => {
         await tx.wait();
         tx = await phase2.cvx.connect(operatorAccount.signer).transfer(deployerAddress, e18.mul(1000));
         await tx.wait();
-        tx = await phase2.cvx.approve(phase2.cvxLocker.address, e18.mul(1000));
+        tx = await phase2.cvx.approve(cvxLocker.address, e18.mul(1000));
         await tx.wait();
-        tx = await phase2.cvxLocker.lock(aliceAddress, e18.mul(100));
+        tx = await cvxLocker.lock(aliceAddress, e18.mul(100));
         await tx.wait();
-        tx = await phase2.cvxLocker.lock(deployerAddress, e18.mul(100));
+        tx = await cvxLocker.lock(deployerAddress, e18.mul(100));
         await tx.wait();
 
         // Instance of LIT & oLIT & veLIT
@@ -239,9 +237,9 @@ describe("Booster", () => {
         await lit.connect(litHolder).transfer(deployerAddress, e18.mul(1000000));
         console.log("deployerLitBalance: ", (await lit.balanceOf(deployerAddress)).toString());
 
-        await lit.connect(deployer).approve(crvDepositorWrapper.address, e18.mul(1000000));
-        const minOut = await crvDepositorWrapper.getMinOut(e18.mul(1000000), 9900);
-        await crvDepositorWrapper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS);
+        await lit.connect(deployer).approve(litDepositorHelper.address, e18.mul(1000000));
+        const minOut = await litDepositorHelper.getMinOut(e18.mul(1000000), 9900);
+        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS);
         console.log("deployerBptMinOut: ", +minOut);
         console.log("deployerVeLitBalance: ", (await velit.balanceOf(deployerAddress)).toString());
         console.log("voterProxyVeLitBalance: ", (await velit.balanceOf(voterProxy.address)).toString());
@@ -284,8 +282,8 @@ describe("Booster", () => {
         console.log("deployerLpTokenBalance: ", lpTokenUsdcWethBalance.toString());
 
         await lpTokenUsdcWeth.connect(deployer).transfer(aliceAddress, e15.mul(10));
-        await lpTokenUsdcWeth.connect(deployer).approve(booster.address, e15.mul(40));
-        await booster.connect(deployer).deposit(0, e15.mul(40), true);
+        await lpTokenUsdcWeth.connect(deployer).approve(booster.address, e15.mul(30));
+        await booster.connect(deployer).deposit(0, e15.mul(30), true);
 
         const poolInfo1 = await booster.poolInfo(0);
         const depositTokenAddress = poolInfo1.token;
@@ -394,8 +392,8 @@ describe("Booster", () => {
             const owner = await pooledOptionsExerciser.owner();
             expect(owner).eq(await deployer.getAddress());
 
-            const crvDepositorWrapperVar = await pooledOptionsExerciser.crvDepositorWrapper();
-            expect(crvDepositorWrapperVar).eq(crvDepositorWrapper.address);
+            const litDepositorHelperVar = await pooledOptionsExerciser.litDepositorHelper();
+            expect(litDepositorHelperVar).eq(litDepositorHelper.address);
 
             const lockerRewards = await pooledOptionsExerciser.lockerRewards();
             expect(lockerRewards).eq(cvxCrvRewards.address);
@@ -445,7 +443,7 @@ describe("Booster", () => {
 
             const earnedDeployer1 = await rewardPool1.earned(deployerAddress);
 
-            const tx = await pooledOptionsExerciser.claimAndQueue([0], false, false);
+            const tx = await pooledOptionsExerciser.claimAndQueue([rewardPool1.address], false, false);
 
             const receipt = await tx.wait();
             console.log("gasUsed claimAndQueue 1 pool:", receipt.cumulativeGasUsed.toNumber());
@@ -548,7 +546,9 @@ describe("Booster", () => {
             const totalQueuedMapping = await pooledOptionsExerciser.totalQueued(epoch);
             expect(totalQueuedMapping).gt(ZERO); // deployer and whale already deposited
 
-            const tx = await pooledOptionsExerciser.connect(alice).claimAndQueue([0, 1], false, false);
+            const tx = await pooledOptionsExerciser
+                .connect(alice)
+                .claimAndQueue([rewardPool1.address, rewardPool2.address], false, false);
 
             const receipt = await tx.wait();
             console.log(
@@ -752,7 +752,17 @@ describe("Booster", () => {
             const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
             const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
 
-            const tx = await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, 100);
+            const expectedLit = queuedDeployer.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
+
+            // Check revert as well
+            const expectedMinOutForRevert = await litDepositorHelper.getMinOut(expectedLit, 10000);
+            await expect(
+                pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, expectedMinOutForRevert),
+            ).to.be.revertedWith("BAL#208"); // BPT_OUT_MIN_AMOUNT
+
+            const expectedMinOut = await litDepositorHelper.getMinOut(expectedLit, 9900);
+
+            const tx = await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, expectedMinOut);
             const receipt = await tx.wait();
             console.log("gasUsed withdrawAndLock, stake = true:", receipt.cumulativeGasUsed.toNumber());
 
@@ -769,7 +779,6 @@ describe("Booster", () => {
             }
 
             const amount = args[2];
-            const expectedLit = queuedDeployer.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
             expect(expectedLit).eq(amount);
 
             const litBalAfter = await lit.balanceOf(deployerAddress);
@@ -787,7 +796,7 @@ describe("Booster", () => {
             const withdrawn = await pooledOptionsExerciser.withdrawn(deployerAddress, epoch.sub(1));
             expect(withdrawn).gt(ZERO);
 
-            await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, 100);
+            await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, 1);
 
             const litBalAfter = await lit.balanceOf(deployerAddress);
             expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
@@ -807,7 +816,17 @@ describe("Booster", () => {
             const totalQueued = await pooledOptionsExerciser.totalQueued(epoch.sub(1));
             const totalWithdrawable = await pooledOptionsExerciser.totalWithdrawable(epoch.sub(1));
 
-            const tx = await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, 100);
+            const expectedLit = queuedAlice.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
+
+            // Check revert as well
+            const expectedMinOutForRevert = await litDepositorHelper.getMinOut(expectedLit, 10000);
+            await expect(
+                pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), true, expectedMinOutForRevert),
+            ).to.be.revertedWith("BAL#208"); // BPT_OUT_MIN_AMOUNT
+
+            const expectedMinOut = await litDepositorHelper.getMinOut(expectedLit, 9950);
+
+            const tx = await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, expectedMinOut);
             const receipt = await tx.wait();
             console.log("gasUsed withdrawAndLock, stake = false:", receipt.cumulativeGasUsed.toNumber());
 
@@ -824,7 +843,6 @@ describe("Booster", () => {
             }
 
             const amount = args[2];
-            const expectedLit = queuedAlice.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
             expect(expectedLit).eq(amount);
 
             const litBalAfter = await lit.balanceOf(aliceAddress);
@@ -845,7 +863,7 @@ describe("Booster", () => {
             const withdrawn = await pooledOptionsExerciser.withdrawn(aliceAddress, epoch.sub(1));
             expect(withdrawn).gt(ZERO);
 
-            await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, 100);
+            await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, 1);
 
             const litBalAfter = await lit.balanceOf(aliceAddress);
             expect(litBalAfter.sub(litBalBefore)).eq(ZERO);
@@ -866,6 +884,86 @@ describe("Booster", () => {
                 "!auth",
             );
             await expect(pooledOptionsExerciser.connect(randomUser).setFee(500)).to.be.revertedWith("!auth");
+        });
+
+        it("withdrawAndQueue function works properly for 2 pools, balances check", async () => {
+            await increaseTime(60 * 60 * 24 * 1);
+            await booster.connect(bob).earmarkRewards(0);
+            await booster.connect(bob).earmarkRewards(1);
+            await increaseTime(60 * 60 * 24 * 1);
+
+            const earnedAlice0 = await rewardPool1.earned(aliceAddress);
+            const earnedAlice1 = await rewardPool2.earned(aliceAddress);
+
+            // Alice has rewards from both pools
+            expect(earnedAlice0).gt(ZERO);
+            expect(earnedAlice1).gt(ZERO);
+
+            const stakingTokenBalAlice0 = await rewardPool1.balanceOf(aliceAddress);
+            const stakingTokenBalAlice1 = await rewardPool2.balanceOf(aliceAddress);
+
+            expect(stakingTokenBalAlice0).gt(ZERO);
+            expect(stakingTokenBalAlice1).gt(ZERO);
+
+            const epoch = await pooledOptionsExerciser.epoch();
+            expect(epoch).eq(1);
+
+            const queuedMappingAlice = await pooledOptionsExerciser.queued(aliceAddress, epoch);
+            expect(queuedMappingAlice).eq(ZERO);
+
+            const totalQueuedMapping = await pooledOptionsExerciser.totalQueued(epoch);
+
+            const tx = await pooledOptionsExerciser
+                .connect(alice)
+                .withdrawAndQueue(
+                    [rewardPool1.address, rewardPool2.address],
+                    [stakingTokenBalAlice0, stakingTokenBalAlice1],
+                    false,
+                    false,
+                );
+
+            const receipt = await tx.wait();
+            console.log(
+                "gasUsed withdrawAndQueue 2 pools, locker = false, liqLocker = false:",
+                receipt.cumulativeGasUsed.toNumber(),
+            );
+
+            const events = receipt.events?.filter(x => {
+                return x.event == "Queued";
+            });
+            if (!events) {
+                throw new Error("No events found");
+            }
+
+            const args = events[0].args;
+            if (!args) {
+                throw new Error("Event has no args");
+            }
+
+            const amount = args[2];
+
+            const epochAfter = await pooledOptionsExerciser.epoch();
+            expect(epochAfter).eq(1);
+
+            const queuedMappingAliceAfter = await pooledOptionsExerciser.queued(aliceAddress, epoch);
+            expect(queuedMappingAliceAfter).eq(amount);
+
+            const totalQueuedMappingAfter = await pooledOptionsExerciser.totalQueued(epoch);
+            expect(totalQueuedMappingAfter.sub(totalQueuedMapping)).eq(amount);
+
+            assertBNClosePercent(earnedAlice0.add(earnedAlice1), amount, "0.1");
+
+            const earnedAlice0After = await rewardPool1.earned(aliceAddress);
+            const earnedAlice1After = await rewardPool2.earned(aliceAddress);
+            expect(earnedAlice0After).eq(ZERO);
+            expect(earnedAlice1After).eq(ZERO);
+
+            const stakingTokenBalAfterAlice0 = await rewardPool1.balanceOf(aliceAddress);
+            const stakingTokenBalAfterAlice1 = await rewardPool2.balanceOf(aliceAddress);
+
+            // Alice withdrew from both pools its balance
+            expect(stakingTokenBalAfterAlice0).eq(ZERO);
+            expect(stakingTokenBalAfterAlice1).eq(ZERO);
         });
     });
 });

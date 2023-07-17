@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
-import "../../interfaces/balancer/IFeeDistributor.sol";
+import "../../interfaces/bunni/IFeeDistributor.sol";
 
 // @dev - Must be funded by transferring crv to this contract post deployment, as opposed to minting directly
 contract MockFeeDistributor is IFeeDistributor {

@@ -859,6 +859,13 @@ contract LiqLocker is ReentrancyGuard, Ownable, Permission, ILiqLocker {
         return _rewardPerToken(_rewardsToken);
     }
 
+    // Claimable amount of a specific reward token for the given account
+    // For compatibility with BaseRewardPool
+    function earned(address _account, address token) external view returns (uint256 userRewards) {
+        Balances storage userBalance = balances[_account];
+        userRewards = _earned(_account, token, userBalance.locked);
+    }
+
     function _earned(
         address _user,
         address _rewardsToken,

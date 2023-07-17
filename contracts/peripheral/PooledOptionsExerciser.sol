@@ -5,11 +5,13 @@ import "@openzeppelin/contracts-0.8/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-0.8/utils/Address.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-0.8/security/ReentrancyGuard.sol";
 
 import { IBooster } from "../interfaces/IBooster.sol";
 import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
 import { IBaseRewardPool } from "../interfaces/IBaseRewardPool.sol";
-import { ICrvDepositorWrapper } from "../interfaces/ICrvDepositorWrapper.sol";
+import { IRewardPool4626 } from "../interfaces/IRewardPool4626.sol";
+import { ILitDepositorHelper } from "../interfaces/ILitDepositorHelper.sol";
 import { IBalancerTwapOracle } from "../interfaces/balancer/BalancerV2.sol";
 
 // Oracle 0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30
@@ -27,7 +29,7 @@ interface IOracle {
  * @notice  Allows for claiming oLIT from RewardPools, exercise it and lock LIT received.
  * @dev     Implements a pooled exercise model where oLIT are queued and exercised in two steps.
  */
-contract PooledOptionsExerciser {
+contract PooledOptionsExerciser is ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -35,7 +37,7 @@ contract PooledOptionsExerciser {
     address public owner;
     address public immutable operator;
     address public immutable liqLit;
-    address public immutable crvDepositorWrapper;
+    address public immutable litDepositorHelper;
     address public immutable lockerRewards;
     address public immutable liqLocker;
 
@@ -66,19 +68,19 @@ contract PooledOptionsExerciser {
     /**
      * @param _liqLit ERC20 token minted when locking LIT to veLIT in VoterProxy through crvDepositor.
      * @param _operator Booster main deposit contract; keeps track of pool info & user deposits; distributes rewards.
-     * @param _crvDepositorWrapper Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor.
+     * @param _litDepositorHelper Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor.
      * @param _lockerRewards BaseRewardPool where staking token is liqLIT.
      */
     constructor(
         address _liqLit,
         address _operator,
-        address _crvDepositorWrapper,
+        address _litDepositorHelper,
         address _lockerRewards,
         address _liqLocker
     ) {
         liqLit = _liqLit;
         operator = _operator;
-        crvDepositorWrapper = _crvDepositorWrapper;
+        litDepositorHelper = _litDepositorHelper;
         lockerRewards = _lockerRewards;
         liqLocker = _liqLocker;
 
@@ -87,7 +89,7 @@ contract PooledOptionsExerciser {
         epoch = 0;
         fee = 100; // 1% expressed in bps
 
-        IERC20(lit).safeApprove(crvDepositorWrapper, type(uint256).max);
+        IERC20(lit).safeApprove(litDepositorHelper, type(uint256).max);
 
         emit OwnerUpdated(msg.sender);
         emit FeeUpdated(100);
@@ -110,28 +112,74 @@ contract PooledOptionsExerciser {
 
     /**
      * @notice Claim oLIT rewards from liqLit staking and liqLocker
-     * @param _pids Booster pools ids array to claim rewards from
+     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      */
     function claimAndQueue(
-        uint256[] memory _pids,
+        address[] memory _rewardPools,
         bool _locker,
         bool _liqLocker
-    ) external returns (uint256 amount) {
-        for (uint256 i = 0; i < _pids.length; i++) {
-            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+    ) external nonReentrant returns (uint256 amount) {
+        uint256 oLitBalBefore = IERC20(olit).balanceOf(address(this));
+
+        for (uint256 i = 0; i < _rewardPools.length; i++) {
             // claim all the rewards, only oLIT is sent here, the rest directly to sender
-            amount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
+            IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
-            amount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+            IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
         }
 
         if (_liqLocker) {
-            amount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
+            ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
+
+        uint256 oLitBalAfter = IERC20(olit).balanceOf(address(this));
+        amount = oLitBalAfter.sub(oLitBalBefore);
+
+        // queue claimed oLIT rewards
+        queued[msg.sender][epoch] += amount;
+        totalQueued[epoch] += amount;
+
+        emit Queued(msg.sender, epoch, amount);
+    }
+
+    /**
+     * @notice Withdraw Bunni LpTokens and claim oLIT rewards from liqLit staking and liqLocker
+     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
+     * @param _amounts Amounts of stakingToken (Liquis LpToken) array to withdraw per pool id
+     * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
+     * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
+     */
+    function withdrawAndQueue(
+        address[] memory _rewardPools,
+        uint256[] memory _amounts,
+        bool _locker,
+        bool _liqLocker
+    ) external nonReentrant returns (uint256 amount) {
+        require(_rewardPools.length == _amounts.length, "array length missmatch");
+
+        uint256 oLitBalBefore = IERC20(olit).balanceOf(address(this));
+
+        for (uint256 i = 0; i < _rewardPools.length; i++) {
+            // sender will receive the Bunni LpTokens, already unwrapped
+            IRewardPool4626(_rewardPools[i]).withdraw(_amounts[i], msg.sender, msg.sender);
+            // claim all the rewards, only oLIT is sent here, the rest directly to sender
+            IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
+        }
+
+        if (_locker) {
+            IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+        }
+
+        if (_liqLocker) {
+            ILiqLocker(liqLocker).getRewardFor(msg.sender);
+        }
+
+        uint256 oLitBalAfter = IERC20(olit).balanceOf(address(this));
+        amount = oLitBalAfter.sub(oLitBalBefore);
 
         // queue claimed oLIT rewards
         queued[msg.sender][epoch] += amount;
@@ -213,10 +261,8 @@ contract PooledOptionsExerciser {
         // only withdraw past epochs
         require(_epoch < epoch, "epoch not withdrawable");
 
-        // update withdrawn balance
-        // note, totalQueued > 0 for all past epochs
-        uint256 share = queued[msg.sender][_epoch].mul(1e18).div(totalQueued[_epoch]);
-        withdrawn_ = share.mul(totalWithdrawable[_epoch]).div(1e18).sub(withdrawn[msg.sender][_epoch]);
+        // compute withdrawable LIT rewards for caller and _epoch
+        withdrawn_ = _withdrawable(msg.sender, _epoch);
 
         // return if nothing claimable
         if (withdrawn_ == 0) return 0;
@@ -234,21 +280,19 @@ contract PooledOptionsExerciser {
      * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
      * @param _epoch Epoch for which to withdraw and lock LIT
      * @param _stake Stake liqLit into the liqLit staking rewards pool
-     * @param _maxSlippage Max accepted slippage expressed in bps (1% = 100, 0.5% = 50)
+     * @param _minOut Units of BPT to expect as output
      * @return withdrawn_ The amount of LIT rewards withdrawn and locked
      */
     function withdrawAndLock(
         uint256 _epoch,
         bool _stake,
-        uint256 _maxSlippage
+        uint256 _minOut
     ) external returns (uint256 withdrawn_) {
         // only withdraw past epochs
         require(_epoch < epoch, "epoch not withdrawable");
 
-        // update withdrawn balance
-        // note, totalQueued > 0 for all past epochs
-        uint256 share = queued[msg.sender][_epoch].mul(1e18).div(totalQueued[_epoch]);
-        withdrawn_ = share.mul(totalWithdrawable[_epoch]).div(1e18).sub(withdrawn[msg.sender][_epoch]);
+        // compute withdrawable LIT rewards for caller and _epoch
+        withdrawn_ = _withdrawable(msg.sender, _epoch);
 
         // return if nothing claimable
         if (withdrawn_ == 0) return 0;
@@ -258,20 +302,36 @@ contract PooledOptionsExerciser {
 
         // convert lit to liqLit, send it to sender or stake it in liqLit staking
         // note, convert _maxSlippage to _outputBps param used in BalInvestor
-        _convertLitToLiqLit(withdrawn_, basisOne.sub(_maxSlippage), _stake);
+        _convertLitToLiqLit(withdrawn_, _minOut, _stake);
 
         emit Withdrawn(msg.sender, _epoch, withdrawn_);
     }
 
     function _convertLitToLiqLit(
         uint256 amount,
-        uint256 _outputBps,
+        uint256 _minOut,
         bool _stake
     ) internal {
-        uint256 minOut = ICrvDepositorWrapper(crvDepositorWrapper).getMinOut(amount, _outputBps);
         _stake == true
-            ? ICrvDepositorWrapper(crvDepositorWrapper).depositFor(msg.sender, amount, minOut, true, lockerRewards)
-            : ICrvDepositorWrapper(crvDepositorWrapper).depositFor(msg.sender, amount, minOut, true, address(0));
+            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, lockerRewards)
+            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, address(0));
+    }
+
+    /**
+     * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
+     * @param account The account for which to query withdrawable LIT
+     * @param _epoch Epoch for which to query withdrawable LIT
+     * @return withdrawable_ The amount of withdrawable LIT rewards
+     */
+    function withdrawable(address account, uint256 _epoch) external view returns (uint256 withdrawable_) {
+        withdrawable_ = _withdrawable(account, _epoch);
+    }
+
+    // internal function to view withdrawable LIT rewards by account and epoch
+    function _withdrawable(address account, uint256 _epoch) internal view returns (uint256 withdrawable_) {
+        // note, totalQueued > 0 for all past epochs
+        uint256 share = queued[account][_epoch].mul(1e18).div(totalQueued[_epoch]);
+        withdrawable_ = share.mul(totalWithdrawable[_epoch]).div(1e18).sub(withdrawn[account][_epoch]);
     }
 
     /**

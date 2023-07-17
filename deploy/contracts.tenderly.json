@@ -1,0 +1,21 @@
+{
+    "External": {
+        "minter": "0x239e55F427D44C3cc793f49bFB507ebe76638a2b",
+        "token": "0xba100000625a3754423978a60c9317c58a424e3D",
+        "tokenBpt": "0x9232a548DD9E81BaC65500b5e0d918F8Ba93675C",
+        "votingEscrow": "0xC128a9954e6c874eA3d62ce62B468bA073093F25",
+        "gaugeController": "0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD",
+        "balancerVault": "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
+        "lit": "0xfd0205066521550D7d7AB19DA8F72bb004b4C341",
+        "weth": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "balancerPoolId": "0x9232a548dd9e81bac65500b5e0d918f8ba93675c000200000000000000000423"
+    },
+    "Deployments": {
+        "voterProxy": "0xC6c5Ab5039373b0CBa7d0116d9ba7fb9831C3f42",
+        "liq": "0x4ea0Be853219be8C9cE27200Bdeee36881612FF2",
+        "cvxCrv": "0x46d4674578a2daBbD0CEAB0500c6c7867999db34",
+        "crvDepositor": "0x9155497EAE31D432C0b13dBCc0615a37f55a2c87",
+        "litDepositorHelper": "0xc1EeD9232A0A44c2463ACB83698c162966FBc78d",
+        "prelaunchRewardsPool": "0xfaE849108F2A63Abe3BaB17E21Be077d07e7a9A2"
+    }
+}

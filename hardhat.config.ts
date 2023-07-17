@@ -3,6 +3,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "hardhat-contract-sizer";
+import "hardhat-deploy";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-etherscan";
 import "./tasks/coverage";
@@ -21,10 +22,7 @@ dotenvConfig({ path: resolve(__dirname, "./.env") });
 const chainIds = {
     goerli: 5,
     hardhat: 31337,
-    kovan: 42,
     mainnet: 1,
-    rinkeby: 4,
-    ropsten: 3,
 };
 
 const config: HardhatUserConfig = {
@@ -65,15 +63,11 @@ const config: HardhatUserConfig = {
             // tenderly fork
             chainId: Number.parseInt(process.env.TENDERLY_FORK_CHAINID || "SET ME"),
             url: process.env.TENDERLY_FORK_URL || "SET ME",
-        },
-        devnet: {
-            // tenderly devnet
-            chainId: Number.parseInt(process.env.TENDERLY_FORK_CHAINID || "SET ME"),
-            url: process.env.DEVNET_RPC_URL || "SET ME",
+            accounts: process.env.TENDERLY_PRIVATE_KEY !== undefined ? [process.env.TENDERLY_PRIVATE_KEY] : [],
         },
     },
     tenderly: {
-        project: process.env.TENDERLY_PROJECT_SLUG,
+        project: process.env.TENDERLY_PROJECT,
         username: process.env.TENDERLY_USERNAME,
         privateVerification: true,
     },
@@ -88,7 +82,7 @@ const config: HardhatUserConfig = {
             {
                 version: "0.6.12",
                 settings: {
-                    optimizer: { enabled: true, runs: 1000 },
+                    optimizer: { enabled: true, runs: 200 },
                 },
             },
             {

@@ -26,11 +26,6 @@ export default {
             chainId: Number.parseInt(process.env.TENDERLY_FORK_CHAINID || "SET ME"),
             url: process.env.TENDERLY_FORK_URL || "SET ME",
         },
-        devnet: {
-            // tenderly devnet
-            chainId: Number.parseInt(process.env.TENDERLY_FORK_CHAINID || "SET ME"),
-            url: process.env.DEVNET_RPC_URL || "SET ME",
-        },
     },
     mocha: {
         timeout: 480000, // 4 min timeout

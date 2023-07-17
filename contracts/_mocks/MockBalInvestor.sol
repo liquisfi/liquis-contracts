@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
-import "../core/BalInvestor.sol";
+import "../peripheral/BalInvestor.sol";
 
 contract MockBalInvestor is BalInvestor {
     constructor(

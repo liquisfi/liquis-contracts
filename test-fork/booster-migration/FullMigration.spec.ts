@@ -24,13 +24,7 @@ import {
     ZERO,
     ZERO_ADDRESS,
 } from "../../test-utils";
-import {
-    Phase2Deployed,
-    Phase4Deployed,
-    Phase6Deployed,
-    Phase7Deployed,
-    PoolsSnapshot,
-} from "../../scripts/deploySystem";
+import { Phase2Deployed, Phase4Deployed, Phase6Deployed, PoolsSnapshot } from "../../scripts/deploySystem";
 import { Contract, ethers, Signer } from "ethers";
 import { waitForTx } from "../../tasks/utils";
 import { config } from "../mainnet-config";
@@ -54,7 +48,6 @@ describe("Full Migration", () => {
     let phase2: Phase2Deployed;
     let phase4: Phase4Deployed;
     let phase6: Phase6Deployed;
-    let phase7: Phase7Deployed;
 
     let staker: Account;
 
@@ -179,9 +172,6 @@ describe("Full Migration", () => {
                 });
             }
         });
-        it("deploy phase7", async () => {
-            phase7 = await config.getPhase7(deployer);
-        });
     });
 
     /* ---------------------------------------------------------------------
@@ -193,11 +183,8 @@ describe("Full Migration", () => {
             const { booster } = phase2;
 
             expect(await boosterV2.crv()).eq(await booster.crv());
-            expect(await boosterV2.voteOwnership()).eq(await booster.voteOwnership());
-            expect(await boosterV2.voteParameter()).eq(await booster.voteParameter());
 
             // Fees are different from existing booster as we have updated
-            // to remove caps so we can remove the crvDepositorWrapperWithFee
             expect(await boosterV2.lockIncentive()).eq(2050);
             expect(await boosterV2.stakerIncentive()).eq(400);
             expect(await boosterV2.earmarkIncentive()).eq(50);
@@ -295,24 +282,18 @@ describe("Full Migration", () => {
             expect(await poolManager.protectAddPool()).eq(true);
         });
         it("has correct config for claimZap", async () => {
-            const { cvx, cvxCrv, crvDepositorWrapper, cvxLocker } = phase2;
+            const { cvx, cvxCrv, litDepositorHelper, cvxLocker } = phase2;
             const { claimZap, cvxCrvRewards } = phase6;
             const { addresses } = config;
 
             expect(await claimZap.crv()).eq(addresses.token);
             expect(await claimZap.cvx()).eq(cvx.address);
             expect(await claimZap.cvxCrv()).eq(cvxCrv.address);
-            expect(await claimZap.crvDepositWrapper()).eq(crvDepositorWrapper.address);
+            expect(await claimZap.crvDepositWrapper()).eq(litDepositorHelper.address);
             expect(await claimZap.cvxCrvRewards()).eq(cvxCrvRewards.address);
             expect(await claimZap.locker()).eq(cvxLocker.address);
         });
-        it("has correct config for masterChefRewardHook", async () => {
-            expect(await phase2.chef.isAddedPool(phase7.siphonToken.address)).eq(true);
 
-            const stashAddress = await phase7.masterChefRewardHook.stash();
-            const stash = ExtraRewardStashV3__factory.connect(stashAddress, protocolDao.signer);
-            expect(await stash.rewardHook()).eq(phase7.masterChefRewardHook.address);
-        });
         it("has correct config for feeCollector", async () => {
             const { voterProxy } = phase2;
             const { feeCollector, booster } = phase6;

@@ -80,7 +80,7 @@ describe.skip("AuraClaimZap", () => {
 
     it("set approval for deposits", async () => {
         await contracts.claimZap.setApprovals();
-        expect(await mocks.crv.allowance(contracts.claimZap.address, contracts.crvDepositorWrapper.address)).gte(
+        expect(await mocks.crv.allowance(contracts.claimZap.address, contracts.litDepositorHelper.address)).gte(
             ethers.constants.MaxUint256,
         );
         expect(await contracts.cvxCrv.allowance(contracts.claimZap.address, contracts.cvxCrvRewards.address)).gte(
@@ -91,15 +91,15 @@ describe.skip("AuraClaimZap", () => {
         );
     });
 
-    // Different config, Booster provides oLIT, cvxCrvRewards distributes oLIT, but crvDepositorWrapper only LIT
+    // Different config, Booster provides oLIT, cvxCrvRewards distributes oLIT, but litDepositorHelper only LIT
     it.skip("claim rewards from cvxCrvStaking", async () => {
         const lock = true;
         const stakeAddress = contracts.cvxCrvRewards.address;
         const balance = await mocks.lit.balanceOf(aliceAddress);
 
-        const minOut = await contracts.crvDepositorWrapper.connect(alice).getMinOut(balance, "10000");
-        await mocks.lit.connect(alice).approve(contracts.crvDepositorWrapper.address, balance);
-        await contracts.crvDepositorWrapper.connect(alice).deposit(balance, minOut, lock, stakeAddress);
+        const minOut = await contracts.litDepositorHelper.connect(alice).getMinOut(balance, "10000");
+        await mocks.lit.connect(alice).approve(contracts.litDepositorHelper.address, balance);
+        await contracts.litDepositorHelper.connect(alice).deposit(balance, minOut, lock, stakeAddress);
 
         const rewardBalance = await contracts.cvxCrvRewards.balanceOf(aliceAddress);
         expect(rewardBalance).eq(minOut);
@@ -112,7 +112,7 @@ describe.skip("AuraClaimZap", () => {
 
         await mocks.lit.connect(alice).approve(contracts.claimZap.address, ethers.constants.MaxUint256);
         const options = Options.ClaimCvxCrv + Options.LockCrvDeposit + Options.UseAllWalletFunds;
-        const minBptAmountOut = await contracts.crvDepositorWrapper.getMinOut(expectedRewards, 10000);
+        const minBptAmountOut = await contracts.litDepositorHelper.getMinOut(expectedRewards, 10000);
         const amounts: ClaimRewardsAmountsStruct = {
             depositCrvMaxAmount: expectedRewards,
             minAmountOut: minBptAmountOut,

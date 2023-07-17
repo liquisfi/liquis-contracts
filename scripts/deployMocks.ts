@@ -1,6 +1,6 @@
 import { ONE_WEEK, ZERO_ADDRESS, ZERO_KEY } from "./../test-utils/constants";
 import { simpleToExactAmount } from "./../test-utils/math";
-import { Signer } from "ethers";
+import { Signer, BigNumber } from "ethers";
 import { parseEther } from "ethers/lib/utils";
 import {
     MockERC20__factory,
@@ -60,12 +60,14 @@ function getMockDistro(): DistroList {
                 merkleRoot: ZERO_KEY,
                 startDelay: ONE_WEEK,
                 length: ONE_WEEK.mul(3),
+                totalClaims: BigNumber.from(15),
                 amount: simpleToExactAmount(2.5, 24),
             },
             {
                 merkleRoot: ZERO_KEY,
                 startDelay: ONE_WEEK.mul(26),
                 length: ONE_WEEK.mul(8),
+                totalClaims: BigNumber.from(15),
                 amount: simpleToExactAmount(1, 24),
             },
         ],

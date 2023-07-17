@@ -2,23 +2,29 @@ import hre, { ethers } from "hardhat";
 import { expect, assert } from "chai";
 import {
     Booster,
-    BoosterOwner,
     VoterProxy,
     VoterProxy__factory,
     CvxCrvToken,
-    CrvDepositor,
     BaseRewardPool,
-    CrvDepositorWrapper,
+    BaseRewardPool4626__factory,
+    LitDepositorHelper,
     IERC20Extra,
     PoolManagerV3,
     FlashOptionsExerciser,
     LiqLocker,
+    IBalancerHelpers,
+    IBalancerHelpers__factory,
+    IBalancerVault,
+    IBalancerVault__factory,
 } from "../../types/generated";
-import { Signer } from "ethers";
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
 import { increaseTime } from "../../test-utils/time";
 import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../../test-utils/constants";
 import { deployContract, waitForTx } from "../../tasks/utils";
-import { impersonateAccount } from "../../test-utils";
+import { impersonateAccount, assertBNClosePercent } from "../../test-utils";
+
+import { WeightedPoolEncoder } from "@balancer-labs/balancer-js";
+import { JoinPoolRequestStruct, FundManagementStruct, BatchSwapStepStruct } from "../../types/generated/IBalancerVault";
 
 import { deployPhase2, Phase1Deployed, MultisigConfig, ExtSystemConfig } from "../../scripts/deploySystem";
 import { getMockDistro } from "../../scripts/deployMocks";
@@ -38,7 +44,7 @@ const externalAddresses: ExtSystemConfig = {
     tokenWhale: "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB",
     minter: "0xF087521Ffca0Fa8A43F5C445773aB37C5f574DA0",
     votingEscrow: "0xf17d23136B4FeAd139f54fB766c8795faae09660",
-    feeDistribution: hreAddress,
+    feeDistribution: "0x951f99350d816c0E160A2C71DEfE828BdfC17f12", // Bunni FeeDistro
     gaugeController: "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218",
     gauges: ["0xd4d8E88bf09efCf3F5bf27135Ef12c1276d9063C", "0x471A34823DDd9506fe8dFD6BC5c2890e4114Fafe"], // Liquidity Gauge USDC/WETH & FRAX/USDC
     balancerVault: "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
@@ -50,6 +56,7 @@ const externalAddresses: ExtSystemConfig = {
         stablePool: "0x8df6EfEc5547e31B0eb7d1291B511FF8a2bf987c",
         bootstrappingPool: "0x751A0bC0e3f75b38e01Cf25bFCE7fF36DE1C87DE",
     },
+    balancerHelpers: "0x5aDDCCa35b7A0D07C74063c48700C8590E87864E",
     weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     wethWhale: "0x57757E3D981446D585Af0D9Ae4d7DF6D64647806",
     voteOwnership: hreAddress,
@@ -57,22 +64,13 @@ const externalAddresses: ExtSystemConfig = {
 };
 
 const naming = {
-    cvxName: "Aura",
-    cvxSymbol: "AURA",
-    vlCvxName: "Vote Locked Aura",
-    vlCvxSymbol: "vlAURA",
-    cvxCrvName: "Aura BAL",
-    cvxCrvSymbol: "auraBAL",
-    tokenFactoryNamePostfix: " Aura Deposit",
-};
-
-type Pool = {
-    lptoken: string;
-    token: string;
-    gauge: string;
-    crvRewards: string;
-    stash: string;
-    shutdown: boolean;
+    cvxName: "Liquis",
+    cvxSymbol: "LIQ",
+    vlCvxName: "Vote Locked Liq",
+    vlCvxSymbol: "vlLIQ",
+    cvxCrvName: "Liq Lit",
+    cvxCrvSymbol: "liqLit",
+    tokenFactoryNamePostfix: " Liquis Deposit",
 };
 
 const debug = false;
@@ -80,15 +78,13 @@ const waitForBlocks = 0;
 
 describe("Booster", () => {
     let booster: Booster;
-    let boosterOwner: BoosterOwner;
     let flashOptionsExerciser: FlashOptionsExerciser;
 
     let cvxCrvRewards: BaseRewardPool;
     let cvxCrv: CvxCrvToken;
     let cvxLocker: LiqLocker;
 
-    let crvDepositor: CrvDepositor;
-    let crvDepositorWrapper: CrvDepositorWrapper;
+    let litDepositorHelper: LitDepositorHelper;
     let poolManager: PoolManagerV3;
 
     let lit: IERC20Extra;
@@ -113,6 +109,10 @@ describe("Booster", () => {
     let rewardPool1: BaseRewardPool;
     let rewardPool2: BaseRewardPool;
 
+    let balancerHelpers: IBalancerHelpers;
+    let balancerVault: IBalancerVault;
+    let olitOracle: Contract;
+
     const smartWalletCheckerContractAddress: string = "0x0ccdf95baf116ede5251223ca545d0ed02287a8f";
     const smartWalletCheckerOwnerAddress: string = "0x9a8fee232dcf73060af348a1b62cdb0a19852d13";
 
@@ -123,11 +123,11 @@ describe("Booster", () => {
     const votingEscrowAddress: string = "0xf17d23136B4FeAd139f54fB766c8795faae09660";
     const gaugeControllerAddress: string = "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218";
 
-    const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C";
+    const litHolderAddress: string = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C"; // 10M
     const usdcHolderAddress: string = "0x55FE002aefF02F77364de339a1292923A15844B8";
     const wethHolderAddress: string = "0x57757E3D981446D585Af0D9Ae4d7DF6D64647806";
-    const crvBptHolderAddress: string = "0xb8F26C1Cc45ab62fd750E08957fBa5738094bbDB";
-    const olitHolderAddress: string = "0x5f350bF5feE8e254D6077f8661E9C7B83a30364e"; // 224k
+    const crvBptHolderAddress: string = "0xb84dfdD51d18B1613432bfaE91dfcC48899D4151"; // 32k
+    const olitHolderAddress: string = "0x99c84A29040146F13a0F061d7a98C3122DA3E29e"; // 370k
 
     const lpTokenUsdcWethAddress: string = "0x680026A1C99a1eC9878431F730706810bFac9f31"; // Bunni USDC/WETH LP (BUNNI-LP)
     const lpTokenFraxUsdcAddress: string = "0x088DCFE115715030d441a544206CD970145F3941"; // Bunni FRAX/USDC LP (BUNNI-LP)
@@ -137,7 +137,11 @@ describe("Booster", () => {
 
     const bunniHubContractAddress: string = "0xb5087F95643A9a4069471A28d32C569D9bd57fE4";
 
-    const FORK_BLOCK_NUMBER: number = 16875673;
+    const olitOracleAddress: string = "0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30";
+
+    const FORK_BLOCK_NUMBER: number = 17641669;
+
+    const SLIPPAGE_SCALE: BigNumberish = 10000;
 
     const setup = async () => {
         // Deploy Voter Proxy, get whitelisted on Bunni system
@@ -169,7 +173,7 @@ describe("Booster", () => {
         // Impersonate and fund crvBpt whale
         await impersonateAccount(crvBptHolderAddress, true);
         const crvBptHolder = await ethers.getSigner(crvBptHolderAddress);
-        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(100000));
+        await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(32000));
         console.log("deployer funded with crvBpt: ", (await crvBpt.balanceOf(deployerAddress)).toString());
 
         // Instance of weth
@@ -205,17 +209,8 @@ describe("Booster", () => {
         );
         logContracts(phase2 as unknown as { [key: string]: { address: string } });
 
-        ({
-            booster,
-            boosterOwner,
-            crvDepositor,
-            crvDepositorWrapper,
-            poolManager,
-            flashOptionsExerciser,
-            cvxCrvRewards,
-            cvxCrv,
-            cvxLocker,
-        } = phase2);
+        ({ booster, litDepositorHelper, poolManager, flashOptionsExerciser, cvxCrvRewards, cvxCrv, cvxLocker } =
+            phase2);
 
         console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
         console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
@@ -249,9 +244,9 @@ describe("Booster", () => {
         await lit.connect(litHolder).transfer(deployerAddress, e18.mul(1000000));
         console.log("deployerLitBalance: ", (await lit.balanceOf(deployerAddress)).toString());
 
-        await lit.connect(deployer).approve(crvDepositorWrapper.address, e18.mul(1000000));
-        const minOut = await crvDepositorWrapper.getMinOut(e18.mul(1000000), 9900);
-        await crvDepositorWrapper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS);
+        await lit.connect(deployer).approve(litDepositorHelper.address, e18.mul(1000000));
+        const minOut = await litDepositorHelper.getMinOut(e18.mul(1000000), 9900);
+        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS);
         console.log("deployerBptMinOut: ", +minOut);
         console.log("deployerVeLitBalance: ", (await velit.balanceOf(deployerAddress)).toString());
         console.log("voterProxyVeLitBalance: ", (await velit.balanceOf(voterProxy.address)).toString());
@@ -280,8 +275,8 @@ describe("Booster", () => {
         await usdc.connect(deployer).approve(bunniHub.address, e6.mul(1000000));
         await weth.connect(deployer).approve(bunniHub.address, e18.mul(1000));
 
-        let blockNumber = (await ethers.provider.getBlock("latest")).number; // works in 16854887
-        let blockTimestamp = (await ethers.provider.getBlock("latest")).timestamp;
+        const blockNumber = (await ethers.provider.getBlock("latest")).number; // works in 16854887
+        const blockTimestamp = (await ethers.provider.getBlock("latest")).timestamp;
         console.log("blockTimestamp: ", blockTimestamp);
         console.log("blockNumber: ", blockNumber);
         await bunniHub.deposit([
@@ -297,10 +292,19 @@ describe("Booster", () => {
         console.log("deployerLpTokenBalance: ", lpTokenUsdcWethBalance.toString());
 
         await lpTokenUsdcWeth.connect(deployer).transfer(aliceAddress, e15.mul(10));
-        await lpTokenUsdcWeth.connect(deployer).approve(booster.address, e15.mul(40));
-        await booster.connect(deployer).deposit(0, e15.mul(40), true);
+        await lpTokenUsdcWeth.connect(deployer).approve(booster.address, e15.mul(20));
+        tx = await booster.connect(deployer).deposit(0, e15.mul(20), true);
+        let txData = await tx.wait();
+        console.log("gasUsed deposited Booster:", txData.cumulativeGasUsed.toNumber());
 
         const poolInfo1 = await booster.poolInfo(0);
+
+        const rewardPool4626 = BaseRewardPool4626__factory.connect(poolInfo1.crvRewards, deployer);
+        await lpTokenUsdcWeth.connect(deployer).approve(rewardPool4626.address, e15.mul(10));
+        tx = await rewardPool4626.connect(deployer).deposit(e15.mul(10), deployerAddress);
+        txData = await tx.wait();
+        console.log("gasUsed deposited BaseReward:", txData.cumulativeGasUsed.toNumber());
+
         const depositTokenAddress = poolInfo1.token;
         const depositToken = (await ethers.getContractAt("IERC20Extra", depositTokenAddress)) as IERC20Extra;
         console.log("deployerDepositTokenBalance: ", (await depositToken.balanceOf(deployerAddress)).toString());
@@ -355,6 +359,16 @@ describe("Booster", () => {
 
         console.log("oLitBoosterBalance: ", (await olit.balanceOf(booster.address)).toString());
         console.log("bobOLitBalance: ", (await olit.balanceOf(bobAddress)).toString());
+
+        balancerHelpers = IBalancerHelpers__factory.connect(externalAddresses.balancerHelpers, deployer);
+
+        balancerVault = IBalancerVault__factory.connect(externalAddresses.balancerVault, deployer);
+
+        olitOracle = new ethers.Contract(
+            olitOracleAddress,
+            ["function getPrice() external returns (uint256)"],
+            deployer,
+        );
     };
 
     before(async () => {
@@ -376,6 +390,64 @@ describe("Booster", () => {
         aliceAddress = await alice.getAddress();
         bobAddress = await bob.getAddress();
     });
+
+    async function getBptMinOut(maxAmountsIn: BigNumber[], sender: string, recipient: string): Promise<BigNumber> {
+        // Use a minimumBPT of 1 because we need to call queryJoin with amounts in to get the BPT amount out
+        const userData = WeightedPoolEncoder.joinExactTokensInForBPTOut(maxAmountsIn, 1);
+        const joinPoolRequest: JoinPoolRequestStruct = {
+            assets: [externalAddresses.weth, externalAddresses.lit],
+            maxAmountsIn,
+            userData,
+            fromInternalBalance: false,
+        };
+
+        const [bptOut] = await balancerHelpers.callStatic.queryJoin(
+            externalAddresses.balancerPoolId,
+            sender,
+            recipient,
+            joinPoolRequest,
+        );
+
+        return bptOut;
+    }
+
+    async function getLitPerOLitAmount(olitAmount: BigNumber, sender: string): Promise<BigNumber> {
+        const price = await olitOracle.callStatic.getPrice();
+
+        const wethNeeded = olitAmount.mul(price).div(e18);
+
+        const litNeededToRepay = await getLitNeeded(sender, wethNeeded);
+
+        const litLeft = olitAmount.sub(litNeededToRepay);
+        return litLeft;
+    }
+
+    async function getLitNeeded(sender: string, amount: BigNumberish): Promise<BigNumber> {
+        const swaps: BatchSwapStepStruct[] = [
+            {
+                poolId: externalAddresses.balancerPoolId,
+                assetInIndex: 1, // LIT Index
+                assetOutIndex: 0, // WETH Index
+                amount: amount,
+                userData: ethers.utils.defaultAbiCoder.encode(["uint256"], [0]),
+            },
+        ];
+        const assets: string[] = [externalAddresses.weth, externalAddresses.lit];
+        const funds: FundManagementStruct = {
+            sender,
+            fromInternalBalance: false,
+            recipient: sender,
+            toInternalBalance: false,
+        };
+        const query = await balancerVault.callStatic.queryBatchSwap(
+            1, // kind: GIVEN_OUT
+            swaps,
+            assets,
+            funds,
+        );
+
+        return query.slice(-1)[0].abs();
+    }
 
     describe("new FlashOptionsExerciser with flashloan functionality", async () => {
         before(async () => {
@@ -451,14 +523,38 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
-            await olit.connect(olitWhale).approve(flashOptionsExerciser.address, e18.mul(10000));
-            await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(10000), false, 300);
+            const olitAmount = e18.mul(10000);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9900;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
+
+            await olit.connect(olitWhale).approve(flashOptionsExerciser.address, olitAmount);
+
+            // Check revert
+            await expect(
+                flashOptionsExerciser.connect(olitWhale).exerciseAndLock(olitAmount, false, minExchangeRate),
+            ).to.be.revertedWith("BAL#208"); // minAmountOut
+
+            await flashOptionsExerciser
+                .connect(olitWhale)
+                .exerciseAndLock(olitAmount, false, minExchangeRateWithSlippage);
 
             const olitWhaleBalAfter = await olit.balanceOf(olitHolderAddress);
             const liqLitWhaleBalAfter = await cvxCrv.balanceOf(olitHolderAddress);
             console.log("liqLitWhaleBalAfter: ", liqLitWhaleBalAfter.toString());
 
-            expect(olitWhaleBalBefore.sub(olitWhaleBalAfter)).eq(e18.mul(10000));
+            expect(olitWhaleBalBefore.sub(olitWhaleBalAfter)).eq(olitAmount);
             expect(liqLitWhaleBalAfter).gt(liqLitWhaleBalBefore);
 
             expect(stakingBalBefore).eq(ZERO);
@@ -521,8 +617,26 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
-            await olit.connect(olitWhale).approve(flashOptionsExerciser.address, e18.mul(200000));
-            const tx = await flashOptionsExerciser.connect(olitWhale).exerciseAndLock(e18.mul(200000), true, 300);
+            const olitAmount = e18.mul(200000);
+            await olit.connect(olitWhale).approve(flashOptionsExerciser.address, olitAmount);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9900;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
+
+            const tx = await flashOptionsExerciser
+                .connect(olitWhale)
+                .exerciseAndLock(olitAmount, true, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log("gasUsed exerciseAndLock, stake = true:", txData.cumulativeGasUsed.toNumber());
 
@@ -557,7 +671,28 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            await flashOptionsExerciser.claimAndExercise([0], true, false, 300);
+            const earnedDeployer = await rewardPool1.earned(deployerAddress);
+            console.log("earnedDeployer: ", +earnedDeployer);
+
+            const litExpected = await getLitPerOLitAmount(earnedDeployer, deployerAddress);
+            console.log("litExpected: ", +litExpected);
+
+            const SLIPPAGE: BigNumberish = 9900;
+
+            // Apply slippage to litExpected
+            const litExpectedWithSlippage = litExpected.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+
+            // Check revert
+            await expect(
+                flashOptionsExerciser.claimAndExercise(
+                    [rewardPool1.address],
+                    true,
+                    false,
+                    litExpected.mul(10001).div(10000),
+                ),
+            ).to.be.revertedWith("slipped");
+
+            await flashOptionsExerciser.claimAndExercise([rewardPool1.address], true, false, litExpectedWithSlippage);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -589,7 +724,29 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndLock([0], true, false, false, 300);
+            const olitAmount = await rewardPool1.earned(deployerAddress);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9900;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
+
+            const tx = await flashOptionsExerciser.claimAndLock(
+                [rewardPool1.address],
+                true,
+                false,
+                false,
+                minExchangeRateWithSlippage,
+            );
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock, 1 pool, locker = true, liqLocker = false:",
@@ -624,12 +781,28 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
-            const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
-            expect(earnedOLitInLiqLitRewards).gt(ZERO);
+            const olitAmount = await cvxCrvRewards.earned(olitHolderAddress);
+            expect(olitAmount).gt(ZERO);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9900;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
 
             await cvxCrvRewards.connect(olitWhale).modifyPermission(flashOptionsExerciser.address, true);
 
-            const tx = await flashOptionsExerciser.connect(olitWhale).claimAndLock([], true, false, true, 300);
+            const tx = await flashOptionsExerciser
+                .connect(olitWhale)
+                .claimAndLock([], true, false, true, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock, locker=true, liqLocker=false, stake = true:",
@@ -666,6 +839,13 @@ describe("Booster", () => {
             const earnedAlice0 = await rewardPool1.earned(aliceAddress);
             const earnedAlice1 = await rewardPool2.earned(aliceAddress);
 
+            const totalEarned = await flashOptionsExerciser.earned(
+                aliceAddress,
+                [rewardPool1.address, rewardPool2.address],
+                false,
+                false,
+            );
+
             // Alice has rewards from both pools
             expect(earnedAlice0).gt(ZERO);
             expect(earnedAlice1).gt(ZERO);
@@ -673,7 +853,33 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndLock([0, 1], false, false, false, 300);
+            const olitAmount = earnedAlice0.add(earnedAlice1);
+
+            expect(totalEarned).eq(olitAmount);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9950;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
+
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .claimAndLock(
+                    [rewardPool1.address, rewardPool2.address],
+                    false,
+                    false,
+                    false,
+                    minExchangeRateWithSlippage,
+                );
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 2 pools, locker = false, liqLocker = false:",
@@ -709,10 +915,14 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
+            const earned = await flashOptionsExerciser.earned(olitHolderAddress, [], true, false);
+
             const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
             expect(earnedOLitInLiqLitRewards).gt(ZERO);
 
-            const tx = await flashOptionsExerciser.connect(olitWhale).claimAndExercise([], true, false, 300);
+            assertBNClosePercent(earnedOLitInLiqLitRewards, earned, "0.001");
+
+            const tx = await flashOptionsExerciser.connect(olitWhale).claimAndExercise([], true, false, 1);
             const txData = await tx.wait();
             console.log("gasUsed claimAndExercise, locker=true, liqLocker=false:", txData.cumulativeGasUsed.toNumber());
 
@@ -758,7 +968,25 @@ describe("Booster", () => {
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndExercise([0, 1], true, false, 300);
+            const olitAmount = earnedAlice0.add(earnedAlice1);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9950;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
+
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .claimAndExercise([rewardPool1.address, rewardPool2.address], true, false, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndExercise, locker = true, liqLocker = false:",
@@ -806,9 +1034,7 @@ describe("Booster", () => {
             await expect(flashOptionsExerciser.connect(randomUser).setOwner(randomUserAddress)).to.be.revertedWith(
                 "!auth",
             );
-            await expect(flashOptionsExerciser.connect(randomUser).setOracleParams(100, 10)).to.be.revertedWith(
-                "!auth",
-            );
+
             await expect(flashOptionsExerciser.connect(randomUser).setReferralCode(10)).to.be.revertedWith("!auth");
         });
 
@@ -847,10 +1073,10 @@ describe("Booster", () => {
             assert.isFalse(hasPermission1);
             assert.isFalse(hasPermission2);
 
-            await expect(flashOptionsExerciser.connect(alice).claimAndExercise([], true, true, 300)).to.be.revertedWith(
+            await expect(flashOptionsExerciser.connect(alice).claimAndExercise([], true, true, 1)).to.be.revertedWith(
                 "permission not granted",
             );
-            await expect(flashOptionsExerciser.claimAndExercise([], true, true, 300)).to.be.revertedWith(
+            await expect(flashOptionsExerciser.claimAndExercise([], true, true, 1)).to.be.revertedWith(
                 "permission not granted",
             );
 
@@ -868,7 +1094,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndExercise([], true, true, 300);
+            const tx = await flashOptionsExerciser.claimAndExercise([], true, true, 1);
             const txData = await tx.wait();
             console.log("gasUsed claimAndExercise, locker=true, liqLocker=true:", txData.cumulativeGasUsed.toNumber());
 
@@ -907,13 +1133,50 @@ describe("Booster", () => {
             expect(earnedAlice0).gt(ZERO);
             expect(earnedAlice1).gt(ZERO);
 
+            const olitAmount = earnedAlice0.add(earnedAlice1);
+            console.log("olitAmount: ", +olitAmount);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9950;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
+
             const litAliceBalBefore = await lit.balanceOf(aliceAddress);
             console.log("litAliceBalBefore: ", litAliceBalBefore.toString());
 
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
+            console.log("oLitEarnedAliceInLiqLitPoolBefore: ", +oLitEarnedAliceInLiqLitPoolBefore);
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndExercise([0, 1], true, true, 300);
+            const oLitEarnedAliceInLocker = await cvxLocker.earned(aliceAddress, olitAddress);
+            expect(oLitEarnedAliceInLocker).gt(ZERO);
+            console.log("oLitEarnedAliceInLocker: ", +oLitEarnedAliceInLocker);
+
+            const addedRewards = olitAmount.add(oLitEarnedAliceInLiqLitPoolBefore).add(oLitEarnedAliceInLocker);
+            console.log("addedRewards: ", +addedRewards);
+
+            const totalEarned = await flashOptionsExerciser.earned(
+                aliceAddress,
+                [rewardPool1.address, rewardPool2.address],
+                true,
+                true,
+            );
+            console.log("totalEarned: ", +totalEarned);
+
+            assertBNClosePercent(addedRewards, totalEarned, "0.001");
+
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .claimAndExercise([rewardPool1.address, rewardPool2.address], true, true, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndExercise 2 pools, locker = true, liqLocker = true:",
@@ -963,7 +1226,31 @@ describe("Booster", () => {
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.connect(alice).claimAndLock([0, 1], false, true, false, 300);
+            const olitAmount = earnedAlice0.add(earnedAlice1);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9950;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
+
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .claimAndLock(
+                    [rewardPool1.address, rewardPool2.address],
+                    false,
+                    true,
+                    false,
+                    minExchangeRateWithSlippage,
+                );
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 2 pools, locker = false, liqLocker = true:",
@@ -1006,7 +1293,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndLock([0], true, true, false, 300);
+            const tx = await flashOptionsExerciser.claimAndLock([rewardPool1.address], true, true, false, 0);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 1 pool, locker = true, liqLocker = true:",
@@ -1033,6 +1320,104 @@ describe("Booster", () => {
             expect(litContractBalAfter).eq(ZERO);
             expect(olitContractBalAfter).eq(ZERO);
             expect(liqLitContractBalAfter).eq(ZERO);
+
+            expect(await weth.balanceOf(flashOptionsExerciser.address)).eq(ZERO);
+        });
+
+        it("withdrawAndLock function works properly for 2 pools, locker true", async () => {
+            await increaseTime(60 * 60 * 24 * 1);
+            await booster.connect(bob).earmarkRewards(0);
+            await booster.connect(bob).earmarkRewards(1);
+            await increaseTime(60 * 60 * 24 * 1);
+
+            const aliceEarnedOLit = await cvxLocker.claimableRewards(aliceAddress);
+            expect(aliceEarnedOLit[0].amount).gt(ZERO);
+
+            const earnedAlice0 = await rewardPool1.earned(aliceAddress);
+            const earnedAlice1 = await rewardPool2.earned(aliceAddress);
+
+            const stakingTokenBalAlice0 = await rewardPool1.balanceOf(aliceAddress);
+            const stakingTokenBalAlice1 = await rewardPool2.balanceOf(aliceAddress);
+
+            expect(stakingTokenBalAlice0).gt(ZERO);
+            expect(stakingTokenBalAlice1).gt(ZERO);
+
+            // Alice has rewards from both pools
+            expect(earnedAlice0).gt(ZERO);
+            expect(earnedAlice1).gt(ZERO);
+
+            const olitAmount = earnedAlice0.add(earnedAlice1);
+
+            const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
+            console.log("litExpected: ", +litExpected);
+            const amountsIn: BigNumber[] = [ZERO, litExpected];
+            const minBptOut = await getBptMinOut(amountsIn, olitHolderAddress, olitHolderAddress);
+            console.log("minBptOut: ", +minBptOut);
+            const minExchangeRate = minBptOut.mul(e18).div(olitAmount);
+            console.log("minExchangeRate: ", +minExchangeRate);
+
+            const SLIPPAGE: BigNumberish = 9950;
+
+            // Apply slippage to minExchangeRate
+            const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
+            const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
+            console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
+
+            const tx = await flashOptionsExerciser
+                .connect(alice)
+                .withdrawAndLock(
+                    [rewardPool1.address, rewardPool2.address],
+                    [stakingTokenBalAlice0, stakingTokenBalAlice1],
+                    false,
+                    true,
+                    false,
+                    minExchangeRateWithSlippage,
+                );
+            const txData = await tx.wait();
+            console.log(
+                "gasUsed withdrawAndLock 2 pools, locker = false, liqLocker = true:",
+                txData.cumulativeGasUsed.toNumber(),
+            );
+
+            const liqLitAliceBalAfter = await cvxCrv.balanceOf(aliceAddress);
+            console.log("liqLitAliceBalAfter: ", liqLitAliceBalAfter.toString()); // 12,853
+
+            // liqLit increases after the tx
+            expect(liqLitAliceBalAfter).gt(liqLitAliceBalBefore);
+
+            // Check that no funds are left in the contract
+            const litContractBalAfter = await lit.balanceOf(flashOptionsExerciser.address);
+            const olitContractBalAfter = await olit.balanceOf(flashOptionsExerciser.address);
+            const liqLitContractBalAfter = await cvxCrv.balanceOf(flashOptionsExerciser.address);
+            expect(litContractBalAfter).eq(ZERO);
+            expect(olitContractBalAfter).eq(ZERO);
+            expect(liqLitContractBalAfter).eq(ZERO);
+
+            const aliceEarnedOLitAfter = await cvxLocker.claimableRewards(aliceAddress);
+            expect(aliceEarnedOLitAfter[0].amount).lt(aliceEarnedOLit[0].amount);
+            expect(aliceEarnedOLitAfter[0].amount).lt(e15);
+
+            const liqLitAliceBal = await cvxCrv.balanceOf(aliceAddress);
+            await cvxCrv.connect(alice).approve(cvxCrvRewards.address, liqLitAliceBal);
+            await cvxCrvRewards.connect(alice).stakeAll();
+
+            const liqLitAliceBalAfterStaking = await cvxCrv.balanceOf(aliceAddress);
+            expect(liqLitAliceBalAfterStaking).eq(ZERO);
+
+            const stakingTokenBalAfterAlice0 = await rewardPool1.balanceOf(aliceAddress);
+            const stakingTokenBalAfterAlice1 = await rewardPool2.balanceOf(aliceAddress);
+
+            // Alice withdrew from both pools its balance
+            expect(stakingTokenBalAfterAlice0).eq(ZERO);
+            expect(stakingTokenBalAfterAlice1).eq(ZERO);
+
+            const earnedAliceAfter0 = await rewardPool1.earned(aliceAddress);
+            const earnedAliceAfter1 = await rewardPool2.earned(aliceAddress);
+
+            // Alice has rewards from both pools
+            expect(earnedAliceAfter0).eq(ZERO);
+            expect(earnedAliceAfter1).eq(ZERO);
 
             expect(await weth.balanceOf(flashOptionsExerciser.address)).eq(ZERO);
         });

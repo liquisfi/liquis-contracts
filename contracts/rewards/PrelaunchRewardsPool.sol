@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { ICrvDepositor } from "../interfaces/ICrvDepositor.sol";
-import { ILitConvertor } from "../interfaces/ILitConvertor.sol";
+import { ILitDepositorHelper } from "../interfaces/ILitDepositorHelper.sol";
 import { ICrvVoteEscrow } from "../interfaces/ICrvVoteEscrow.sol";
 
 import { Math } from "../utils/Math.sol";
@@ -21,7 +21,7 @@ contract PrelaunchRewardsPool {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable rewardToken;
+    IERC20 public rewardToken;
     IERC20 public immutable stakingToken;
     IERC20 public immutable lit;
     uint256 public constant duration = 7 days;
@@ -62,6 +62,7 @@ contract PrelaunchRewardsPool {
     event OwnerUpdated(address newOwner);
     event CrvDepositorUpdated(address indexed crvDepositor);
     event VoterProxyUpdated(address indexed voterProxy);
+    event RewardTokenUpdated(address indexed rewardToken);
 
     /**
      * @dev Initializes variables, approves lit and sets target dates.
@@ -164,7 +165,7 @@ contract PrelaunchRewardsPool {
     function stakeLit(uint256 amount, uint256 minOut) external {
         lit.safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 bptReceived = ILitConvertor(litConvertor).convertLitToBpt(amount, minOut);
+        uint256 bptReceived = ILitDepositorHelper(litConvertor).convertLitToBpt(amount, minOut);
 
         _processStake(bptReceived, msg.sender);
     }
@@ -321,6 +322,14 @@ contract PrelaunchRewardsPool {
         emit VoterProxyUpdated(_voterProxy);
     }
 
+    function setRewardToken(address _rewardToken) external onlyAuthorized {
+        IERC20(_rewardToken).safeTransferFrom(owner, address(this), rewardToken.balanceOf(address(this)));
+
+        rewardToken = IERC20(_rewardToken);
+
+        emit RewardTokenUpdated(_rewardToken);
+    }
+
     /**
      * @dev Allows the owner to pull the renounced balances from people that withdrew
      */
@@ -352,6 +361,11 @@ contract PrelaunchRewardsPool {
 
     modifier onlyAfterDate(uint256 limitDate) {
         require(block.timestamp > limitDate, "Currently not possible");
+        _;
+    }
+
+    modifier onlyBeforeDate(uint256 limitDate) {
+        require(block.timestamp < limitDate, "No longer possible");
         _;
     }
 }
