@@ -21,7 +21,7 @@ import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
 import { increaseTime } from "../../test-utils/time";
 import { ZERO_ADDRESS, ZERO, e18, e15, e6 } from "../../test-utils/constants";
 import { deployContract, waitForTx } from "../../tasks/utils";
-import { impersonateAccount } from "../../test-utils";
+import { impersonateAccount, assertBNClosePercent } from "../../test-utils";
 
 import { WeightedPoolEncoder } from "@balancer-labs/balancer-js";
 import { JoinPoolRequestStruct, FundManagementStruct, BatchSwapStepStruct } from "../../types/generated/IBalancerVault";
@@ -839,6 +839,13 @@ describe("Booster", () => {
             const earnedAlice0 = await rewardPool1.earned(aliceAddress);
             const earnedAlice1 = await rewardPool2.earned(aliceAddress);
 
+            const totalEarned = await flashOptionsExerciser.earned(
+                aliceAddress,
+                [rewardPool1.address, rewardPool2.address],
+                false,
+                false,
+            );
+
             // Alice has rewards from both pools
             expect(earnedAlice0).gt(ZERO);
             expect(earnedAlice1).gt(ZERO);
@@ -847,6 +854,8 @@ describe("Booster", () => {
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
 
             const olitAmount = earnedAlice0.add(earnedAlice1);
+
+            expect(totalEarned).eq(olitAmount);
 
             const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
             console.log("litExpected: ", +litExpected);
@@ -906,8 +915,12 @@ describe("Booster", () => {
             await impersonateAccount(olitHolderAddress, true);
             const olitWhale = await ethers.getSigner(olitHolderAddress);
 
+            const earned = await flashOptionsExerciser.earned(olitHolderAddress, [], true, false);
+
             const earnedOLitInLiqLitRewards = await cvxCrvRewards.earned(olitHolderAddress);
             expect(earnedOLitInLiqLitRewards).gt(ZERO);
+
+            assertBNClosePercent(earnedOLitInLiqLitRewards, earned, "0.001");
 
             const tx = await flashOptionsExerciser.connect(olitWhale).claimAndExercise([], true, false, 1);
             const txData = await tx.wait();
@@ -1121,6 +1134,7 @@ describe("Booster", () => {
             expect(earnedAlice1).gt(ZERO);
 
             const olitAmount = earnedAlice0.add(earnedAlice1);
+            console.log("olitAmount: ", +olitAmount);
 
             const litExpected = await getLitPerOLitAmount(olitAmount, olitHolderAddress);
             console.log("litExpected: ", +litExpected);
@@ -1141,6 +1155,24 @@ describe("Booster", () => {
 
             const oLitEarnedAliceInLiqLitPoolBefore = await cvxCrvRewards.earned(aliceAddress);
             expect(oLitEarnedAliceInLiqLitPoolBefore).gt(ZERO);
+            console.log("oLitEarnedAliceInLiqLitPoolBefore: ", +oLitEarnedAliceInLiqLitPoolBefore);
+
+            const oLitEarnedAliceInLocker = await cvxLocker.earned(aliceAddress, olitAddress);
+            expect(oLitEarnedAliceInLocker).gt(ZERO);
+            console.log("oLitEarnedAliceInLocker: ", +oLitEarnedAliceInLocker);
+
+            const addedRewards = olitAmount.add(oLitEarnedAliceInLiqLitPoolBefore).add(oLitEarnedAliceInLocker);
+            console.log("addedRewards: ", +addedRewards);
+
+            const totalEarned = await flashOptionsExerciser.earned(
+                aliceAddress,
+                [rewardPool1.address, rewardPool2.address],
+                true,
+                true,
+            );
+            console.log("totalEarned: ", +totalEarned);
+
+            assertBNClosePercent(addedRewards, totalEarned, "0.001");
 
             const tx = await flashOptionsExerciser
                 .connect(alice)
