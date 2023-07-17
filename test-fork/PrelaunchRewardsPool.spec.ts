@@ -793,14 +793,14 @@ describe("PrelaunchRewardsPool", () => {
                 await prelaunchRewardsPool.notifyRewardAmount(e18.mul(100000));
             });
 
-            it("reverts when insufficent balance or allowance on new rewardToken", async () => {
+            it("reverts when insufficient balance or allowance on new rewardToken", async () => {
                 await expect(prelaunchRewardsPool.setRewardToken(newLiq.address)).to.be.revertedWith(
                     "ERC20: transfer amount exceeds allowance",
                 );
             });
 
             it("transfers amount of netLiq and sets it as new rewardToken", async () => {
-                await newLiq.increaseAllowance(prelaunchRewardsPool.address, e18.mul(100000));
+                await newLiq.approve(prelaunchRewardsPool.address, e18.mul(100000));
 
                 await prelaunchRewardsPool.setRewardToken(newLiq.address);
 
@@ -809,16 +809,28 @@ describe("PrelaunchRewardsPool", () => {
             });
 
             it("users convert to liqLit and staking tokens are pulled into crvDepositor", async () => {
+                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
+                const timestampPre = await getTimestamp();
+                expect(timestampPre).lt(START_WITHDRAWALS); // Deadline is within target
+
+                // Create the initial lock
+                await crvBpt.transfer(voterProxy.address, e18.mul(10000));
+                await voterProxy.setDepositor(crvDepositor.address);
+                await cvxCrv.setOperator(crvDepositor.address);
+                await crvDepositor.initialLock();
+
+                await prelaunchRewardsPool.setCrvDepositor(crvDepositor.address);
+                expect(await prelaunchRewardsPool.crvDepositor()).eq(crvDepositor.address);
+
                 const initialSupply = await prelaunchRewardsPool.totalSupply();
                 let reducedSupply: BigNumber = ZERO;
 
                 const balanceDepositorBefore = await stakingToken.balanceOf(votingEscrowAddress);
 
-                const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
                 await increaseTime(ONE_WEEK.mul(11));
 
-                const timestamp = await getTimestamp();
-                expect(timestamp).gt(START_WITHDRAWALS);
+                const timestampPost = await getTimestamp();
+                expect(timestampPost).gt(START_WITHDRAWALS);
 
                 for (const bptHolder of bptHolders) {
                     await impersonateAccount(bptHolder.address, true);
