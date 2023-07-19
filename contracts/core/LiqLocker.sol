@@ -126,8 +126,8 @@ contract LiqLocker is ReentrancyGuard, Ownable, Permission, ILiqLocker {
 
     event Recovered(address _token, uint256 _amount);
     event RewardPaid(address indexed _user, address indexed _rewardsToken, uint256 _reward);
-    event Staked(address indexed _user, uint256 _paidAmount, uint256 _lockedAmount);
-    event Withdrawn(address indexed _user, uint256 _amount, bool _relocked);
+    event Staked(address indexed _user, uint256 _lockedAmount, uint256 _unlockTime);
+    event Withdrawn(address indexed _user, uint256 _amount, uint256 _expiryTime, bool _relocked);
     event KickReward(address indexed _user, address indexed _kicked, uint256 _reward);
     event RewardAdded(address indexed _token, uint256 _reward);
 
@@ -321,7 +321,7 @@ contract LiqLocker is ReentrancyGuard, Ownable, Permission, ILiqLocker {
         Epoch storage e = epochs[epochs.length - 1];
         e.supply = e.supply.add(lockAmount);
 
-        emit Staked(_account, lockAmount, lockAmount);
+        emit Staked(_account, lockAmount, unlockTime);
     }
 
     // claim all pending rewards
@@ -435,7 +435,7 @@ contract LiqLocker is ReentrancyGuard, Ownable, Permission, ILiqLocker {
         userBalance.nextUnlockIndex = locks.length.to32();
         lockedSupply -= amt;
 
-        emit Withdrawn(msg.sender, amt, false);
+        emit Withdrawn(msg.sender, amt, type(uint256).max, false);
 
         stakingToken.safeTransfer(msg.sender, amt);
     }
@@ -510,7 +510,7 @@ contract LiqLocker is ReentrancyGuard, Ownable, Permission, ILiqLocker {
         //checkpoint the delegatee
         _checkpointDelegate(delegates(_account), 0, 0);
 
-        emit Withdrawn(_account, locked, _relock);
+        emit Withdrawn(_account, locked, expiryTime, _relock);
 
         //send process incentive
         if (reward > 0) {
