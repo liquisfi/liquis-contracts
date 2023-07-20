@@ -17,6 +17,8 @@ import { deployContract } from "../utils";
 import { LiqMerkleDrop, LiqMerkleDrop__factory } from "../../types/generated";
 import { BigNumber } from "ethers";
 
+// Note waitForBlocks in tenderly network needs to be in 0, as their node does not mine auto
+
 task("deploy:mainnet:1").setAction(async function (_: TaskArguments, hre) {
     const deployer = await getSigner(hre);
 

@@ -23,6 +23,7 @@ export const deployContract = async <T extends Contract>(
     const receipt = await contract.deployTransaction.wait(waitForBlocks);
     const txCost = receipt.gasUsed.mul(contract.deployTransaction.gasPrice || 0);
     const abiEncodedConstructorArgs = contract.interface.encodeDeploy(constructorArgs);
+    await contract.deployed();
 
     if (debug) {
         console.log(
