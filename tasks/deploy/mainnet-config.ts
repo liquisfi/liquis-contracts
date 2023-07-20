@@ -56,7 +56,7 @@ const addresses: ExtSystemConfig = {
     minter: "0x239e55F427D44C3cc793f49bFB507ebe76638a2b",
     votingEscrow: "0xC128a9954e6c874eA3d62ce62B468bA073093F25",
     // feeDistribution: "0x26743984e3357eFC59f2fd6C1aFDC310335a61c9", // @deprecated
-    feeDistribution: "0xD3cf852898b21fc233251427c2DC93d3d604F3BB",
+    feeDistribution: "0x951f99350d816c0E160A2C71DEfE828BdfC17f12",
     gaugeController: "0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD",
     voteOwnership: ZERO_ADDRESS,
     voteParameter: ZERO_ADDRESS,
