@@ -111,51 +111,45 @@ describe("LiqToken", () => {
             "Only minter",
         );
     });
-    it("@method LiqToken.mint mints per BAL yearly schedule ", async () => {
+    it("@method LiqToken.mint mints per oLIT yearly schedule ", async () => {
         const beforeTotalSupply = await cvx.totalSupply();
-        // Year 1 - BAL emissions
-        let tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(4536428.571, 18));
+        // Year 1 - LIT emissions
+        let tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(17575680, 18));
         await expect(tx).to.emit(cvx, "Transfer").withArgs(
             ZERO_ADDRESS,
             aliceAddress,
-            simpleToExactAmount(17692071.4269, 18), // 17.6m
+            simpleToExactAmount(6854515.2, 18), // 6.85m
         );
 
-        // Year 2 - BAL emissions
-        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(3814666.524, 18));
+        // Year 2 - LIT emissions
+        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(48032810, 18));
         await expect(tx)
             .to.emit(cvx, "Transfer")
-            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(11520292.90248, 18)); // 11.5m
+            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(17099680.36, 18)); // 17.1m
 
-        // Year 3 - BAL emissions
-        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(3207739.405, 18));
+        // Year 3 - LIT emissions
+        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(40390618, 18));
         await expect(tx)
             .to.emit(cvx, "Transfer")
-            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(7826884.1482, 18)); // 7.8m
+            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(10905466.86, 18)); // 10.9m
 
-        // Year 4 - BAL emissions
-        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(2697376.567, 18));
+        // Year 4 - LIT emissions
+        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(33964326, 18));
         await expect(tx)
             .to.emit(cvx, "Transfer")
-            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(5529621.96235, 18)); // 5.5m
+            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(7336294.416, 18)); // 7.3m
 
-        // Year 5 - BAL emissions
-        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(2268214.286, 18));
+        // Year 5 - LIT emissions
+        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(28560480, 18));
         await expect(tx)
             .to.emit(cvx, "Transfer")
-            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(4023812.143364, 18)); // 4m
+            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(5083765.44, 18)); // 5.1m
 
-        // Year 6 - BAL emissions
-        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(1907333.262, 18));
+        // Year 6 - LIT emissions -> EOY 2028 total minted = 6.85 + 17.1 + 10.9 + 7.3 + 5.1 + 2.7 = 49.95m
+        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(24016405, 18));
         await expect(tx)
             .to.emit(cvx, "Transfer")
-            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(3002142.554388, 18)); // 3m
-
-        // Year 7 - BAL emissions
-        tx = await cvx.connect(operatorAccount.signer).mint(aliceAddress, simpleToExactAmount(1603869.703, 18));
-        await expect(tx)
-            .to.emit(cvx, "Transfer")
-            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(405174.862318, 18)); // 0.405m
+            .withArgs(ZERO_ADDRESS, aliceAddress, simpleToExactAmount(2720277.724, 18)); // 2.7m
 
         const afterBalance = await cvx.balanceOf(aliceAddress);
         const afterTotalSupply = await cvx.totalSupply();

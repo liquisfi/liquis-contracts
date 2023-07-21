@@ -286,6 +286,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @param _stake Stake liqLit into the liqLit staking rewards pool
      * @param _minExchangeRate The minimal accepted oLIT to BAL-20WETH-80LIT exchange rate
      * @return claimed The amount of BAL-20WETH-80LIT rewards claimed and locked
+     * @dev owner needs to first approve this contract as spender on the rewards pool
      */
     function withdrawAndLock(
         address[] memory _rewardPools,

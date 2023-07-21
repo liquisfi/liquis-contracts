@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ContractTransaction, Signer } from "ethers";
+import { BigNumber, ContractTransaction, Signer } from "ethers";
 import hre, { ethers } from "hardhat";
 import { Account } from "types";
 import { deployMocks, DeployMocksResult, getMockDistro, getMockMultisigs } from "../../scripts/deployMocks";
@@ -186,9 +186,15 @@ describe("LiqLocker", () => {
         dataBefore: SnapshotData,
         dataAfter: SnapshotData,
     ) => {
+        const lockResp = await tx.wait();
+        const lockBlock = await ethers.provider.getBlock(lockResp.blockNumber);
+        const lockTimestamp = ethers.BigNumber.from(lockBlock.timestamp);
+        const epoch = await getCurrentEpoch(lockTimestamp);
+        const lockDuration = await liqLocker.lockDuration();
+
         await expect(tx)
             .emit(liqLocker, "Staked")
-            .withArgs(aliceAddress, simpleToExactAmount(10), simpleToExactAmount(10));
+            .withArgs(aliceAddress, simpleToExactAmount(10), lockDuration.add(epoch));
         expect(dataAfter.cvxBalance, "Staked CVX").to.equal(dataBefore.cvxBalance.add(cvxAmount));
         expect(dataAfter.lockedSupply, "Staked lockedSupply ").to.equal(dataBefore.lockedSupply.add(cvxAmount));
         expect(dataAfter.account.cvxBalance, "cvx balance").to.equal(dataBefore.account.cvxBalance.sub(cvxAmount));
@@ -201,7 +207,6 @@ describe("LiqLocker", () => {
 
         const currentEpoch = await getCurrentEpoch();
         const lock = dataAfter.account.locks[dataAfter.account.locks.length - 1];
-        const lockDuration = await liqLocker.lockDuration();
         const unlockTime = lockDuration.add(currentEpoch);
         expect(lock.amount, "user locked amount").to.equal(cvxAmount);
         expect(lock.unlockTime, "user unlockTime").to.equal(unlockTime);
@@ -313,7 +318,11 @@ describe("LiqLocker", () => {
             const dataBefore = await getSnapShot(aliceAddress);
             tx = await liqLocker.connect(alice).lock(aliceAddress, cvxAmount);
 
-            await expect(tx).emit(liqLocker, "Staked").withArgs(aliceAddress, cvxAmount, cvxAmount);
+            const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
+            const epoch = await getCurrentEpoch(ethers.BigNumber.from(block.timestamp));
+            const lockDuration = await liqLocker.lockDuration();
+
+            await expect(tx).emit(liqLocker, "Staked").withArgs(aliceAddress, cvxAmount, lockDuration.add(epoch));
             const dataAfter = await getSnapShot(aliceAddress);
 
             const lockResp = await tx.wait();
@@ -333,7 +342,6 @@ describe("LiqLocker", () => {
 
             const currentEpoch = await getCurrentEpoch(lockTimestamp);
             const lock = await liqLocker.userLocks(aliceAddress, 0);
-            const lockDuration = await liqLocker.lockDuration();
 
             const unlockTime = lockDuration.add(currentEpoch);
             expect(lock.amount, "user locked amount").to.equal(cvxAmount);
@@ -477,9 +485,12 @@ describe("LiqLocker", () => {
             );
             expect(balance).to.equal(aliceInitialBalance);
             await verifyCheckpointDelegate(tx, dataBefore, dataAfter);
+
+            const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
+
             await expect(tx)
                 .emit(liqLocker, "Withdrawn")
-                .withArgs(aliceAddress, dataBefore.account.balances.locked, relock);
+                .withArgs(aliceAddress, dataBefore.account.balances.locked, block.timestamp, relock);
         });
     });
 
@@ -592,9 +603,13 @@ describe("LiqLocker", () => {
             expect(await liqLocker.getPastVotes(aliceAddress, timeBefore)).eq(simpleToExactAmount(100));
             expect((await liqLocker.balances(aliceAddress)).locked).eq(simpleToExactAmount(100));
             await verifyCheckpointDelegate(tx, dataBefore, dataAfter);
+
+            const lockResp = await tx.wait();
+            const lockBlock = await ethers.provider.getBlock(lockResp.blockNumber);
+            const expiryTime = BigNumber.from(lockBlock.timestamp).add(ONE_WEEK);
             await expect(tx)
                 .emit(liqLocker, "Withdrawn")
-                .withArgs(aliceAddress, dataBefore.account.balances.locked, true);
+                .withArgs(aliceAddress, dataBefore.account.balances.locked, expiryTime, true);
         });
         it("allows locks to be processed after they are expired", async () => {
             await increaseTime(ONE_WEEK);
@@ -649,9 +664,15 @@ describe("LiqLocker", () => {
             await increaseTime(ONE_WEEK);
 
             const tx = await liqLocker.connect(alice).processExpiredLocks(true);
+
+            const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
+
+            const rewardsDuration = await liqLocker.rewardsDuration();
+            const expiryTime = BigNumber.from(block.timestamp).add(rewardsDuration);
+
             await expect(tx)
                 .emit(liqLocker, "Withdrawn")
-                .withArgs(aliceAddress, dataBefore.account.balances.locked, true);
+                .withArgs(aliceAddress, dataBefore.account.balances.locked, expiryTime, true);
 
             await increaseTime(ONE_WEEK);
 
@@ -682,11 +703,16 @@ describe("LiqLocker", () => {
             );
             expect(dataAfter.lockedSupply, "Staked lockedSupply ").to.eq(0);
             await verifyCheckpointDelegate(tx, dataBefore, dataAfter);
+
+            const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
+            const rewardsDuration = await liqLocker.rewardsDuration();
+            const delay = kickRewardEpochDelay.mul(rewardsDuration);
+            const expiryTime = BigNumber.from(block.timestamp).sub(delay);
             // Two events should be trigger, Withdrawn (locked amount) and KickReward (kick reward)
             // As the kicked user and lock user are the same, both amounts should be equal to the locked amount.
             await expect(tx)
                 .emit(liqLocker, "Withdrawn")
-                .withArgs(aliceAddress, dataBefore.account.balances.locked, false);
+                .withArgs(aliceAddress, dataBefore.account.balances.locked, expiryTime, false);
             await expect(tx).emit(liqLocker, "KickReward").withArgs(aliceAddress, aliceAddress, simpleToExactAmount(1));
         });
 
@@ -1520,6 +1546,10 @@ describe("LiqLocker", () => {
             const dataBefore = await getSnapShot(aliceAddress);
             const tx = await liqLocker.connect(alice).processExpiredLocks(relock);
 
+            const resp = await tx.wait();
+            const block = await ethers.provider.getBlock(resp.blockNumber);
+            const lockTimestamp = ethers.BigNumber.from(block.timestamp);
+
             const balance = await cvx.balanceOf(aliceAddress);
             expect(await liqLocker.balanceOf(aliceAddress), "liqLocker balance for user is zero").to.equal(0);
             expect(await liqLocker.lockedSupply(), "lockedSupply decreases").to.equal(
@@ -1528,7 +1558,7 @@ describe("LiqLocker", () => {
             expect(balance).to.equal(aliceInitialBalance);
             await expect(tx)
                 .emit(liqLocker, "Withdrawn")
-                .withArgs(aliceAddress, dataBefore.account.balances.locked, relock);
+                .withArgs(aliceAddress, dataBefore.account.balances.locked, lockTimestamp, relock);
         });
         it("emergencyWithdraw  when user has no locks", async () => {
             // Given that the aura locker is shutdown
@@ -1557,7 +1587,7 @@ describe("LiqLocker", () => {
             expect(balance, "balance").to.equal(aliceInitialBalance);
             await expect(tx)
                 .emit(liqLocker, "Withdrawn")
-                .withArgs(aliceAddress, dataBefore.account.balances.locked, relock);
+                .withArgs(aliceAddress, dataBefore.account.balances.locked, ethers.constants.MaxUint256, relock);
         });
     });
 });

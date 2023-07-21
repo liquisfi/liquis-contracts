@@ -121,9 +121,9 @@ describe("Booster", () => {
         });
         it("has the correct initial config", async () => {
             const lockFee = await booster.lockIncentive();
-            expect(lockFee).eq(550);
+            expect(lockFee).eq(2150);
             const stakerFee = await booster.stakerIncentive();
-            expect(stakerFee).eq(1100);
+            expect(stakerFee).eq(300);
             const callerFee = await booster.earmarkIncentive();
             expect(callerFee).eq(50);
             const platformFee = await booster.platformFee();
@@ -442,6 +442,7 @@ describe("Booster", () => {
             await setup();
             bridgeDelegate = accounts[8];
             bridgeDelegateAddress = await bridgeDelegate.getAddress();
+            await booster.connect(daoSigner).setFees(550, 1100, 50, 0);
         });
 
         it("only lets feeManager change bridgeDelegate address", async () => {

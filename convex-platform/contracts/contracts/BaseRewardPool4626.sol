@@ -89,7 +89,7 @@ contract BaseRewardPool4626 is BaseRewardPool, ReentrancyGuard, IERC4626 {
         address receiver,
         address owner
     ) public virtual override nonReentrant returns (uint256) {
-        if (msg.sender != owner && owner != receiver) {
+        if (msg.sender != owner) {
             _approve(owner, msg.sender, _allowances[owner][msg.sender].sub(assets, "ERC4626: withdrawal amount exceeds allowance"));
         }
         

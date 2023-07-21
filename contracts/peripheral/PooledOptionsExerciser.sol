@@ -152,6 +152,7 @@ contract PooledOptionsExerciser is ReentrancyGuard {
      * @param _amounts Amounts of stakingToken (Liquis LpToken) array to withdraw per pool id
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
+     * @dev owner needs to first approve this contract as spender on the rewards pool
      */
     function withdrawAndQueue(
         address[] memory _rewardPools,

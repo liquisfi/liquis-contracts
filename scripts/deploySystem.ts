@@ -3,7 +3,6 @@ import {
     ExtraRewardsDistributor,
     AuraPenaltyForwarder,
     IGaugeController__factory,
-    ILBPFactory__factory,
     MockWalletChecker__factory,
     MockCurveVoteEscrow__factory,
     BoosterOwner__factory,
@@ -11,7 +10,6 @@ import {
     AuraClaimZap__factory,
     AuraClaimZap,
     BalLiquidityProvider,
-    BalLiquidityProvider__factory,
     Booster__factory,
     Booster,
     VoterProxy__factory,
@@ -42,7 +40,6 @@ import {
     PoolManagerSecondaryProxy,
     MockERC20__factory,
     IBalancerPool__factory,
-    IBalancerVault__factory,
     ConvexMasterChef,
     LiqLocker,
     LiqLocker__factory,
@@ -50,12 +47,9 @@ import {
     LiqToken__factory,
     LiqMinter,
     LiqMinter__factory,
-    MockERC20,
-    ConvexMasterChef__factory,
     LitDepositorHelper,
     LitDepositorHelper__factory,
     IWeightedPool2TokensFactory__factory,
-    IStablePoolFactory__factory,
     AuraPenaltyForwarder__factory,
     ExtraRewardsDistributor__factory,
     LiqVestedEscrow,
@@ -87,6 +81,11 @@ import { ZERO_ADDRESS, DEAD_ADDRESS, ONE_WEEK, ZERO_KEY } from "../test-utils/co
 import { simpleToExactAmount } from "../test-utils/math";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { getChain } from "../tasks/utils/networkAddressFactory";
+
+import * as fs from "fs";
+import MainnetConfig from "./contracts.json";
+import HardhatConfig from "./contracts.hardhat.json";
+import TenderlyConfig from "./contracts.tenderly.json";
 
 interface AirdropData {
     merkleRoot: string;
@@ -210,7 +209,7 @@ interface Phase2Deployed extends Phase1Deployed {
     factories: Factories;
     arbitratorVault: ArbitratorVault;
     cvxCrv: CvxCrvToken;
-    cvxCrvBpt: BalancerPoolDeployed;
+    cvxCrvBpt?: BalancerPoolDeployed;
     cvxCrvRewards: BaseRewardPool;
     crvDepositor: CrvDepositor;
     litDepositorHelper: LitDepositorHelper;
@@ -218,11 +217,11 @@ interface Phase2Deployed extends Phase1Deployed {
     poolManagerProxy: PoolManagerProxy;
     poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
     cvxLocker: LiqLocker;
-    chef: ConvexMasterChef;
+    chef?: ConvexMasterChef;
     vestedEscrows: LiqVestedEscrow[];
     drops: LiqMerkleDrop[];
-    lbpBpt: BalancerPoolDeployed;
-    balLiquidityProvider: BalLiquidityProvider;
+    lbpBpt?: BalancerPoolDeployed;
+    balLiquidityProvider?: BalLiquidityProvider;
     penaltyForwarder: AuraPenaltyForwarder;
     extraRewardsDistributor: ExtraRewardsDistributor;
     flashOptionsExerciser: FlashOptionsExerciser;
@@ -273,6 +272,39 @@ function getPoolAddress(utils: any, receipt: ContractReceipt): string {
     return utils.hexZeroPad(utils.hexStripZeros(event.topics[1]), 20);
 }
 
+function getConfig(hre: HardhatRuntimeEnvironment) {
+    if (hre.network.name === "mainnet") {
+        return MainnetConfig;
+    }
+    if (hre.network.name === "localhost" || hre.network.name === "hardhat") {
+        return HardhatConfig;
+    }
+    if (hre.network.name === "tenderly") {
+        return TenderlyConfig;
+    }
+
+    throw new Error("not found config");
+}
+
+function writeConfigFile(config: any, hre: HardhatRuntimeEnvironment) {
+    let filePath;
+    switch (hre.network.name) {
+        case "mainnet":
+            filePath = "scripts/contracts.json";
+            break;
+        case "localhost":
+            filePath = "scripts/contracts.hardhat.json";
+            break;
+        case "tenderly":
+            filePath = "scripts/contracts.tenderly.json";
+            break;
+        default:
+            throw Error("Unsupported network");
+    }
+    console.log(`>> Writing ${filePath}`);
+    fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
+    console.log("✅ Done");
+}
 /**
  * FLOW
  * Phase 1: Voter Proxy, get whitelisted on Curve system
@@ -323,6 +355,12 @@ async function deployPhase1(
         await crvBpt.transfer(voterProxy.address, simpleToExactAmount(1));
     }
 
+    if (hre.network.name != "hardhat") {
+        const outputConfig = getConfig(hre);
+        outputConfig.Deployments.voterProxy = voterProxy.address;
+        writeConfigFile(outputConfig, hre);
+    }
+
     return { voterProxy };
 }
 
@@ -341,10 +379,11 @@ async function deployPhase2(
     const chain = getChain(hre);
     const deployer = signer;
     const deployerAddress = await deployer.getAddress();
-    const balHelper = new AssetHelpers(config.weth);
 
     const { token, tokenBpt, votingEscrow, gaugeController } = config;
     const { voterProxy } = deployment;
+
+    const outputConfig = getConfig(hre);
 
     console.log("Current chain connected:", hre.network.name);
 
@@ -444,6 +483,7 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
     const stashFactory = await deployContract<StashFactoryV2>(
         hre,
         new StashFactoryV2__factory(deployer),
@@ -637,6 +677,53 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    if (hre.network.name != "hardhat") {
+        outputConfig.Deployments.liq = cvx.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.minter = minter.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.booster = booster.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.tokenFactory = tokenFactory.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.proxyFactory = proxyFactory.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.stashFactory = stashFactory.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.stashV3 = stashV3.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.liqLit = cvxCrv.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.crvDepositor = crvDepositor.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.liqLitRewards = cvxCrvRewards.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.poolManagerProxy = poolManagerProxy.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.poolManagerSecondaryProxy = poolManagerSecondaryProxy.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.poolManager = poolManager.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.boosterOwner = boosterOwner.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.arbitratorVault = arbitratorVault.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.liqLocker = cvxLocker.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.litDepositorHelper = litDepositorHelper.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.extraRewardsDistributor = extraRewardsDistributor.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.penaltyForwarder = penaltyForwarder.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.flashOptionsExerciser = flashOptionsExerciser.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.pooledOptionsExerciser = pooledOptionsExerciser.address;
+        writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.prelaunchRewardsPool = prelaunchRewardsPool.address;
+        writeConfigFile(outputConfig, hre);
+    }
+
     let tx = await cvxLocker.addReward(token, booster.address);
     await waitForTx(tx, debug, waitForBlocks);
 
@@ -669,15 +756,18 @@ async function deployPhase2(
 
     // Note needs to be commented for deployment
     const crvBpt = MockERC20__factory.connect(config.tokenBpt, deployer);
-    let crvBptbalance = await crvBpt.balanceOf(deployerAddress);
-    if (crvBptbalance.lt(simpleToExactAmount(1))) {
-        throw console.error("No crvBPT for initial lock");
-    }
-    tx = await crvBpt.transfer(voterProxy.address, simpleToExactAmount(1));
-    await waitForTx(tx, debug, waitForBlocks);
+    const crvBptbalance = await crvBpt.balanceOf(deployerAddress);
 
-    tx = await crvDepositor.initialLock();
-    await waitForTx(tx, debug, waitForBlocks);
+    if (hre.network.name == "hardhat") {
+        if (crvBptbalance.lt(simpleToExactAmount(1))) {
+            throw console.error("No crvBPT for initial lock");
+        }
+        tx = await crvBpt.transfer(voterProxy.address, simpleToExactAmount(1));
+        await waitForTx(tx, debug, waitForBlocks);
+
+        tx = await crvDepositor.initialLock();
+        await waitForTx(tx, debug, waitForBlocks);
+    }
 
     tx = await crvDepositor.setFeeManager(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
@@ -712,7 +802,7 @@ async function deployPhase2(
     tx = await booster.setVoteDelegate(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await booster.setFees(550, 1100, 50, 0);
+    tx = await booster.setFees(2150, 300, 50, 0);
     await waitForTx(tx, debug, waitForBlocks);
 
     if (chain != Chain.local) {
@@ -746,11 +836,7 @@ async function deployPhase2(
     // -----------------------------
     // 2.2. Token liquidity:
     // - Schedule: vesting streams
-    // - Schedule: 2% emission for cvxCrv staking
-    // - Create:   cvxCRV/CRV BPT Stableswap
-    // - Schedule: chef (or other) & cvxCRV/CRV incentives
     // - Schedule: Airdrop(s)
-    // - Schedule: LBP
     // -----------------------------
 
     // -----------------------------
@@ -792,120 +878,7 @@ async function deployPhase2(
     }
 
     // -----------------------------
-    // 2.2.3 Create: auraBAL/BPT BPT Stableswap
-    // https://dev.balancer.fi/resources/deploy-pools-from-factory/creation#deploying-a-pool-with-typescript
-    // -----------------------------
-
-    crvBptbalance = await crvBpt.balanceOf(deployerAddress);
-    if (crvBptbalance.eq(0)) {
-        throw console.error("Uh oh, deployer has no crvBpt");
-    }
-
-    const depositAmt = crvBptbalance.div(5).mul(2);
-
-    tx = await crvBpt.approve(crvDepositor.address, depositAmt);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await crvDepositor["deposit(uint256,bool)"](depositAmt, true);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    const cvxCrvBalance = await cvxCrv.balanceOf(deployerAddress);
-    if (!cvxCrvBalance.eq(depositAmt)) {
-        throw console.error("Uh oh, invalid cvxCrv balance");
-    }
-
-    let cvxCrvBpt: BalancerPoolDeployed;
-    if (chain == Chain.mainnet) {
-        const [poolTokens, initialBalances] = balHelper.sortTokens(
-            [cvxCrv.address, crvBpt.address],
-            [cvxCrvBalance, cvxCrvBalance],
-        );
-        const poolData: BPTData = {
-            tokens: poolTokens,
-            name: `Balancer ${await cvxCrv.symbol()} Stable Pool`,
-            symbol: `B-${await cvxCrv.symbol()}-STABLE`,
-            swapFee: simpleToExactAmount(6, 15),
-            ampParameter: 25,
-        };
-        if (debug) {
-            console.log(poolData.tokens);
-        }
-
-        const poolFactory = IStablePoolFactory__factory.connect(config.balancerPoolFactories.stablePool, deployer);
-        tx = await poolFactory.create(
-            poolData.name,
-            poolData.symbol,
-            poolData.tokens,
-            poolData.ampParameter,
-            poolData.swapFee,
-            multisigs.treasuryMultisig,
-        );
-        const receipt = await waitForTx(tx, debug, waitForBlocks);
-        const cvxCrvPoolAddress = getPoolAddress(ethers.utils, receipt);
-
-        const poolId = await IBalancerPool__factory.connect(cvxCrvPoolAddress, deployer).getPoolId();
-        cvxCrvBpt = { address: cvxCrvPoolAddress, poolId };
-        const balancerVault = IBalancerVault__factory.connect(config.balancerVault, deployer);
-
-        tx = await cvxCrv.approve(config.balancerVault, cvxCrvBalance);
-        await waitForTx(tx, debug, waitForBlocks);
-        tx = await crvBpt.approve(config.balancerVault, cvxCrvBalance);
-        await waitForTx(tx, debug, waitForBlocks);
-
-        const joinPoolRequest = {
-            assets: poolTokens,
-            maxAmountsIn: initialBalances as BN[],
-            userData: ethers.utils.defaultAbiCoder.encode(["uint256", "uint256[]"], [0, initialBalances as BN[]]),
-            fromInternalBalance: false,
-        };
-
-        tx = await balancerVault.joinPool(poolId, deployerAddress, multisigs.treasuryMultisig, joinPoolRequest);
-        await waitForTx(tx, debug, waitForBlocks);
-    } else {
-        const fakeBpt = await deployContract<MockERC20>(
-            hre,
-            new MockERC20__factory(deployer),
-            "CvxCrvBPT",
-            ["Balancer Pool Token 50/50 CRV/CVXCRV", "50/50 CRV/CVXCRV", 18, deployerAddress, 100000],
-            {},
-            debug,
-            waitForBlocks,
-        );
-        cvxCrvBpt = { address: fakeBpt.address, poolId: ZERO_KEY };
-    }
-
-    // -----------------------------
-    // 2.2.4 Schedule: chef (or other) & cvxCRV/CRV incentives
-    // -----------------------------
-    const currentBlock = await ethers.provider.getBlockNumber();
-    const chefCvx = distroList.lpIncentives;
-
-    const blocksInDay = BN.from(7000);
-    const numberOfBlocks = blocksInDay.mul(365).mul(4); // 4 years
-    const rewardPerBlock = chefCvx.div(numberOfBlocks);
-    const startBlock = BN.from(currentBlock).add(blocksInDay.mul(7)); //start with small delay
-
-    const chef = await deployContract<ConvexMasterChef>(
-        hre,
-        new ConvexMasterChef__factory(deployer),
-        "Bootstrap",
-        [cvx.address, rewardPerBlock, startBlock, startBlock.add(numberOfBlocks)],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    tx = await cvx.transfer(chef.address, distroList.lpIncentives);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await chef.add(1000, cvxCrvBpt.address, ZERO_ADDRESS);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await chef.transferOwnership(multisigs.daoMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    // -----------------------------
-    // 2.2.5 Schedule: Airdrop(s)
+    // 2.2.2 Schedule: Airdrop(s)
     // -----------------------------
 
     const dropCount = distroList.airdrops.length;
@@ -935,83 +908,6 @@ async function deployPhase2(
         drops.push(airdrop);
     }
 
-    // -----------------------------
-    // 2.2.6 Schedule: LBP & Matching liq
-    // -----------------------------
-
-    // If Mainnet or Kovan, create LBP
-    let lbpBpt: BalancerPoolDeployed;
-    if (chain == Chain.mainnet) {
-        const { tknAmount, wethAmount } = distroList.lbp;
-        const [poolTokens, weights, initialBalances] = balHelper.sortTokens(
-            [cvx.address, config.weth],
-            [simpleToExactAmount(99, 16), simpleToExactAmount(1, 16)],
-            [tknAmount, wethAmount],
-        );
-        const poolData: BPTData = {
-            tokens: poolTokens,
-            name: `Balancer ${await cvx.symbol()} WETH LBP`,
-            symbol: `B-${await cvx.symbol()}-WETH-LBP`,
-            swapFee: simpleToExactAmount(2, 16),
-            weights: weights as BN[],
-        };
-        if (debug) {
-            console.log(poolData.tokens);
-        }
-
-        const poolFactory = ILBPFactory__factory.connect(config.balancerPoolFactories.bootstrappingPool, deployer);
-        tx = await poolFactory.create(
-            poolData.name,
-            poolData.symbol,
-            poolData.tokens,
-            poolData.weights,
-            poolData.swapFee,
-            deployerAddress,
-            false,
-        );
-        const receipt = await waitForTx(tx, debug, waitForBlocks);
-        const poolAddress = getPoolAddress(ethers.utils, receipt);
-        const poolId = await IBalancerPool__factory.connect(poolAddress, deployer).getPoolId();
-        lbpBpt = { address: poolAddress, poolId };
-        const balancerVault = IBalancerVault__factory.connect(config.balancerVault, deployer);
-
-        tx = await MockERC20__factory.connect(config.weth, deployer).approve(config.balancerVault, wethAmount);
-        await waitForTx(tx, debug, waitForBlocks);
-        tx = await cvx.approve(config.balancerVault, tknAmount);
-        await waitForTx(tx, debug, waitForBlocks);
-
-        const joinPoolRequest = {
-            assets: poolTokens,
-            maxAmountsIn: initialBalances as BN[],
-            userData: ethers.utils.defaultAbiCoder.encode(["uint256", "uint256[]"], [0, initialBalances as BN[]]),
-            fromInternalBalance: false,
-        };
-
-        tx = await balancerVault.joinPool(poolId, deployerAddress, multisigs.treasuryMultisig, joinPoolRequest);
-        await waitForTx(tx, debug, waitForBlocks);
-    }
-    // Else just make a fake one to move tokens
-    else {
-        lbpBpt = { address: DEAD_ADDRESS, poolId: ZERO_KEY };
-        tx = await cvx.transfer(DEAD_ADDRESS, distroList.lbp.tknAmount);
-        await waitForTx(tx, debug, waitForBlocks);
-        tx = await MockERC20__factory.connect(config.weth, deployer).transfer(DEAD_ADDRESS, distroList.lbp.wethAmount);
-        await waitForTx(tx, debug, waitForBlocks);
-    }
-
-    const balLiquidityProvider = await deployContract<BalLiquidityProvider>(
-        hre,
-        new BalLiquidityProvider__factory(deployer),
-        "BalLiquidityProvider",
-        [cvx.address, config.weth, simpleToExactAmount(375), multisigs.treasuryMultisig, config.balancerVault],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    tx = await cvx.transfer(balLiquidityProvider.address, distroList.lbp.matching);
-    await waitForTx(tx, debug, waitForBlocks);
-
     const balance = await cvx.balanceOf(deployerAddress);
     if (balance.gt(0)) {
         // throw console.error("Uh oh, deployer still has CVX to distribute: ", balance.toString());
@@ -1033,17 +929,13 @@ async function deployPhase2(
         },
         arbitratorVault,
         cvxCrv,
-        cvxCrvBpt,
         cvxCrvRewards,
         crvDepositor,
         litDepositorHelper,
         poolManager,
         cvxLocker,
-        chef,
         vestedEscrows,
         drops,
-        lbpBpt,
-        balLiquidityProvider,
         penaltyForwarder,
         extraRewardsDistributor,
         poolManagerProxy,

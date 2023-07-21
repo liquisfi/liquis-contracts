@@ -98,13 +98,13 @@ contract LiqToken is ERC20, ERC20Permit {
 
         // e.g. 100 < 500
         if (cliff < totalCliffs) {
-            // e.g. (new) reduction = (500 - 100) * 2.5 + 700 = 1700;
-            // e.g. (new) reduction = (500 - 250) * 2.5 + 700 = 1325;
-            // e.g. (new) reduction = (500 - 400) * 2.5 + 700 = 950;
-            uint256 reduction = totalCliffs.sub(cliff).mul(5).div(2).add(700);
-            // e.g. (new) amount = 1e19 * 1700 / 500 =  34e18;
-            // e.g. (new) amount = 1e19 * 1325 / 500 =  26.5e18;
-            // e.g. (new) amount = 1e19 * 950 / 500  =  19e17;
+            // e.g. (new) reduction = (500 - 100) * 0.25 + 70 = 170;
+            // e.g. (new) reduction = (500 - 250) * 0.25 + 70 = 132.5;
+            // e.g. (new) reduction = (500 - 400) * 0.25 + 70 = 95;
+            uint256 reduction = totalCliffs.sub(cliff).div(4).add(70);
+            // e.g. (new) amount = 1e19 * 170 / 500 =  34e17;
+            // e.g. (new) amount = 1e19 * 132.5 / 500 =  26.5e17;
+            // e.g. (new) amount = 1e19 * 95 / 500  =  19e16;
             uint256 amount = _amount.mul(reduction).div(totalCliffs);
             // e.g. amtTillMax = 5e25 - 1e25 = 4e25
             uint256 amtTillMax = EMISSIONS_MAX_SUPPLY.sub(emissionsMinted);
