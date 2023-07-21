@@ -6,6 +6,8 @@ import {
     VoterProxy__factory,
     CvxCrvToken,
     BaseRewardPool,
+    BaseRewardPool4626,
+    BaseRewardPool4626__factory,
     LitDepositorHelper,
     IERC20Extra,
     PoolManagerV3,
@@ -100,6 +102,9 @@ describe("Booster", () => {
 
     let rewardPool1: BaseRewardPool;
     let rewardPool2: BaseRewardPool;
+
+    let rewardPool4626_1: BaseRewardPool4626;
+    let rewardPool4626_2: BaseRewardPool4626;
 
     const smartWalletCheckerContractAddress: string = "0x0ccdf95baf116ede5251223ca545d0ed02287a8f";
     const smartWalletCheckerOwnerAddress: string = "0x9a8fee232dcf73060af348a1b62cdb0a19852d13";
@@ -286,6 +291,9 @@ describe("Booster", () => {
         await booster.connect(deployer).deposit(0, e15.mul(30), true);
 
         const poolInfo1 = await booster.poolInfo(0);
+
+        rewardPool4626_1 = BaseRewardPool4626__factory.connect(poolInfo1.crvRewards, deployer);
+
         const depositTokenAddress = poolInfo1.token;
         const depositToken = (await ethers.getContractAt("IERC20Extra", depositTokenAddress)) as IERC20Extra;
         console.log("deployerDepositTokenBalance: ", (await depositToken.balanceOf(deployerAddress)).toString());
@@ -318,6 +326,8 @@ describe("Booster", () => {
         await increaseTime(60 * 60 * 24 * 3);
 
         const poolInfo2 = await booster.poolInfo(1);
+
+        rewardPool4626_2 = BaseRewardPool4626__factory.connect(poolInfo2.crvRewards, deployer);
 
         // Instance of litRewardPool2
         rewardPool2 = (await ethers.getContractAt("BaseRewardPool", poolInfo2.crvRewards, deployer)) as BaseRewardPool;
@@ -912,6 +922,22 @@ describe("Booster", () => {
             expect(queuedMappingAlice).eq(ZERO);
 
             const totalQueuedMapping = await pooledOptionsExerciser.totalQueued(epoch);
+
+            // Check revert
+            await expect(
+                pooledOptionsExerciser
+                    .connect(alice)
+                    .withdrawAndQueue(
+                        [rewardPool1.address, rewardPool2.address],
+                        [stakingTokenBalAlice0, stakingTokenBalAlice1],
+                        false,
+                        false,
+                    ),
+            ).to.be.revertedWith("ERC4626: withdrawal amount exceeds allowance");
+
+            // Approve the options exerciser to be able to withdraw tokens from reward pools
+            await rewardPool4626_1.connect(alice).approve(pooledOptionsExerciser.address, ethers.constants.MaxUint256);
+            await rewardPool4626_2.connect(alice).approve(pooledOptionsExerciser.address, ethers.constants.MaxUint256);
 
             const tx = await pooledOptionsExerciser
                 .connect(alice)

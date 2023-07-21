@@ -6,6 +6,7 @@ import {
     VoterProxy__factory,
     CvxCrvToken,
     BaseRewardPool,
+    BaseRewardPool4626,
     BaseRewardPool4626__factory,
     LitDepositorHelper,
     IERC20Extra,
@@ -112,6 +113,9 @@ describe("Booster", () => {
     let balancerHelpers: IBalancerHelpers;
     let balancerVault: IBalancerVault;
     let olitOracle: Contract;
+
+    let rewardPool4626_1: BaseRewardPool4626;
+    let rewardPool4626_2: BaseRewardPool4626;
 
     const smartWalletCheckerContractAddress: string = "0x0ccdf95baf116ede5251223ca545d0ed02287a8f";
     const smartWalletCheckerOwnerAddress: string = "0x9a8fee232dcf73060af348a1b62cdb0a19852d13";
@@ -299,9 +303,9 @@ describe("Booster", () => {
 
         const poolInfo1 = await booster.poolInfo(0);
 
-        const rewardPool4626 = BaseRewardPool4626__factory.connect(poolInfo1.crvRewards, deployer);
-        await lpTokenUsdcWeth.connect(deployer).approve(rewardPool4626.address, e15.mul(10));
-        tx = await rewardPool4626.connect(deployer).deposit(e15.mul(10), deployerAddress);
+        rewardPool4626_1 = BaseRewardPool4626__factory.connect(poolInfo1.crvRewards, deployer);
+        await lpTokenUsdcWeth.connect(deployer).approve(rewardPool4626_1.address, e15.mul(10));
+        tx = await rewardPool4626_1.connect(deployer).deposit(e15.mul(10), deployerAddress);
         txData = await tx.wait();
         console.log("gasUsed deposited BaseReward:", txData.cumulativeGasUsed.toNumber());
 
@@ -338,6 +342,8 @@ describe("Booster", () => {
         await increaseTime(60 * 60 * 24 * 3);
 
         const poolInfo2 = await booster.poolInfo(1);
+
+        rewardPool4626_2 = BaseRewardPool4626__factory.connect(poolInfo2.crvRewards, deployer);
 
         // Instance of litRewardPool2
         rewardPool2 = (await ethers.getContractAt("BaseRewardPool", poolInfo2.crvRewards, deployer)) as BaseRewardPool;
@@ -1363,6 +1369,24 @@ describe("Booster", () => {
             console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
             const liqLitAliceBalBefore = await cvxCrv.balanceOf(aliceAddress);
             console.log("liqLitAliceBalBefore: ", liqLitAliceBalBefore.toString());
+
+            // Check revert
+            await expect(
+                flashOptionsExerciser
+                    .connect(alice)
+                    .withdrawAndLock(
+                        [rewardPool1.address, rewardPool2.address],
+                        [stakingTokenBalAlice0, stakingTokenBalAlice1],
+                        false,
+                        true,
+                        false,
+                        minExchangeRateWithSlippage,
+                    ),
+            ).to.be.revertedWith("ERC4626: withdrawal amount exceeds allowance");
+
+            // Approve the options exerciser to be able to withdraw tokens from reward pools
+            await rewardPool4626_1.connect(alice).approve(flashOptionsExerciser.address, ethers.constants.MaxUint256);
+            await rewardPool4626_2.connect(alice).approve(flashOptionsExerciser.address, ethers.constants.MaxUint256);
 
             const tx = await flashOptionsExerciser
                 .connect(alice)
