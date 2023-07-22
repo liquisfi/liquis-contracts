@@ -26,8 +26,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     console.log(`Transfer of ${amount} ${litBptName} is done`);
 
-    let tx = await litBpt.transfer(config.Deployments.crvDepositor, amount);
+    let tx = await litBpt.transfer(config.Deployments.voterProxy, amount);
     await tx.wait();
+
+    const balanceOfBptInProxy = await litBpt.balanceOf(config.Deployments.voterProxy);
+    console.log(`VoterProxy BPT ${litBptName} balance: `, +balanceOfBptInProxy);
 
     const crvDepositor = CrvDepositor__factory.connect(config.Deployments.crvDepositor, deployer);
 

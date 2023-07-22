@@ -90,7 +90,7 @@ async function main(hre: HardhatRuntimeEnvironment) {
     const crvDepositor = await CrvDepositor.deploy(
         config.Deployments.voterProxy,
         cvxCrv.address,
-        config.External.weth,
+        config.External.tokenBpt,
         config.External.votingEscrow,
         deployer.address,
     );
