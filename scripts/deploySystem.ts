@@ -85,7 +85,6 @@ import { getChain } from "../tasks/utils/networkAddressFactory";
 import * as fs from "fs";
 import MainnetConfig from "./contracts.json";
 import HardhatConfig from "./contracts.hardhat.json";
-import TenderlyConfig from "./contracts.tenderly.json";
 
 interface AirdropData {
     merkleRoot: string;
@@ -276,11 +275,8 @@ function getConfig(hre: HardhatRuntimeEnvironment) {
     if (hre.network.name === "mainnet") {
         return MainnetConfig;
     }
-    if (hre.network.name === "localhost" || hre.network.name === "hardhat") {
+    if (hre.network.name === "hardhat") {
         return HardhatConfig;
-    }
-    if (hre.network.name === "tenderly") {
-        return TenderlyConfig;
     }
 
     throw new Error("not found config");
@@ -292,11 +288,8 @@ function writeConfigFile(config: any, hre: HardhatRuntimeEnvironment) {
         case "mainnet":
             filePath = "scripts/contracts.json";
             break;
-        case "localhost":
+        case "hardhat":
             filePath = "scripts/contracts.hardhat.json";
-            break;
-        case "tenderly":
-            filePath = "scripts/contracts.tenderly.json";
             break;
         default:
             throw Error("Unsupported network");
@@ -355,11 +348,9 @@ async function deployPhase1(
         await crvBpt.transfer(voterProxy.address, simpleToExactAmount(1));
     }
 
-    if (hre.network.name != "hardhat") {
-        const outputConfig = getConfig(hre);
-        outputConfig.Deployments.voterProxy = voterProxy.address;
-        writeConfigFile(outputConfig, hre);
-    }
+    const outputConfig = getConfig(hre);
+    outputConfig.Deployments.voterProxy = voterProxy.address;
+    writeConfigFile(outputConfig, hre);
 
     return { voterProxy };
 }
@@ -434,6 +425,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.liq = cvx.address;
+    writeConfigFile(outputConfig, hre);
+
     const minter = await deployContract<LiqMinter>(
         hre,
         new LiqMinter__factory(deployer),
@@ -444,6 +438,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.minter = minter.address;
+    writeConfigFile(outputConfig, hre);
+
     const booster = await deployContract<Booster>(
         hre,
         new Booster__factory(deployer),
@@ -453,6 +450,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.booster = booster.address;
+    writeConfigFile(outputConfig, hre);
 
     const rewardFactory = await deployContract<RewardFactory>(
         hre,
@@ -474,6 +474,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.tokenFactory = tokenFactory.address;
+    writeConfigFile(outputConfig, hre);
+
     const proxyFactory = await deployContract<ProxyFactory>(
         hre,
         new ProxyFactory__factory(deployer),
@@ -483,6 +486,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.proxyFactory = proxyFactory.address;
+    writeConfigFile(outputConfig, hre);
 
     const stashFactory = await deployContract<StashFactoryV2>(
         hre,
@@ -494,6 +500,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.stashFactory = stashFactory.address;
+    writeConfigFile(outputConfig, hre);
+
     const stashV3 = await deployContract<ExtraRewardStashV3>(
         hre,
         new ExtraRewardStashV3__factory(deployer),
@@ -503,6 +512,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.stashV3 = stashV3.address;
+    writeConfigFile(outputConfig, hre);
 
     const cvxCrv = await deployContract<CvxCrvToken>(
         hre,
@@ -514,6 +526,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.liqLit = cvxCrv.address;
+    writeConfigFile(outputConfig, hre);
+
     const crvDepositor = await deployContract<CrvDepositor>(
         hre,
         new CrvDepositor__factory(deployer),
@@ -523,6 +538,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.crvDepositor = crvDepositor.address;
+    writeConfigFile(outputConfig, hre);
 
     const cvxCrvRewards = await deployContract<BaseRewardPool>(
         hre,
@@ -534,6 +552,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.liqLitRewards = cvxCrvRewards.address;
+    writeConfigFile(outputConfig, hre);
+
     const poolManagerProxy = await deployContract<PoolManagerProxy>(
         hre,
         new PoolManagerProxy__factory(deployer),
@@ -543,6 +564,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.poolManagerProxy = poolManagerProxy.address;
+    writeConfigFile(outputConfig, hre);
 
     const poolManagerSecondaryProxy = await deployContract<PoolManagerSecondaryProxy>(
         hre,
@@ -554,6 +578,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.poolManagerSecondaryProxy = poolManagerSecondaryProxy.address;
+    writeConfigFile(outputConfig, hre);
+
     const poolManager = await deployContract<PoolManagerV3>(
         hre,
         new PoolManagerV3__factory(deployer),
@@ -563,6 +590,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.poolManager = poolManager.address;
+    writeConfigFile(outputConfig, hre);
 
     const boosterOwner = await deployContract<BoosterOwner>(
         hre,
@@ -581,6 +611,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.boosterOwner = boosterOwner.address;
+    writeConfigFile(outputConfig, hre);
+
     const arbitratorVault = await deployContract<ArbitratorVault>(
         hre,
         new ArbitratorVault__factory(deployer),
@@ -590,6 +623,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.arbitratorVault = arbitratorVault.address;
+    writeConfigFile(outputConfig, hre);
 
     const cvxLocker = await deployContract<LiqLocker>(
         hre,
@@ -601,6 +637,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.liqLocker = cvxLocker.address;
+    writeConfigFile(outputConfig, hre);
+
     const litDepositorHelper = await deployContract<LitDepositorHelper>(
         hre,
         new LitDepositorHelper__factory(deployer),
@@ -610,6 +649,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.litDepositorHelper = litDepositorHelper.address;
+    writeConfigFile(outputConfig, hre);
 
     const extraRewardsDistributor = await deployContract<ExtraRewardsDistributor>(
         hre,
@@ -621,6 +663,9 @@ async function deployPhase2(
         waitForBlocks,
     );
 
+    outputConfig.Deployments.extraRewardsDistributor = extraRewardsDistributor.address;
+    writeConfigFile(outputConfig, hre);
+
     const penaltyForwarder = await deployContract<AuraPenaltyForwarder>(
         hre,
         new AuraPenaltyForwarder__factory(deployer),
@@ -630,6 +675,9 @@ async function deployPhase2(
         debug,
         waitForBlocks,
     );
+
+    outputConfig.Deployments.penaltyForwarder = penaltyForwarder.address;
+    writeConfigFile(outputConfig, hre);
 
     let flashOptionsExerciser: FlashOptionsExerciser;
     // Some addresses are hardcoded in an immutable way and does not work with hre
@@ -645,6 +693,9 @@ async function deployPhase2(
         );
     }
 
+    outputConfig.Deployments.flashOptionsExerciser = flashOptionsExerciser.address;
+    writeConfigFile(outputConfig, hre);
+
     let pooledOptionsExerciser: PooledOptionsExerciser;
     // Some addresses are hardcoded in an immutable way and does not work with hre
     if (chain != Chain.local) {
@@ -658,6 +709,9 @@ async function deployPhase2(
             waitForBlocks,
         );
     }
+
+    outputConfig.Deployments.pooledOptionsExerciser = pooledOptionsExerciser.address;
+    writeConfigFile(outputConfig, hre);
 
     const prelaunchRewardsPool = await deployContract<PrelaunchRewardsPool>(
         hre,
@@ -677,52 +731,8 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    if (hre.network.name != "hardhat") {
-        outputConfig.Deployments.liq = cvx.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.minter = minter.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.booster = booster.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.tokenFactory = tokenFactory.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.proxyFactory = proxyFactory.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.stashFactory = stashFactory.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.stashV3 = stashV3.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.liqLit = cvxCrv.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.crvDepositor = crvDepositor.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.liqLitRewards = cvxCrvRewards.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.poolManagerProxy = poolManagerProxy.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.poolManagerSecondaryProxy = poolManagerSecondaryProxy.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.poolManager = poolManager.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.boosterOwner = boosterOwner.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.arbitratorVault = arbitratorVault.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.liqLocker = cvxLocker.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.litDepositorHelper = litDepositorHelper.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.extraRewardsDistributor = extraRewardsDistributor.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.penaltyForwarder = penaltyForwarder.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.flashOptionsExerciser = flashOptionsExerciser.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.pooledOptionsExerciser = pooledOptionsExerciser.address;
-        writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.prelaunchRewardsPool = prelaunchRewardsPool.address;
-        writeConfigFile(outputConfig, hre);
-    }
+    outputConfig.Deployments.prelaunchRewardsPool = prelaunchRewardsPool.address;
+    writeConfigFile(outputConfig, hre);
 
     let tx = await cvxLocker.addReward(token, booster.address);
     await waitForTx(tx, debug, waitForBlocks);
