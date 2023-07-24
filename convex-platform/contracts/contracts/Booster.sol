@@ -287,7 +287,7 @@ contract Booster is ReentrancyGuard {
      * @param _lockFees     % for cvxCrv stakers where 1% == 100
      * @param _stakerFees   % for CVX stakers where 1% == 100
      * @param _callerFees   % for whoever calls the claim where 1% == 100
-     * @param _platform     % for "treasury" or vlCVX where 1% == 100
+     * @param _platform     % for "treasury" or WETH-LIQ staking where 1% == 100
      */
     function setFees(uint256 _lockFees, uint256 _stakerFees, uint256 _callerFees, uint256 _platform) external nonReentrant{
         require(msg.sender==feeManager, "!auth");
@@ -298,7 +298,7 @@ contract Booster is ReentrancyGuard {
         require(_lockFees >= 300 && _lockFees <= 3500, "!lockFees");
         require(_stakerFees >= 300 && _stakerFees <= 1500, "!stakerFees");
         require(_callerFees >= 10 && _callerFees <= 100, "!callerFees");
-        require(_platform <= 200, "!platform");
+        require(_platform <= 1000, "!platform");
 
         lockIncentive = _lockFees;
         stakerIncentive = _stakerFees;
@@ -647,6 +647,7 @@ contract Booster is ReentrancyGuard {
 
         if(crvBalBefore > 0 && treasury != address(0)) {
             IERC20(crv).transfer(treasury, crvBalBefore);
+            IRewards(treasury).queueNewRewards(crvBalBefore);
         }
 
         //check if there are extra rewards
@@ -666,12 +667,13 @@ contract Booster is ReentrancyGuard {
             // CallIncentive = caller of this contract (currently 1%)
             uint256 _callIncentive = crvBal.mul(earmarkIncentive).div(FEE_DENOMINATOR);
             
-            // Treasury = vlCVX (currently 1%)
+            // Treasury = WETH-LIQ staking
             if(treasury != address(0) && treasury != address(this) && platformFee > 0){
                 //only subtract after address condition check
                 uint256 _platform = crvBal.mul(platformFee).div(FEE_DENOMINATOR);
                 crvBal = crvBal.sub(_platform);
                 IERC20(crv).safeTransfer(treasury, _platform);
+                IRewards(treasury).queueNewRewards(_platform);
             }
 
             //remove incentives from balance
