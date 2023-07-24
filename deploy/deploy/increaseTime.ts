@@ -28,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     let block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
     console.log("Current timestamp: ", block.timestamp);
 
-    const duration = parseInt(START_WITHDRAWALS.sub(block.timestamp).toString()) || 86400;
+    const duration = parseInt(START_VESTING_DATE.sub(block.timestamp).toString()) || 86400;
 
     const periodFinish = await prelaunchRewardsPool.periodFinish();
     console.log("Current periodFinish: ", +periodFinish);
