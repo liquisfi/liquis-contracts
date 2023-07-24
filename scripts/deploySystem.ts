@@ -802,7 +802,12 @@ async function deployPhase2(
     tx = await booster.setVoteDelegate(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await booster.setFees(2150, 300, 50, 0);
+    // Set fees to Booster
+    // liqLit stakers 19.5%
+    // LIQ lockers 3%
+    // Triggers 0.5%
+    // Protocol LIQ:WETH LPs 2%
+    tx = await booster.setFees(1950, 300, 50, 200);
     await waitForTx(tx, debug, waitForBlocks);
 
     if (chain != Chain.local) {
