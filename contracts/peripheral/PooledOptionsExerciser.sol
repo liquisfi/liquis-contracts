@@ -243,7 +243,7 @@ contract PooledOptionsExerciser {
     }
 
     /**
-     * @notice Withdraw LIT
+     * @notice Withdraw exercised LIT
      * @param _epoch The epoch for which to withdraw LIT
      * @return withdrawn_ The LIT withdrawn
      * @dev Returns zero if nothing withdrawable
@@ -268,7 +268,7 @@ contract PooledOptionsExerciser {
     }
 
     /**
-     * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
+     * @notice Withdraw exercised LIT and lock as liqLIT
      * @param _epoch Epoch for which to withdraw and lock LIT
      * @param _stake Stake liqLit into the liqLit staking rewards pool
      * @param _minOut Units of BPT to expect as output
