@@ -239,7 +239,7 @@ contract PrelaunchRewardsPool {
      * @dev Called by a staker to get their vested LIQ rewards
      * Note In convertStakeToLiqLit() we make sure that rewards[msg.sender] mapping reflects all rewards
      */
-    function claim() external updateReward(msg.sender) onlyAfterDate(START_VESTING_DATE) {
+    function claim() external onlyAfterDate(START_VESTING_DATE) {
         require(isVestingUser[msg.sender], "Not vesting User");
 
         uint256 unclaimedAmount = getClaimableLiqVesting(msg.sender);
