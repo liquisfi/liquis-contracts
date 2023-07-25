@@ -216,9 +216,7 @@ describe("Booster", () => {
 
         // Need to make an initial lock require(lockedSupply >= 1e20, "!balance");
         const operatorAccount = await impersonateAccount(booster.address);
-        let tx = await phase2.cvx.connect(operatorAccount.signer).mint(operatorAccount.address, e18.mul(1000));
-        await tx.wait();
-        tx = await phase2.cvx.connect(operatorAccount.signer).transfer(deployerAddress, e18.mul(1000));
+        let tx = await phase2.cvx.connect(operatorAccount.signer).mint(deployerAddress, e18.mul(1000));
         await tx.wait();
         tx = await phase2.cvx.approve(cvxLocker.address, e18.mul(1000));
         await tx.wait();
@@ -453,7 +451,7 @@ describe("Booster", () => {
 
             const earnedDeployer1 = await rewardPool1.earned(deployerAddress);
 
-            const tx = await pooledOptionsExerciser.claimAndQueue([rewardPool1.address], false, false);
+            const tx = await pooledOptionsExerciser.claimAndQueue([0], false, false);
 
             const receipt = await tx.wait();
             console.log("gasUsed claimAndQueue 1 pool:", receipt.cumulativeGasUsed.toNumber());
@@ -556,9 +554,7 @@ describe("Booster", () => {
             const totalQueuedMapping = await pooledOptionsExerciser.totalQueued(epoch);
             expect(totalQueuedMapping).gt(ZERO); // deployer and whale already deposited
 
-            const tx = await pooledOptionsExerciser
-                .connect(alice)
-                .claimAndQueue([rewardPool1.address, rewardPool2.address], false, false);
+            const tx = await pooledOptionsExerciser.connect(alice).claimAndQueue([0, 1], false, false);
 
             const receipt = await tx.wait();
             console.log(
@@ -927,12 +923,7 @@ describe("Booster", () => {
             await expect(
                 pooledOptionsExerciser
                     .connect(alice)
-                    .withdrawAndQueue(
-                        [rewardPool1.address, rewardPool2.address],
-                        [stakingTokenBalAlice0, stakingTokenBalAlice1],
-                        false,
-                        false,
-                    ),
+                    .withdrawAndQueue([0, 1], [stakingTokenBalAlice0, stakingTokenBalAlice1], false, false),
             ).to.be.revertedWith("ERC4626: withdrawal amount exceeds allowance");
 
             // Approve the options exerciser to be able to withdraw tokens from reward pools
@@ -941,12 +932,7 @@ describe("Booster", () => {
 
             const tx = await pooledOptionsExerciser
                 .connect(alice)
-                .withdrawAndQueue(
-                    [rewardPool1.address, rewardPool2.address],
-                    [stakingTokenBalAlice0, stakingTokenBalAlice1],
-                    false,
-                    false,
-                );
+                .withdrawAndQueue([0, 1], [stakingTokenBalAlice0, stakingTokenBalAlice1], false, false);
 
             const receipt = await tx.wait();
             console.log(
