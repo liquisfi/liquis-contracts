@@ -675,20 +675,26 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            const earnedDeployer = await rewardPool1.earned(deployerAddress);
+            const earnedPool = await rewardPool1.earned(deployerAddress);
+            console.log("earnedPool: ", +earnedPool);
+            const earnedLocker = await cvxLocker.earned(deployerAddress, olit.address);
+            console.log("earnedLocker: ", +earnedLocker);
+            const earnedDeployer = earnedPool.add(earnedLocker);
             console.log("earnedDeployer: ", +earnedDeployer);
 
             const litExpected = await getLitPerOLitAmount(earnedDeployer, deployerAddress);
             console.log("litExpected: ", +litExpected);
 
+            const minRate = litExpected.mul(e18).div(earnedDeployer);
+
             const SLIPPAGE: BigNumberish = 9900;
 
             // Apply slippage to litExpected
-            const litExpectedWithSlippage = litExpected.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            const litExpectedWithSlippage = minRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
 
             // Check revert
             await expect(
-                flashOptionsExerciser.claimAndExercise([0], true, false, litExpected.mul(10001).div(10000)),
+                flashOptionsExerciser.claimAndExercise([0], true, false, minRate.mul(10001).div(10000)),
             ).to.be.revertedWith("slipped");
 
             await flashOptionsExerciser.claimAndExercise([0], true, false, litExpectedWithSlippage);
