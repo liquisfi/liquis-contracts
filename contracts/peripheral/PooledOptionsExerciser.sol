@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-0.8/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-0.8/utils/Address.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-0.8/security/ReentrancyGuard.sol";
 
 import { IBooster } from "../interfaces/IBooster.sol";
 import { ILiqLocker } from "../interfaces/ILiqLocker.sol";
@@ -29,7 +28,7 @@ interface IOracle {
  * @notice  Allows for claiming oLIT from RewardPools, exercise it and lock LIT received.
  * @dev     Implements a pooled exercise model where oLIT are queued and exercised in two steps.
  */
-contract PooledOptionsExerciser is ReentrancyGuard {
+contract PooledOptionsExerciser {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
