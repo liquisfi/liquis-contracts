@@ -44,7 +44,6 @@ contract PooledOptionsExerciser is ReentrancyGuard {
     address public immutable lit = 0xfd0205066521550D7d7AB19DA8F72bb004b4C341;
     address public immutable olit = 0x627fee87d0D9D2c55098A06ac805Db8F98B158Aa;
     address public immutable olitOracle = 0x9d43ccb1aD7E0081cC8A8F1fd54D16E54A637E30;
-    address public immutable balOracle = 0x9232a548DD9E81BaC65500b5e0d918F8Ba93675C;
 
     uint256 public constant basisOne = 10000;
     bytes32 internal constant balancerPoolId = 0x9232a548dd9e81bac65500b5e0d918f8ba93675c000200000000000000000423;
@@ -112,32 +111,28 @@ contract PooledOptionsExerciser is ReentrancyGuard {
 
     /**
      * @notice Claim oLIT rewards from liqLit staking and liqLocker
-     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
+     * @param _pids Booster pools ids array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      */
     function claimAndQueue(
-        address[] memory _rewardPools,
+        uint256[] memory _pids,
         bool _locker,
         bool _liqLocker
-    ) external nonReentrant returns (uint256 amount) {
-        uint256 oLitBalBefore = IERC20(olit).balanceOf(address(this));
-
-        for (uint256 i = 0; i < _rewardPools.length; i++) {
+    ) external returns (uint256 amount) {
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
             // claim all the rewards, only oLIT is sent here, the rest directly to sender
-            IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
+            amount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
-            IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+            amount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
         }
 
         if (_liqLocker) {
-            ILiqLocker(liqLocker).getRewardFor(msg.sender);
+            amount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
-
-        uint256 oLitBalAfter = IERC20(olit).balanceOf(address(this));
-        amount = oLitBalAfter.sub(oLitBalBefore);
 
         // queue claimed oLIT rewards
         queued[msg.sender][epoch] += amount;
@@ -148,39 +143,35 @@ contract PooledOptionsExerciser is ReentrancyGuard {
 
     /**
      * @notice Withdraw Bunni LpTokens and claim oLIT rewards from liqLit staking and liqLocker
-     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
+     * @param _pids Booster pools ids array to claim rewards from
      * @param _amounts Amounts of stakingToken (Liquis LpToken) array to withdraw per pool id
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @dev owner needs to first approve this contract as spender on the rewards pool
      */
     function withdrawAndQueue(
-        address[] memory _rewardPools,
+        uint256[] memory _pids,
         uint256[] memory _amounts,
         bool _locker,
         bool _liqLocker
-    ) external nonReentrant returns (uint256 amount) {
-        require(_rewardPools.length == _amounts.length, "array length missmatch");
+    ) external returns (uint256 amount) {
+        require(_pids.length == _amounts.length, "array length missmatch");
 
-        uint256 oLitBalBefore = IERC20(olit).balanceOf(address(this));
-
-        for (uint256 i = 0; i < _rewardPools.length; i++) {
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
             // sender will receive the Bunni LpTokens, already unwrapped
-            IRewardPool4626(_rewardPools[i]).withdraw(_amounts[i], msg.sender, msg.sender);
+            IRewardPool4626(pool.crvRewards).withdraw(_amounts[i], msg.sender, msg.sender);
             // claim all the rewards, only oLIT is sent here, the rest directly to sender
-            IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
+            amount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
-            IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
+            amount += IBaseRewardPool(lockerRewards).getRewardFor(msg.sender, true);
         }
 
         if (_liqLocker) {
-            ILiqLocker(liqLocker).getRewardFor(msg.sender);
+            amount += ILiqLocker(liqLocker).getRewardFor(msg.sender);
         }
-
-        uint256 oLitBalAfter = IERC20(olit).balanceOf(address(this));
-        amount = oLitBalAfter.sub(oLitBalBefore);
 
         // queue claimed oLIT rewards
         queued[msg.sender][epoch] += amount;
