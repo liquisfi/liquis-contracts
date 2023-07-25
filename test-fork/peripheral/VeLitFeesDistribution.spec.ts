@@ -211,9 +211,7 @@ describe("Booster", () => {
 
         // Need to make an initial lock require(lockedSupply >= 1e20, "!balance");
         const operatorAccount = await impersonateAccount(booster.address);
-        let tx = await phase2.cvx.connect(operatorAccount.signer).mint(operatorAccount.address, e18.mul(1000));
-        await tx.wait();
-        tx = await phase2.cvx.connect(operatorAccount.signer).transfer(deployerAddress, e18.mul(1000));
+        let tx = await phase2.cvx.connect(operatorAccount.signer).mint(deployerAddress, e18.mul(1000));
         await tx.wait();
         tx = await phase2.cvx.approve(cvxLocker.address, e18.mul(1000));
         await tx.wait();
