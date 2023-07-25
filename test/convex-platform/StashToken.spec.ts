@@ -116,7 +116,7 @@ describe("StashToken", () => {
         const operatorAccount = await impersonateAccount(phase2.booster.address);
         tx = await phase2.cvx
             .connect(operatorAccount.signer)
-            .mint(operatorAccount.address, simpleToExactAmount(101, 18));
+            .mint(operatorAccount.address, simpleToExactAmount(1000, 18));
         await tx.wait();
 
         const cvxAmount = simpleToExactAmount(101);
