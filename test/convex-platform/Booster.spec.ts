@@ -92,7 +92,7 @@ describe("Booster", () => {
 
         // need to make an initial lock require(lockedSupply >= 1e20, "!balance");
         const operatorAccount = await impersonateAccount(booster.address);
-        let tx = await cvx.connect(operatorAccount.signer).mint(operatorAccount.address, simpleToExactAmount(101, 18));
+        let tx = await cvx.connect(operatorAccount.signer).mint(operatorAccount.address, simpleToExactAmount(1000, 18));
         await tx.wait();
 
         const cvxAmount = simpleToExactAmount(101);
@@ -121,13 +121,13 @@ describe("Booster", () => {
         });
         it("has the correct initial config", async () => {
             const lockFee = await booster.lockIncentive();
-            expect(lockFee).eq(2150);
+            expect(lockFee).eq(1950);
             const stakerFee = await booster.stakerIncentive();
             expect(stakerFee).eq(300);
             const callerFee = await booster.earmarkIncentive();
             expect(callerFee).eq(50);
             const platformFee = await booster.platformFee();
-            expect(platformFee).eq(0);
+            expect(platformFee).eq(200);
 
             const feeManager = await booster.feeManager();
             expect(feeManager).eq(await daoSigner.getAddress());
@@ -154,7 +154,7 @@ describe("Booster", () => {
             await expect(booster.connect(daoSigner).setFees(500, 500, 2, 0)).to.be.revertedWith("!callerFees");
             await expect(booster.connect(daoSigner).setFees(500, 500, 110, 0)).to.be.revertedWith("!callerFees");
             // platform 0-200
-            await expect(booster.connect(daoSigner).setFees(500, 500, 50, 250)).to.be.revertedWith("!platform");
+            await expect(booster.connect(daoSigner).setFees(500, 500, 50, 1050)).to.be.revertedWith("!platform");
         });
         it("distributes the fees to the correct places", async () => {
             await booster.connect(daoSigner).setFees(1500, 900, 50, 50);
@@ -470,7 +470,7 @@ describe("Booster", () => {
             const cvxBalAfter = await contracts.cvx.balanceOf(bridgeDelegateAddress);
 
             expect(crvBalBefore.sub(crvBalAfter)).eq(simpleToExactAmount(16.5));
-            assertBNClosePercent(cvxBalAfter.sub(cvxBalBefore), simpleToExactAmount(325.65), "0.001");
+            assertBNClosePercent(cvxBalAfter.sub(cvxBalBefore), simpleToExactAmount(32.565), "0.001");
 
             const currentTime = await getTimestamp();
             const currentEpoch = currentTime.div(ONE_WEEK);
