@@ -287,7 +287,7 @@ contract Booster is ReentrancyGuard {
      * @param _lockFees     % for cvxCrv stakers where 1% == 100
      * @param _stakerFees   % for CVX stakers where 1% == 100
      * @param _callerFees   % for whoever calls the claim where 1% == 100
-     * @param _platform     % for "treasury" or WETH-LIQ staking where 1% == 100
+     * @param _platform     % for "treasury" or WETH-LIQ or liqLIT-LIT staking where 1% == 100
      */
     function setFees(uint256 _lockFees, uint256 _stakerFees, uint256 _callerFees, uint256 _platform) external nonReentrant{
         require(msg.sender==feeManager, "!auth");
@@ -647,7 +647,6 @@ contract Booster is ReentrancyGuard {
 
         if(crvBalBefore > 0 && treasury != address(0)) {
             IERC20(crv).transfer(treasury, crvBalBefore);
-            IRewards(treasury).queueNewRewards(crvBalBefore);
         }
 
         //check if there are extra rewards
@@ -667,13 +666,12 @@ contract Booster is ReentrancyGuard {
             // CallIncentive = caller of this contract (currently 1%)
             uint256 _callIncentive = crvBal.mul(earmarkIncentive).div(FEE_DENOMINATOR);
             
-            // Treasury = WETH-LIQ staking
+            // Treasury = WETH-LIQ or liqLIT-LIT staking
             if(treasury != address(0) && treasury != address(this) && platformFee > 0){
                 //only subtract after address condition check
                 uint256 _platform = crvBal.mul(platformFee).div(FEE_DENOMINATOR);
                 crvBal = crvBal.sub(_platform);
                 IERC20(crv).safeTransfer(treasury, _platform);
-                IRewards(treasury).queueNewRewards(_platform);
             }
 
             //remove incentives from balance
