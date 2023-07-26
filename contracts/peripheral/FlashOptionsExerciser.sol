@@ -208,22 +208,23 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
 
     /**
      * @notice User claims their olit from different pools, converts into lit and sends it back to the user
-     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
+     * @param _pids Booster pools ids array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
-     * @param _minOut Min amount of LIT the user expects to receive
+     * @param _minExchangeRate The minimal accepted oLIT to BAL-20WETH-80LIT exchange rate
      * @return claimed The amount of LIT claimed and sent to caller
      */
     function claimAndExercise(
-        address[] memory _rewardPools,
+        uint256[] memory _pids,
         bool _locker,
         bool _liqLocker,
-        uint256 _minOut
+        uint256 _minExchangeRate
     ) external returns (uint256 claimed) {
         uint256 olitAmount = 0;
-        for (uint256 i = 0; i < _rewardPools.length; i++) {
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
             // claim all the rewards, only olit is sent here, the rest directly to sender
-            olitAmount += IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
+            olitAmount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
@@ -238,12 +239,12 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         _exerciseOptions(olitAmount);
 
         // send lit to sender
-        claimed = _transferLitToSender(_minOut);
+        claimed = _transferLitToSender(olitAmount, _minExchangeRate);
     }
 
     /**
      * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
-     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
+     * @param _pids Booster pools ids array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _stake Stake liqLit into the liqLit staking rewards pool
@@ -251,16 +252,17 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @return claimed The amount of BAL-20WETH-80LIT rewards claimed and locked
      */
     function claimAndLock(
-        address[] memory _rewardPools,
+        uint256[] memory _pids,
         bool _locker,
         bool _liqLocker,
         bool _stake,
         uint256 _minExchangeRate
     ) external returns (uint256 claimed) {
         uint256 olitAmount = 0;
-        for (uint256 i = 0; i < _rewardPools.length; i++) {
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
             // claim all the rewards, only olit is sent here, the rest directly to sender
-            olitAmount += IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
+            olitAmount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
@@ -280,7 +282,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
 
     /**
      * @notice Withdraw Bunni LpTokens, claim oLIT, convert into liqLit and sends it back to the user
-     * @param _rewardPools oLIT BaseRewardPools4626 addresses array to claim rewards from
+     * @param _pids Booster pools ids array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @param _stake Stake liqLit into the liqLit staking rewards pool
@@ -289,21 +291,22 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      * @dev owner needs to first approve this contract as spender on the rewards pool
      */
     function withdrawAndLock(
-        address[] memory _rewardPools,
+        uint256[] memory _pids,
         uint256[] memory _amounts,
         bool _locker,
         bool _liqLocker,
         bool _stake,
         uint256 _minExchangeRate
     ) external returns (uint256 claimed) {
-        require(_rewardPools.length == _amounts.length, "array length missmatch");
+        require(_pids.length == _amounts.length, "array length missmatch");
 
         uint256 olitAmount = 0;
-        for (uint256 i = 0; i < _rewardPools.length; i++) {
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
             // sender will receive the Bunni LpTokens, already unwrapped
-            IRewardPool4626(_rewardPools[i]).withdraw(_amounts[i], msg.sender, msg.sender);
+            IRewardPool4626(pool.crvRewards).withdraw(_amounts[i], msg.sender, msg.sender);
             // claim all the rewards, only oLIT is sent here, the rest directly to sender
-            olitAmount += IBaseRewardPool(_rewardPools[i]).getRewardFor(msg.sender, true);
+            olitAmount += IBaseRewardPool(pool.crvRewards).getRewardFor(msg.sender, true);
         }
 
         if (_locker) {
@@ -324,7 +327,7 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
     /**
      * @notice User claims their olit from pool, converts into liqLit and sends it back to the user
      * @param account The account for which to query earned rewards
-     * @param _rewardPools BaseRewardPools4626 addresses array to claim rewards from
+     * @param _pids Booster pools ids array to claim rewards from
      * @param _locker Boolean that indicates if the user is staking in lockerRewards (BaseRewardPool)
      * @param _liqLocker Boolean that indicates if the user is locking Liq in LiqLocker
      * @return earned_ The amount of oLIT earned
@@ -332,12 +335,13 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
      */
     function earned(
         address account,
-        address[] memory _rewardPools,
+        uint256[] memory _pids,
         bool _locker,
         bool _liqLocker
     ) external view returns (uint256 earned_) {
-        for (uint256 i = 0; i < _rewardPools.length; i++) {
-            earned_ += IBaseRewardPool(_rewardPools[i]).earned(account);
+        for (uint256 i = 0; i < _pids.length; i++) {
+            IBooster.PoolInfo memory pool = IBooster(operator).poolInfo(_pids[i]);
+            earned_ += IBaseRewardPool(pool.crvRewards).earned(account);
         }
 
         if (_locker) {
@@ -349,9 +353,10 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
         }
     }
 
-    function _transferLitToSender(uint256 _minOut) internal returns (uint256 litOut) {
+    function _transferLitToSender(uint256 _olitAmount, uint256 _minExchangeRate) internal returns (uint256 litOut) {
+        uint256 minOut = (_minExchangeRate * _olitAmount) / 1e18;
         litOut = IERC20(lit).balanceOf(address(this));
-        require(litOut >= _minOut, "slipped");
+        require(litOut >= minOut, "slipped");
         if (litOut > 0) {
             IERC20(lit).safeTransfer(msg.sender, litOut);
         }

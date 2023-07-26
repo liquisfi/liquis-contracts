@@ -21,6 +21,27 @@ const naming = {
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const deployer = (await ethers.getSigners())[0];
 
+    console.log(`Deploying VoterProxy to ${hre.network.name}`);
+
+    const VoterProxy = await ethers.getContractFactory("VoterProxy", deployer);
+    const voterProxy = await VoterProxy.deploy(
+        config.External.minter,
+        config.External.token,
+        config.External.tokenBpt,
+        config.External.votingEscrow,
+        config.External.gaugeController,
+    );
+    await voterProxy.deployed();
+    console.log(`Deployed at: ${voterProxy.address}`);
+
+    config.Deployments.voterProxy = voterProxy.address;
+    writeConfigFile(config);
+
+    // await tenderly.verify({
+    //     address: voterProxy.address,
+    //     name: "VoterProxy",
+    // });
+
     console.log(`Deploying Liq Contract to ${hre.network.name}`);
 
     let liq: Contract;
@@ -44,13 +65,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.Deployments.liq = liq.address;
     writeConfigFile(config);
 
-    await tenderly.verify({
-        address: liq.address,
-        name: hre.network.name == "mainnet" ? "LiqToken" : "MockERC20",
-    });
+    // await tenderly.verify({
+    //     address: liq.address,
+    //     name: hre.network.name == "mainnet" ? "LiqToken" : "MockERC20",
+    // });
 
     console.log(`Deploying LiqLit Contract to ${hre.network.name}`);
-    const CvxCrvToken = await ethers.getContractFactory("CvxCrvToken", deployer);
+    const CvxCrvToken = await ethers.getContractFactory("cvxCrvToken", deployer);
     const cvxCrv = await CvxCrvToken.deploy(naming.cvxCrvName, naming.cvxCrvSymbol);
 
     await cvxCrv.deployed();
@@ -59,17 +80,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.Deployments.cvxCrv = cvxCrv.address;
     writeConfigFile(config);
 
-    await tenderly.verify({
-        address: cvxCrv.address,
-        name: "CvxCrvToken",
-    });
+    // await tenderly.verify({
+    //     address: cvxCrv.address,
+    //     name: "cvxCrvToken",
+    // });
 
     console.log(`Deploying CrvDepositor Contract to ${hre.network.name}`);
     const CrvDepositor = await ethers.getContractFactory("CrvDepositor", deployer);
     const crvDepositor = await CrvDepositor.deploy(
         config.Deployments.voterProxy,
         cvxCrv.address,
-        config.External.weth,
+        config.External.tokenBpt,
         config.External.votingEscrow,
         deployer.address,
     );
@@ -80,10 +101,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.Deployments.crvDepositor = crvDepositor.address;
     writeConfigFile(config);
 
-    await tenderly.verify({
-        address: crvDepositor.address,
-        name: "CrvDepositor",
-    });
+    // await tenderly.verify({
+    //     address: crvDepositor.address,
+    //     name: "CrvDepositor",
+    // });
 
     // Set operator in cvxCrv token
     await cvxCrv.setOperator(crvDepositor.address);
@@ -103,10 +124,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.Deployments.litDepositorHelper = litDepositorHelper.address;
     writeConfigFile(config);
 
-    await tenderly.verify({
-        address: litDepositorHelper.address,
-        name: "LitDepositorHelper",
-    });
+    // await tenderly.verify({
+    //     address: litDepositorHelper.address,
+    //     name: "LitDepositorHelper",
+    // });
 
     // Set contract approvals
     await litDepositorHelper.setApprovals();
@@ -128,10 +149,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     config.Deployments.prelaunchRewardsPool = prelaunchRewardsPool.address;
     writeConfigFile(config);
 
-    await tenderly.verify({
-        address: prelaunchRewardsPool.address,
-        name: "PrelaunchRewardsPool",
-    });
+    // await tenderly.verify({
+    //     address: prelaunchRewardsPool.address,
+    //     name: "PrelaunchRewardsPool",
+    // });
 };
 
 export default func;

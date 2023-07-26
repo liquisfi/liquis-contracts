@@ -8,7 +8,7 @@ contract MockFeeTokenVerifier {
         valid = _valid;
     }
 
-    function checkToken(address _token) external view returns (bool) {
+    function checkToken(address) external view returns (bool) {
         return valid;
     }
 }

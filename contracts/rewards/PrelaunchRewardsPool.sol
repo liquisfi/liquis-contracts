@@ -99,7 +99,7 @@ contract PrelaunchRewardsPool {
         START_VESTING_DATE = block.timestamp + 28 days;
         END_VESTING_DATE = START_VESTING_DATE + 180 days;
 
-        START_WITHDRAWALS = START_VESTING_DATE + 28 days;
+        START_WITHDRAWALS = START_VESTING_DATE + 60 days;
     }
 
     // ----- Reward Functions ----- //
@@ -272,8 +272,14 @@ contract PrelaunchRewardsPool {
      * @dev Called by authorized addresses to allocate new LIQ rewards to this pool
      *      Rewards need to be first sent and subsequently call notifyRewardAmount
      *      There is no pull method in the function
+     *      Can only be called before START_VESTING_DATE
      */
-    function notifyRewardAmount(uint256 reward) external updateReward(address(0)) onlyAuthorized {
+    function notifyRewardAmount(uint256 reward)
+        external
+        updateReward(address(0))
+        onlyAuthorized
+        onlyBeforeDate(START_VESTING_DATE)
+    {
         rewardToken.safeTransferFrom(msg.sender, address(this), reward);
 
         historicalRewards = historicalRewards + reward;

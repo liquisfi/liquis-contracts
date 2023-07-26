@@ -254,7 +254,7 @@ describe("PrelaunchRewardsPool", () => {
 
                 assertBNClosePercent(START_VESTING_DATE, timestamp.add(ONE_WEEK.mul(4)), "0.001");
                 assertBNClosePercent(END_VESTING_DATE, START_VESTING_DATE.add(ONE_DAY.mul(180)), "0.001");
-                assertBNClosePercent(START_WITHDRAWALS, START_VESTING_DATE.add(ONE_WEEK.mul(4)), "0.001");
+                assertBNClosePercent(START_WITHDRAWALS, START_VESTING_DATE.add(ONE_DAY.mul(60)), "0.001");
             });
 
             it("allows bpt holders to stake their LIT/WETH lpTokens", async () => {
@@ -399,10 +399,10 @@ describe("PrelaunchRewardsPool", () => {
             });
 
             it("updates rewards according the different users stake", async () => {
-                for (const bptHolder of bptHolders) {
-                    // increase one week to finish first reward distribution
-                    await increaseTime(ONE_WEEK);
+                // increase one week to finish first reward distribution
+                await increaseTime(ONE_WEEK);
 
+                for (const bptHolder of bptHolders) {
                     const totalStaked = await prelaunchRewardsPool.totalSupply();
                     const currentRewards = await prelaunchRewardsPool.currentRewards();
 
@@ -681,7 +681,7 @@ describe("PrelaunchRewardsPool", () => {
             });
 
             it("reverts when withdrawing if users stake is zero", async () => {
-                await increaseTime(ONE_WEEK.mul(9));
+                await increaseTime(ONE_WEEK.mul(13));
 
                 // set crvDepositor to address(0)
                 await prelaunchRewardsPool.setCrvDepositor(ZERO_ADDRESS);
@@ -827,7 +827,7 @@ describe("PrelaunchRewardsPool", () => {
 
                 const balanceDepositorBefore = await stakingToken.balanceOf(votingEscrowAddress);
 
-                await increaseTime(ONE_WEEK.mul(11));
+                await increaseTime(ONE_WEEK.mul(13));
 
                 const timestampPost = await getTimestamp();
                 expect(timestampPost).gt(START_WITHDRAWALS);

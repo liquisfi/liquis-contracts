@@ -100,7 +100,7 @@ describe("LiqLockerBalances", () => {
         cvx = contracts.cvx;
 
         const operatorAccount = await impersonateAccount(booster.address);
-        await cvx.connect(operatorAccount.signer).mint(operatorAccount.address, simpleToExactAmount(100000, 18));
+        await cvx.connect(operatorAccount.signer).mint(operatorAccount.address, simpleToExactAmount(1000000, 18));
         await cvx.connect(operatorAccount.signer).transfer(alice.address, simpleToExactAmount(10000));
         await cvx.connect(alice.signer).approve(liqLocker.address, simpleToExactAmount(10000));
         await cvx.connect(operatorAccount.signer).transfer(bob.address, simpleToExactAmount(10000));

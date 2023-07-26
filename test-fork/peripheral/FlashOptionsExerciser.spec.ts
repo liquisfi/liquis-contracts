@@ -222,9 +222,7 @@ describe("Booster", () => {
 
         // Need to make an initial lock require(lockedSupply >= 1e20, "!balance");
         const operatorAccount = await impersonateAccount(booster.address);
-        let tx = await phase2.cvx.connect(operatorAccount.signer).mint(operatorAccount.address, e18.mul(1000));
-        await tx.wait();
-        tx = await phase2.cvx.connect(operatorAccount.signer).transfer(deployerAddress, e18.mul(1000));
+        let tx = await phase2.cvx.connect(operatorAccount.signer).mint(deployerAddress, e18.mul(1000));
         await tx.wait();
         tx = await phase2.cvx.approve(phase2.cvxLocker.address, e18.mul(1000));
         await tx.wait();
@@ -677,28 +675,29 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("litDeployerBalBefore: ", litDeployerBalBefore.toString());
 
-            const earnedDeployer = await rewardPool1.earned(deployerAddress);
+            const earnedPool = await rewardPool1.earned(deployerAddress);
+            console.log("earnedPool: ", +earnedPool);
+            const earnedLocker = await cvxLocker.earned(deployerAddress, olit.address);
+            console.log("earnedLocker: ", +earnedLocker);
+            const earnedDeployer = earnedPool.add(earnedLocker);
             console.log("earnedDeployer: ", +earnedDeployer);
 
             const litExpected = await getLitPerOLitAmount(earnedDeployer, deployerAddress);
             console.log("litExpected: ", +litExpected);
 
+            const minRate = litExpected.mul(e18).div(earnedDeployer);
+
             const SLIPPAGE: BigNumberish = 9900;
 
             // Apply slippage to litExpected
-            const litExpectedWithSlippage = litExpected.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
+            const litExpectedWithSlippage = minRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
 
             // Check revert
             await expect(
-                flashOptionsExerciser.claimAndExercise(
-                    [rewardPool1.address],
-                    true,
-                    false,
-                    litExpected.mul(10001).div(10000),
-                ),
+                flashOptionsExerciser.claimAndExercise([0], true, false, minRate.mul(10001).div(10000)),
             ).to.be.revertedWith("slipped");
 
-            await flashOptionsExerciser.claimAndExercise([rewardPool1.address], true, false, litExpectedWithSlippage);
+            await flashOptionsExerciser.claimAndExercise([0], true, false, litExpectedWithSlippage);
 
             const litDeployerBalAfter = await lit.balanceOf(deployerAddress);
             const olitDeployerBalAfter = await olit.balanceOf(deployerAddress);
@@ -746,13 +745,7 @@ describe("Booster", () => {
             const minExchangeRateWithSlippage = minExchangeRate.mul(SLIPPAGE).div(SLIPPAGE_SCALE);
             console.log("minExchangeRateWithSlippage: ", +minExchangeRateWithSlippage);
 
-            const tx = await flashOptionsExerciser.claimAndLock(
-                [rewardPool1.address],
-                true,
-                false,
-                false,
-                minExchangeRateWithSlippage,
-            );
+            const tx = await flashOptionsExerciser.claimAndLock([0], true, false, false, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock, 1 pool, locker = true, liqLocker = false:",
@@ -845,12 +838,7 @@ describe("Booster", () => {
             const earnedAlice0 = await rewardPool1.earned(aliceAddress);
             const earnedAlice1 = await rewardPool2.earned(aliceAddress);
 
-            const totalEarned = await flashOptionsExerciser.earned(
-                aliceAddress,
-                [rewardPool1.address, rewardPool2.address],
-                false,
-                false,
-            );
+            const totalEarned = await flashOptionsExerciser.earned(aliceAddress, [0, 1], false, false);
 
             // Alice has rewards from both pools
             expect(earnedAlice0).gt(ZERO);
@@ -879,13 +867,7 @@ describe("Booster", () => {
 
             const tx = await flashOptionsExerciser
                 .connect(alice)
-                .claimAndLock(
-                    [rewardPool1.address, rewardPool2.address],
-                    false,
-                    false,
-                    false,
-                    minExchangeRateWithSlippage,
-                );
+                .claimAndLock([0, 1], false, false, false, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 2 pools, locker = false, liqLocker = false:",
@@ -992,7 +974,7 @@ describe("Booster", () => {
 
             const tx = await flashOptionsExerciser
                 .connect(alice)
-                .claimAndExercise([rewardPool1.address, rewardPool2.address], true, false, minExchangeRateWithSlippage);
+                .claimAndExercise([0, 1], true, false, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndExercise, locker = true, liqLocker = false:",
@@ -1170,19 +1152,14 @@ describe("Booster", () => {
             const addedRewards = olitAmount.add(oLitEarnedAliceInLiqLitPoolBefore).add(oLitEarnedAliceInLocker);
             console.log("addedRewards: ", +addedRewards);
 
-            const totalEarned = await flashOptionsExerciser.earned(
-                aliceAddress,
-                [rewardPool1.address, rewardPool2.address],
-                true,
-                true,
-            );
+            const totalEarned = await flashOptionsExerciser.earned(aliceAddress, [0, 1], true, true);
             console.log("totalEarned: ", +totalEarned);
 
             assertBNClosePercent(addedRewards, totalEarned, "0.001");
 
             const tx = await flashOptionsExerciser
                 .connect(alice)
-                .claimAndExercise([rewardPool1.address, rewardPool2.address], true, true, minExchangeRateWithSlippage);
+                .claimAndExercise([0, 1], true, true, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndExercise 2 pools, locker = true, liqLocker = true:",
@@ -1250,13 +1227,7 @@ describe("Booster", () => {
 
             const tx = await flashOptionsExerciser
                 .connect(alice)
-                .claimAndLock(
-                    [rewardPool1.address, rewardPool2.address],
-                    false,
-                    true,
-                    false,
-                    minExchangeRateWithSlippage,
-                );
+                .claimAndLock([0, 1], false, true, false, minExchangeRateWithSlippage);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 2 pools, locker = false, liqLocker = true:",
@@ -1299,7 +1270,7 @@ describe("Booster", () => {
             const liqLitDeployerBalBefore = await cvxCrv.balanceOf(deployerAddress);
             console.log("liqLitDeployerBalBefore: ", liqLitDeployerBalBefore.toString());
 
-            const tx = await flashOptionsExerciser.claimAndLock([rewardPool1.address], true, true, false, 0);
+            const tx = await flashOptionsExerciser.claimAndLock([0], true, true, false, 0);
             const txData = await tx.wait();
             console.log(
                 "gasUsed claimAndLock 1 pool, locker = true, liqLocker = true:",
@@ -1375,7 +1346,7 @@ describe("Booster", () => {
                 flashOptionsExerciser
                     .connect(alice)
                     .withdrawAndLock(
-                        [rewardPool1.address, rewardPool2.address],
+                        [0, 1],
                         [stakingTokenBalAlice0, stakingTokenBalAlice1],
                         false,
                         true,
@@ -1391,7 +1362,7 @@ describe("Booster", () => {
             const tx = await flashOptionsExerciser
                 .connect(alice)
                 .withdrawAndLock(
-                    [rewardPool1.address, rewardPool2.address],
+                    [0, 1],
                     [stakingTokenBalAlice0, stakingTokenBalAlice1],
                     false,
                     true,

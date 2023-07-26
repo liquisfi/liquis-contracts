@@ -53,7 +53,7 @@ contract MockCurveGauge is ERC20 {
         address /* _distributor */
     ) external {}
 
-    function is_killed() external view returns (bool) {
+    function is_killed() external pure returns (bool) {
         return false;
     }
 

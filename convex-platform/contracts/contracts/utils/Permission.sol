@@ -14,7 +14,7 @@ abstract contract Permission {
 
     event ModifyPermission(address owner, address caller, bool grant);
 
-    /// @notice Specify whether `caller` can act on behalf of `owner`
+    /// @dev Specify whether `caller` can act on behalf of `owner`
     mapping(address => mapping(address => bool)) private _permitted;
 
     /**

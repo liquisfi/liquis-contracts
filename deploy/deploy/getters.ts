@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`Start of vesting date: ${START_VESTING_DATE.toString()}`);
 
     const START_WITHDRAWALS = await prelaunchRewardsPool.START_WITHDRAWALS();
-    console.log(`Start of vesting date: ${START_WITHDRAWALS.toString()}`);
+    console.log(`Start of withdrawals date: ${START_WITHDRAWALS.toString()}`);
 
     const rewardRate = await prelaunchRewardsPool.rewardRate();
     console.log(`rewardRate: ${rewardRate.toString()}`);
@@ -43,6 +43,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const liq = MockERC20__factory.connect(config.Deployments.liq, deployer);
     const preLaunchLiqBal = await liq.balanceOf(prelaunchRewardsPool.address);
     console.log("preLaunchLiqBal:", preLaunchLiqBal.toString());
+
+    const crvDepositor = await prelaunchRewardsPool.crvDepositor();
+    console.log("Current crvDepositor:", crvDepositor);
 };
 
 export default func;

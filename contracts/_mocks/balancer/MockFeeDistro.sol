@@ -58,7 +58,7 @@ contract MockFeeDistributor is IFeeDistributor {
 
     function depositToken(IERC20 token, uint256 amount) external {}
 
-    function getNextNonce(address) external view returns (uint256) {
+    function getNextNonce(address) external pure returns (uint256) {
         return 0;
     }
 
