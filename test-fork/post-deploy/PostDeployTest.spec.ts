@@ -208,12 +208,12 @@ describe("Post deploy", () => {
         // Populate already deployed contracts
         voterProxy = VoterProxy__factory.connect(mainnetDeployment.voterProxy, deployer);
         liq = LiqToken__factory.connect(mainnetDeployment.liq, deployer);
-        minter = LiqMinter__factory.connect(mainnetDeployment.minter, deployer);
+        // minter = LiqMinter__factory.connect(mainnetDeployment.minter, deployer);
         booster = Booster__factory.connect(mainnetDeployment.booster, deployer);
         liqLit = CvxCrvToken__factory.connect(mainnetDeployment.liqLit, deployer);
         crvDepositor = CrvDepositor__factory.connect(mainnetDeployment.crvDepositor, deployer);
         litDepositorHelper = LitDepositorHelper__factory.connect(mainnetDeployment.litDepositorHelper, deployer);
-        prelaunchRewardsPool = PrelaunchRewardsPool__factory.connect(mainnetDeployment.prelaunchRewardsPool, deployer);
+        // prelaunchRewardsPool = PrelaunchRewardsPool__factory.connect(mainnetDeployment.prelaunchRewardsPool, deployer);
 
         // Deploy rest of the s
         rewardFactory = await deployContract<RewardFactory>(
@@ -399,7 +399,7 @@ describe("Post deploy", () => {
         tx = await liqLocker.transferOwnership(multisigs.daoMultisig);
         await waitForTx(tx, debug, waitForBlocks);
 
-        // Impersonate
+        // Impersonate dao multisig to run protected methods
         await impersonateAccount(daoMultisigAddress, true);
         const daoMultisigSigner = await ethers.getSigner(daoMultisigAddress);
 
@@ -411,7 +411,7 @@ describe("Post deploy", () => {
         tx = await booster.connect(daoMultisigSigner).setRewardContracts(cvxCrvRewards.address, liqLocker.address);
         await waitForTx(tx, debug, waitForBlocks);
 
-        // Impersonate
+        // Impersonate liquis deployer as it is current poolManager
         await impersonateAccount(liquisDeployerAddress, true);
         const liquisDeployerSigner = await ethers.getSigner(liquisDeployerAddress);
 
@@ -462,6 +462,10 @@ describe("Post deploy", () => {
         tx = await flashOptionsExerciser.setOwner(multisigs.daoMultisig);
         await waitForTx(tx, debug, waitForBlocks);
 
+        console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
+        console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
+        console.log(`~~~~~~~~~~~~~~~~~~~~~~~~~~~\n`);
+
         // Impersonate Bunni governance and fund it with 10 ETH
         await impersonateAccount(smartWalletCheckerOwnerAddress, true);
         const smartWalletCheckerGovernance = await ethers.getSigner(smartWalletCheckerOwnerAddress);
@@ -497,10 +501,6 @@ describe("Post deploy", () => {
         await impersonateAccount(wethHolderAddress, true);
         const wethHolder = await ethers.getSigner(wethHolderAddress);
         await weth.connect(wethHolder).transfer(deployerAddress, e18.mul(1000));
-
-        console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
-        console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
-        console.log(`~~~~~~~~~~~~~~~~~~~~~~~~~~~\n`);
 
         // Need to make an initial lock require(lockedSupply >= 1e20, "!balance");
         const operatorAccount = await impersonateAccount(booster.address);
@@ -598,7 +598,7 @@ describe("Post deploy", () => {
         console.log("deployerRewardPool1TokenBalance: ", (await rewardPool1.balanceOf(deployerAddress)).toString());
         console.log("totalSupplyRewardPool1: ", (await rewardPool1.totalSupply()).toString());
 
-        // allow flashOptionsExerciser permissions in rewardPools
+        // Allow flashOptionsExerciser permissions in rewardPools
         tx = await cvxCrvRewards.modifyPermission(flashOptionsExerciser.address, true);
         tx = await rewardPool1.modifyPermission(flashOptionsExerciser.address, true);
         await waitForTx(tx, debug, waitForBlocks);
@@ -630,7 +630,7 @@ describe("Post deploy", () => {
         console.log("aliceRewardPool2TokenBalance: ", (await rewardPool2.balanceOf(aliceAddress)).toString());
         console.log("totalSupplyRewardPool2: ", (await rewardPool2.totalSupply()).toString());
 
-        // allow flashOptionsExerciser permissions in rewardPools
+        // Allow flashOptionsExerciser permissions in rewardPools
         tx = await rewardPool1.connect(alice).modifyPermission(flashOptionsExerciser.address, true);
         tx = await rewardPool2.connect(alice).modifyPermission(flashOptionsExerciser.address, true);
         tx = await cvxCrvRewards.connect(alice).modifyPermission(flashOptionsExerciser.address, true);
@@ -672,7 +672,7 @@ describe("Post deploy", () => {
             await setup();
         });
 
-        it("Contracts are deployed, a couple of pools added and rewards are earmarked", async () => {
+        it("Rest of contracts are deployed, a couple of pools added, deposits made and rewards earmarked", async () => {
             const bobOLitBalance = await olit.balanceOf(bobAddress);
             const lockingOLitBalance = await olit.balanceOf(liqLocker.address);
             const stakingOLitBalance = await olit.balanceOf(cvxCrvRewards.address);
