@@ -69,14 +69,14 @@ import bunniHubABI from "../../abi/bunniHub.json";
 const hreAddress: string = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
 
 const mainnetDeployment = {
-    voterProxy: "0x9155497EAE31D432C0b13dBCc0615a37f55a2c87",
-    liq: "0xfB12F7170FF298CDed84C793dAb9aBBEcc01E798",
-    minter: "0xc1EeD9232A0A44c2463ACB83698c162966FBc78d",
-    booster: "0xC220Ed128102d888af857d137a54b9B7573A41b2",
-    liqLit: "0xfaE849108F2A63Abe3BaB17E21Be077d07e7a9A2",
-    crvDepositor: "0x12456Fa31e57F91B70629c1196337074c966492a",
-    litDepositorHelper: "0xce830DA8667097BB491A70da268b76a081211814",
-    prelaunchRewardsPool: "0xD5bFeBDce5c91413E41cc7B24C8402c59A344f7c",
+    voterProxy: "0x37aeB332D6E57112f1BFE36923a7ee670Ee9278b",
+    liq: "0xD82fd4D6D62f89A1E50b1db69AD19932314aa408",
+    minter: "0x2e8617079e97Ac78fCE7a2A2ec7c4a84492b805e",
+    booster: "0x631e58246A88c3957763e1469cb52f93BC1dDCF2",
+    liqLit: "0x03C6F0Ca0363652398abfb08d154F114e61c4Ad8",
+    crvDepositor: "0xB96Bce10480d2a8eb2995Ee4f04a70d48997856a",
+    litDepositorHelper: "0x97a2585Ddb121db8E9a3B6575E302F9c610AF08c",
+    prelaunchRewardsPool: "0x5c988c4E1F3cf1CA871A54Af3a1DcB5FeF2612Fc",
 };
 
 const externalAddresses: ExtSystemConfig = {
@@ -124,7 +124,7 @@ const multisigs: MultisigConfig = {
 const debug = false;
 const waitForBlocks = 0;
 
-describe("Booster", () => {
+describe("Post deploy", () => {
     let booster: Booster;
     let liq: LiqToken;
     let voterProxy: VoterProxy;
@@ -198,10 +198,11 @@ describe("Booster", () => {
     const usdcAddress: string = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
     const daoMultisigAddress: string = "0xd9dDB1129941377166C7Aa5834F6c9B56BA100fe";
+    const liquisDeployerAddress: string = "0xA35E14f9D731ddB1994B5590574B32A838646Ccf";
 
     const bunniHubContractAddress: string = "0xb5087F95643A9a4069471A28d32C569D9bd57fE4";
 
-    const FORK_BLOCK_NUMBER: number = 17641669;
+    const FORK_BLOCK_NUMBER: number = 17778750;
 
     const setup = async () => {
         // Populate already deployed contracts
@@ -398,17 +399,23 @@ describe("Booster", () => {
         tx = await liqLocker.transferOwnership(multisigs.daoMultisig);
         await waitForTx(tx, debug, waitForBlocks);
 
-        tx = await stashFactory.setImplementation(ZERO_ADDRESS, ZERO_ADDRESS, stashV3.address);
-        await waitForTx(tx, debug, waitForBlocks);
-
         // Impersonate
         await impersonateAccount(daoMultisigAddress, true);
         const daoMultisigSigner = await ethers.getSigner(daoMultisigAddress);
 
+        tx = await stashFactory
+            .connect(daoMultisigSigner)
+            .setImplementation(ZERO_ADDRESS, ZERO_ADDRESS, stashV3.address);
+        await waitForTx(tx, debug, waitForBlocks);
+
         tx = await booster.connect(daoMultisigSigner).setRewardContracts(cvxCrvRewards.address, liqLocker.address);
         await waitForTx(tx, debug, waitForBlocks);
 
-        tx = await booster.connect(daoMultisigSigner).setPoolManager(poolManagerProxy.address);
+        // Impersonate
+        await impersonateAccount(liquisDeployerAddress, true);
+        const liquisDeployerSigner = await ethers.getSigner(liquisDeployerAddress);
+
+        tx = await booster.connect(liquisDeployerSigner).setPoolManager(poolManagerProxy.address);
         await waitForTx(tx, debug, waitForBlocks);
 
         tx = await poolManagerProxy.setOperator(poolManagerSecondaryProxy.address);
@@ -476,6 +483,12 @@ describe("Booster", () => {
         const crvBptHolder = await ethers.getSigner(crvBptHolderAddress);
         await crvBpt.connect(crvBptHolder).transfer(deployerAddress, e18.mul(32000));
         console.log("deployer funded with crvBpt: ", (await crvBpt.balanceOf(deployerAddress)).toString());
+
+        // Need to create the initial lock
+        tx = await crvBpt.transfer(voterProxy.address, e18.mul(100));
+        await waitForTx(tx, debug, waitForBlocks);
+        tx = await crvDepositor.connect(daoMultisigSigner).initialLock();
+        await waitForTx(tx, debug, waitForBlocks);
 
         // Instance of weth
         weth = (await ethers.getContractAt("IERC20Extra", externalAddresses.weth)) as IERC20Extra;
