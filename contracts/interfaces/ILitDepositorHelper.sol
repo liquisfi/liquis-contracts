@@ -6,7 +6,8 @@ interface ILitDepositorHelper {
         uint256 _amount,
         uint256 _minOut,
         bool _lock,
-        address _stakeAddress
+        address _stakeAddress,
+        uint256 asset
     ) external returns (uint256 bptOut);
 
     function depositFor(
@@ -14,8 +15,11 @@ interface ILitDepositorHelper {
         uint256 _amount,
         uint256 _minOut,
         bool _lock,
-        address _stakeAddress
+        address _stakeAddress,
+        uint256 asset
     ) external returns (uint256 bptOut);
 
     function convertLitToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptOut);
+
+    function convertWethToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptOut);
 }

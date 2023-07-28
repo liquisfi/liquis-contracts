@@ -142,10 +142,10 @@ describe("LitDepositorHelper", () => {
             const feeDistro = await contracts.booster.feeTokens(crv.address);
             const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
 
-            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000", 1);
 
             await crv.approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress);
+            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress, 1);
 
             const cvxCrvBalanceAfter = await cvxCrv.balanceOf(aliceAddress);
             const cvxCrvBalanceDelta = cvxCrvBalanceAfter.sub(cvxCrvBalanceBefore);
@@ -166,10 +166,10 @@ describe("LitDepositorHelper", () => {
             const feeDistro = await contracts.booster.feeTokens(crv.address);
             const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
 
-            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000", 1);
 
             await crv.approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress);
+            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress, 1);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
             const feeCrvBalanceAfter = await crv.balanceOf(feeDistro.rewards);

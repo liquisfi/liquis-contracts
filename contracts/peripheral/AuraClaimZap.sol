@@ -224,7 +224,8 @@ contract AuraClaimZap {
                     crvBalance,
                     minAmountOut,
                     _checkOption(options, uint256(Options.LockCrvDeposit)),
-                    address(0)
+                    address(0),
+                    1
                 );
 
                 uint256 cvxCrvBalance = IERC20(cvxCrv).balanceOf(address(this));

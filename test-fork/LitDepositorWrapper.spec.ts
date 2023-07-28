@@ -226,10 +226,10 @@ describe("Booster", () => {
             const initLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
             const cvxCrvBalInit = await cvxCrv.balanceOf(deployerAddress);
             const amount = e18.mul(100000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9800");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9800", 1);
 
             await lit.connect(deployer).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS);
+            await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS, 1);
             const deployerVeLitBalance = await velit.balanceOf(deployerAddress);
 
             const endLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
@@ -257,9 +257,9 @@ describe("Booster", () => {
 
             const stakedBalanceBefore = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            const minOut = await litDepositorHelper.getMinOut(e18.mul(10000), "9900");
+            const minOut = await litDepositorHelper.getMinOut(e18.mul(10000), "9900", 1);
 
-            await litDepositorHelper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress);
+            await litDepositorHelper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress, 1);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
 
@@ -312,12 +312,12 @@ describe("Booster", () => {
 
             const amount = e18.mul(1000);
 
-            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000", 1);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
 
             await expect(
-                litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress),
+                litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, 1),
             ).to.be.revertedWith("BAL#208");
         });
 
@@ -326,12 +326,12 @@ describe("Booster", () => {
             const stakeAddress = cvxCrvStaking.address;
 
             const amount = e18.mul(1000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9950");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9950", 1);
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, 1);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
             expect(endBalStaked.sub(initBalStaked).gt(minOut));
@@ -347,12 +347,12 @@ describe("Booster", () => {
             await lit.connect(litHolder).transfer(aliceAddress, e18.mul(1000000));
 
             const amount = e18.mul(1000000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9900");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900", 1);
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, 1);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
