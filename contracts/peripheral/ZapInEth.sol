@@ -91,7 +91,7 @@ contract EthInvestor is ReentrancyGuard {
         IPrelaunchRewardsPool(prelaunchRewardsPool).stakeFor(msg.sender, _balanceOfBpt());
     }
 
-    function _balanceOfBpt() internal returns (uint256) {
+    function _balanceOfBpt() internal view returns (uint256) {
         return IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
     }
 }
