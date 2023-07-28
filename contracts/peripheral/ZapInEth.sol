@@ -18,7 +18,7 @@ interface IPrelaunchRewardsPool {
 /**
  * @title   EthInvestor
  * @notice  Deposits $WETH into a LIT/WETH BPT. Hooks into TWAP to determine minOut.
- * @dev     Abstract contract for depositing WETH -> balBPT -> prelaunchPool
+ * @dev     Contract for depositing WETH -> balBPT -> prelaunchPool
  */
 contract EthInvestor is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -82,16 +82,16 @@ contract EthInvestor is ReentrancyGuard {
     function zapInWeth(uint256 amount, uint256 minOut) external {
         IERC20(WETH).safeTransferFrom(msg.sender, address(this), amount);
         _investWETHToPool(amount, minOut);
-        IPrelaunchRewardsPool(prelaunchRewardsPool).stakeFor(msg.sender, amount);
+        IPrelaunchRewardsPool(prelaunchRewardsPool).stakeFor(msg.sender, _balanceOfBpt());
     }
 
     function zapInEth(uint256 minOut) external payable nonReentrant {
         IWETH(WETH).deposit{ value: msg.value }();
         _investWETHToPool(msg.value, minOut);
-        IPrelaunchRewardsPool(prelaunchRewardsPool).stakeFor(msg.sender, msg.value);
+        IPrelaunchRewardsPool(prelaunchRewardsPool).stakeFor(msg.sender, _balanceOfBpt());
     }
 
-    receive() external payable {
-        require(msg.sender != tx.origin, "Do not send ETH directly");
+    function _balanceOfBpt() internal returns (uint256) {
+        return IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
     }
 }
