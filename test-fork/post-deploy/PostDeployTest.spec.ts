@@ -7,14 +7,10 @@ import {
     Booster__factory,
     LiqToken,
     LiqToken__factory,
-    LiqMinter,
-    LiqMinter__factory,
     CvxCrvToken,
     CvxCrvToken__factory,
     CrvDepositor,
     CrvDepositor__factory,
-    PrelaunchRewardsPool,
-    PrelaunchRewardsPool__factory,
     BaseRewardPool,
     BaseRewardPool__factory,
     BaseRewardPool4626,
@@ -128,11 +124,11 @@ describe("Post deploy", () => {
     let booster: Booster;
     let liq: LiqToken;
     let voterProxy: VoterProxy;
-    let minter: LiqMinter;
+    // let minter: LiqMinter;
     let liqLit: CvxCrvToken;
     let crvDepositor: CrvDepositor;
     let litDepositorHelper: LitDepositorHelper;
-    let prelaunchRewardsPool: PrelaunchRewardsPool;
+    // let prelaunchRewardsPool: PrelaunchRewardsPool;
 
     let cvxCrvRewards: BaseRewardPool;
     let liqLocker: LiqLocker;
@@ -215,7 +211,7 @@ describe("Post deploy", () => {
         litDepositorHelper = LitDepositorHelper__factory.connect(mainnetDeployment.litDepositorHelper, deployer);
         // prelaunchRewardsPool = PrelaunchRewardsPool__factory.connect(mainnetDeployment.prelaunchRewardsPool, deployer);
 
-        // Deploy rest of the s
+        // Deploy rest of the contracts
         rewardFactory = await deployContract<RewardFactory>(
             hre,
             new RewardFactory__factory(deployer),
