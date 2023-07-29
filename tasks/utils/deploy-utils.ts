@@ -2,6 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract, ContractFactory, ContractReceipt, ContractTransaction, Overrides } from "ethers";
 import { formatUnits } from "@ethersproject/units";
 import { ExtSystemConfig } from "../../scripts/deploySystem";
+import { verifyEtherscan } from "./etherscan";
 
 export const deployContract = async <T extends Contract>(
     hre: HardhatRuntimeEnvironment,
@@ -34,10 +35,10 @@ export const deployContract = async <T extends Contract>(
         console.log(`ABI encoded args: ${abiEncodedConstructorArgs.slice(2)}`);
     }
 
-    // await verifyEtherscan(hre, {
-    //     address: contract.address,
-    //     constructorArguments: constructorArgs,
-    // });
+    await verifyEtherscan(hre, {
+        address: contract.address,
+        constructorArguments: constructorArgs,
+    });
 
     return contract;
 };
