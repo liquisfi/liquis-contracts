@@ -54,4 +54,54 @@ contract BoosterHelper {
             baseRewardPool.processIdleRewards();
         }
     }
+
+    /**
+     * @notice Fetch all pool-IDs of active (not shutdown) pools
+     * @return pids Array of pool ids
+     */
+    function getActivePids() external view returns (uint256[] memory pids) {
+        return _getActivePids();
+    }
+
+    /**
+     * @notice Fetch pool information for a set of pools
+     * @param _pids Array of pool ids
+     * @return poolInfo Array of pool information
+     */
+    function getPoolInfo(uint256[] memory _pids) external view returns (IBooster.PoolInfo[] memory poolInfo) {
+        return _getPoolInfo(_pids);
+    }
+
+    /**
+     * @notice Fetch all pool-IDs of active (not shutdown) pools, then fetch pool information for each pid
+     * @return poolInfo Array of pool information of all active pools
+     */
+    function getActivePoolInfo() external view returns (IBooster.PoolInfo[] memory poolInfo) {
+        return _getPoolInfo(_getActivePids());
+    }
+
+    function _getActivePids() internal view returns (uint256[] memory pids) {
+        uint256 poolLength = booster.poolLength();
+        uint256 idx;
+        pids = new uint256[](poolLength);
+        for (uint256 pid = 0; pid < poolLength; pid++) {
+            if (!booster.poolInfo(pid).shutdown) {
+                pids[idx] = pid;
+                idx++;
+            }
+        }
+        return pids;
+    }
+
+    function _getPoolInfo(uint256[] memory _pids) internal view returns (IBooster.PoolInfo[] memory poolInfo) {
+        IBooster.PoolInfo memory pool;
+        for (uint256 i = 0; i < _pids.length; i++) {
+            pool = booster.poolInfo(_pids[i]);
+            if (i == 0) {
+                poolInfo = new IBooster.PoolInfo[](_pids.length);
+            }
+            poolInfo[i] = pool;
+        }
+        return poolInfo;
+    }
 }
