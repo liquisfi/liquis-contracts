@@ -99,7 +99,9 @@ describe.skip("AuraClaimZap", () => {
 
         const minOut = await contracts.litDepositorHelper.connect(alice).getMinOut(balance, "10000", 1);
         await mocks.lit.connect(alice).approve(contracts.litDepositorHelper.address, balance);
-        await contracts.litDepositorHelper.connect(alice).deposit(balance, minOut, lock, stakeAddress, 1);
+        await contracts.litDepositorHelper
+            .connect(alice)
+            .deposit(balance, minOut, lock, stakeAddress, mocks.lit.address);
 
         const rewardBalance = await contracts.cvxCrvRewards.balanceOf(aliceAddress);
         expect(rewardBalance).eq(minOut);

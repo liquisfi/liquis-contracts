@@ -242,7 +242,7 @@ describe("Booster", () => {
 
         await lit.connect(deployer).approve(litDepositorHelper.address, e18.mul(1000000));
         const minOut = await litDepositorHelper.getMinOut(e18.mul(1000000), 9900, 1);
-        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS, 1);
+        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS, litAddress);
         console.log("deployerBptMinOut: ", +minOut);
         console.log("deployerVeLitBalance: ", (await velit.balanceOf(deployerAddress)).toString());
         console.log("voterProxyVeLitBalance: ", (await velit.balanceOf(voterProxy.address)).toString());

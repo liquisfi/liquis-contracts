@@ -229,7 +229,7 @@ describe("Booster", () => {
             const minOut = await litDepositorHelper.getMinOut(amount, "9800", 1);
 
             await lit.connect(deployer).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS, 1);
+            await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS, litAddress);
             const deployerVeLitBalance = await velit.balanceOf(deployerAddress);
 
             const endLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
@@ -259,7 +259,7 @@ describe("Booster", () => {
 
             const minOut = await litDepositorHelper.getMinOut(e18.mul(10000), "9900", 1);
 
-            await litDepositorHelper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress, 1);
+            await litDepositorHelper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress, litAddress);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
 
@@ -317,7 +317,7 @@ describe("Booster", () => {
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
 
             await expect(
-                litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, 1),
+                litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, litAddress),
             ).to.be.revertedWith("BAL#208");
         });
 
@@ -331,7 +331,7 @@ describe("Booster", () => {
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, 1);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, litAddress);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
             expect(endBalStaked.sub(initBalStaked).gt(minOut));
@@ -352,7 +352,7 @@ describe("Booster", () => {
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, 1);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, litAddress);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 

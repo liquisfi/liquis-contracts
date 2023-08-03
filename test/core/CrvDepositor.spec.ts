@@ -124,7 +124,7 @@ describe("CrvDepositor", () => {
 
             const minOut = await litDepositorHelper.getMinOut(amount, "10000", 1);
             await crv.approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress, 1);
+            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress, crv.address);
 
             const cvxCrvBalanceAfter = await cvxCrv.balanceOf(aliceAddress);
             const cvxCrvBalanceDelta = cvxCrvBalanceAfter.sub(cvxCrvBalanceBefore);
@@ -141,7 +141,7 @@ describe("CrvDepositor", () => {
 
             const minOut = await litDepositorHelper.getMinOut(amount, "10000", 1);
             await crv.approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress, 1);
+            await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress, crv.address);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
             expect(stakedBalanceAfter.sub(stakedBalanceBefore)).to.equal(minOut);

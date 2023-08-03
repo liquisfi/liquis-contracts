@@ -208,7 +208,7 @@ describe("Post deploy", () => {
         booster = Booster__factory.connect(mainnetDeployment.booster, deployer);
         liqLit = CvxCrvToken__factory.connect(mainnetDeployment.liqLit, deployer);
         crvDepositor = CrvDepositor__factory.connect(mainnetDeployment.crvDepositor, deployer);
-        litDepositorHelper = LitDepositorHelper__factory.connect(mainnetDeployment.litDepositorHelper, deployer);
+        // litDepositorHelper = LitDepositorHelper__factory.connect(mainnetDeployment.litDepositorHelper, deployer);
         // prelaunchRewardsPool = PrelaunchRewardsPool__factory.connect(mainnetDeployment.prelaunchRewardsPool, deployer);
 
         // Deploy rest of the contracts
@@ -366,6 +366,23 @@ describe("Post deploy", () => {
             waitForBlocks,
         );
 
+        // We are deploying a new litDepositorHelper with support for Eth, Weth, Lit
+        litDepositorHelper = await deployContract<LitDepositorHelper>(
+            hre,
+            new LitDepositorHelper__factory(deployer),
+            "LitDepositorHelper",
+            [
+                crvDepositor.address,
+                externalAddresses.balancerVault,
+                externalAddresses.lit,
+                externalAddresses.weth,
+                externalAddresses.balancerPoolId,
+            ],
+            {},
+            debug,
+            waitForBlocks,
+        );
+
         flashOptionsExerciser = await deployContract<FlashOptionsExerciser>(
             hre,
             new FlashOptionsExerciser__factory(deployer),
@@ -458,6 +475,9 @@ describe("Post deploy", () => {
         tx = await flashOptionsExerciser.setOwner(multisigs.daoMultisig);
         await waitForTx(tx, debug, waitForBlocks);
 
+        tx = await litDepositorHelper.setApprovals();
+        await tx.wait();
+
         console.log(`\n~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
         console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
         console.log(`~~~~~~~~~~~~~~~~~~~~~~~~~~~\n`);
@@ -525,8 +545,8 @@ describe("Post deploy", () => {
         console.log("deployerLitBalance: ", (await lit.balanceOf(deployerAddress)).toString());
 
         await lit.connect(deployer).approve(litDepositorHelper.address, e18.mul(1000000));
-        const minOut = await litDepositorHelper.getMinOut(e18.mul(1000000), 9900);
-        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS);
+        const minOut = await litDepositorHelper.getMinOut(e18.mul(1000000), 9900, 1);
+        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS, litAddress);
         console.log("deployerBptMinOut: ", +minOut);
         console.log("deployerVeLitBalance: ", (await velit.balanceOf(deployerAddress)).toString());
         console.log("voterProxyVeLitBalance: ", (await velit.balanceOf(voterProxy.address)).toString());

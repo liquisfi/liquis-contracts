@@ -53,7 +53,7 @@ describe("TestBalEth", () => {
             let tx = await testEthBal.approveToken();
             await tx.wait();
 
-            const minOut = await testEthBal.getMinOut(amount, 9980);
+            const minOut = await testEthBal.getMinOut(amount, 9980, 1);
             tx = await testEthBal.addBalToPool(amount, minOut);
             await tx.wait();
 

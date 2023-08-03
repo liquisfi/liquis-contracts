@@ -881,7 +881,7 @@ xdescribe("Full Deployment", () => {
 
                     tx = await phase3.litDepositorHelper
                         .connect(alice.signer)
-                        .deposit(simpleToExactAmount(500), minOut, true, ZERO_ADDRESS, 1);
+                        .deposit(simpleToExactAmount(500), minOut, true, ZERO_ADDRESS, crv.address);
                     await waitForTx(tx, debug);
 
                     const balance = await phase3.cvxCrv.balanceOf(alice.address);
