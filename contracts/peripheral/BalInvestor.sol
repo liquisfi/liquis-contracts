@@ -8,7 +8,7 @@ import { IBalancerVault, IPriceOracle, IAsset } from "../interfaces/balancer/IBa
 
 /**
  * @title   BalInvestor
- * @notice  Deposits $LIT into a LIT/WETH BPT. Hooks into TWAP to determine minOut.
+ * @notice  Deposits LIT or WETH into a LIT/WETH BPT. Hooks into TWAP to determine minOut.
  * @dev     Abstract contract for depositing LIT -> balBPT -> auraBAL via crvDepositor
  */
 abstract contract BalInvestor {
@@ -96,8 +96,6 @@ abstract contract BalInvestor {
         uint256 minOut,
         uint256 asset
     ) internal {
-        require(asset == 0 || asset == 1, "!asset");
-
         IAsset[] memory assets = new IAsset[](2);
         assets[0] = IAsset(WETH);
         assets[1] = IAsset(LIT);
@@ -107,11 +105,9 @@ abstract contract BalInvestor {
         if (asset == 0) {
             maxAmountsIn[0] = amount;
             maxAmountsIn[1] = 0;
-            IERC20(WETH).safeTransferFrom(msg.sender, address(this), amount);
         } else {
             maxAmountsIn[0] = 0;
             maxAmountsIn[1] = amount;
-            IERC20(LIT).safeTransferFrom(msg.sender, address(this), amount);
         }
 
         BALANCER_VAULT.joinPool(
