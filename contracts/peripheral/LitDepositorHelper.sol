@@ -105,6 +105,7 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor, ReentrancyGuard
      * @param _minOut Units of BPT to expect as output
      */
     function convertLitToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptOut) {
+        IERC20(LIT).safeTransferFrom(msg.sender, address(this), _amount);
         _investSingleToPool(_amount, _minOut, 1);
 
         bptOut = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
@@ -119,6 +120,7 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor, ReentrancyGuard
      * @param _minOut Units of BPT to expect as output
      */
     function convertWethToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptOut) {
+        IERC20(WETH).safeTransferFrom(msg.sender, address(this), _amount);
         _investSingleToPool(_amount, _minOut, 0);
 
         bptOut = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
