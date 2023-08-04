@@ -22,8 +22,6 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor, ReentrancyGuard
 
     address public immutable crvDeposit;
 
-    address internal constant ETHAddress = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     constructor(
         address _crvDeposit,
         IBalancerVault _balancerVault,
@@ -43,14 +41,15 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor, ReentrancyGuard
      * @dev Gets minimum output based on BPT oracle price
      * @param _amount Units of LIT to deposit
      * @param _outputBps Multiplier where 100% == 10000, 99.5% == 9950 and 98% == 9800
+     * @param _asset Address of the asset to query minOut
      * @return minOut Units of BPT to expect as output
      */
     function getMinOut(
         uint256 _amount,
         uint256 _outputBps,
-        uint256 asset
+        address _asset
     ) external view returns (uint256) {
-        return _getMinOut(_amount, _outputBps, asset);
+        return _getMinOut(_amount, _outputBps, _asset);
     }
 
     function deposit(
