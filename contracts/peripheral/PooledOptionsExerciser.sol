@@ -230,6 +230,8 @@ contract PooledOptionsExerciser {
         // compute oLIT exercise amounts
         (uint256 amountIn, uint256 amountOut) = _exerciseAmounts();
 
+        if (amountOut == 0) return;
+
         // Update withdrawable amount for epoch
         // note, can only exercise once for every epoch
         totalWithdrawable[epoch] += amountOut;
