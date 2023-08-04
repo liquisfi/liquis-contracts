@@ -876,7 +876,11 @@ xdescribe("Full Deployment", () => {
                     let tx = await crv.approve(phase3.litDepositorHelper.address, simpleToExactAmount(500));
                     await waitForTx(tx, debug);
 
-                    const minOut = await phase3.litDepositorHelper.getMinOut(simpleToExactAmount(500), 9900, 1);
+                    const minOut = await phase3.litDepositorHelper.getMinOut(
+                        simpleToExactAmount(500),
+                        9900,
+                        crv.address,
+                    );
                     expect(minOut).gt(simpleToExactAmount(190));
 
                     tx = await phase3.litDepositorHelper

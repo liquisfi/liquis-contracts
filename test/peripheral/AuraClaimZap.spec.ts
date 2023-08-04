@@ -97,7 +97,7 @@ describe.skip("AuraClaimZap", () => {
         const stakeAddress = contracts.cvxCrvRewards.address;
         const balance = await mocks.lit.balanceOf(aliceAddress);
 
-        const minOut = await contracts.litDepositorHelper.connect(alice).getMinOut(balance, "10000", 1);
+        const minOut = await contracts.litDepositorHelper.connect(alice).getMinOut(balance, "10000", mocks.lit.address);
         await mocks.lit.connect(alice).approve(contracts.litDepositorHelper.address, balance);
         await contracts.litDepositorHelper
             .connect(alice)
@@ -114,7 +114,7 @@ describe.skip("AuraClaimZap", () => {
 
         await mocks.lit.connect(alice).approve(contracts.claimZap.address, ethers.constants.MaxUint256);
         const options = Options.ClaimCvxCrv + Options.LockCrvDeposit + Options.UseAllWalletFunds;
-        const minBptAmountOut = await contracts.litDepositorHelper.getMinOut(expectedRewards, 10000, 1);
+        const minBptAmountOut = await contracts.litDepositorHelper.getMinOut(expectedRewards, 10000, mocks.lit.address);
         const amounts: ClaimRewardsAmountsStruct = {
             depositCrvMaxAmount: expectedRewards,
             minAmountOut: minBptAmountOut,

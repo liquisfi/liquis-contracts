@@ -142,7 +142,7 @@ describe("LitDepositorHelper", () => {
             const feeDistro = await contracts.booster.feeTokens(crv.address);
             const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
 
-            const minOut = await litDepositorHelper.getMinOut(amount, "10000", 1);
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000", crv.address);
 
             await crv.approve(litDepositorHelper.address, amount);
             await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress, crv.address);
@@ -166,7 +166,7 @@ describe("LitDepositorHelper", () => {
             const feeDistro = await contracts.booster.feeTokens(crv.address);
             const feeCrvBalanceBefore = await crv.balanceOf(feeDistro.rewards);
 
-            const minOut = await litDepositorHelper.getMinOut(amount, "10000", 1);
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000", crv.address);
 
             await crv.approve(litDepositorHelper.address, amount);
             await litDepositorHelper.deposit(amount, minOut, lock, stakeAddress, crv.address);

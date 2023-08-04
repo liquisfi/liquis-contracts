@@ -226,7 +226,7 @@ describe("Booster", () => {
             const initLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
             const cvxCrvBalInit = await cvxCrv.balanceOf(deployerAddress);
             const amount = e18.mul(100000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9800", 1);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9800", lit.address);
 
             await lit.connect(deployer).approve(litDepositorHelper.address, amount);
             await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS, litAddress);
@@ -257,7 +257,7 @@ describe("Booster", () => {
 
             const stakedBalanceBefore = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            const minOut = await litDepositorHelper.getMinOut(e18.mul(10000), "9900", 1);
+            const minOut = await litDepositorHelper.getMinOut(e18.mul(10000), "9900", lit.address);
 
             await litDepositorHelper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress, litAddress);
 
@@ -312,7 +312,7 @@ describe("Booster", () => {
 
             const amount = e18.mul(1000);
 
-            const minOut = await litDepositorHelper.getMinOut(amount, "10000", 1);
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000", lit.address);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
 
@@ -326,7 +326,7 @@ describe("Booster", () => {
             const stakeAddress = cvxCrvStaking.address;
 
             const amount = e18.mul(1000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9950", 1);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9950", lit.address);
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
@@ -339,7 +339,7 @@ describe("Booster", () => {
 
         it("convertLitToBpt works if slippage is reasonable", async () => {
             const amount = e18.mul(1000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9950", 1);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9950", lit.address);
 
             const initBalAlice = await cvxCrv.balanceOf(aliceAddress);
 
@@ -360,7 +360,7 @@ describe("Booster", () => {
             await lit.connect(litHolder).transfer(aliceAddress, e18.mul(1000000));
 
             const amount = e18.mul(1000000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9900", 1);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900", lit.address);
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
@@ -382,7 +382,7 @@ describe("Booster", () => {
             await weth.connect(wethHolder).transfer(aliceAddress, e18.mul(1));
 
             const amount = e18.mul(1);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9900", 0);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900", weth.address);
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
@@ -400,7 +400,7 @@ describe("Booster", () => {
             await weth.connect(wethHolder).transfer(aliceAddress, e18.mul(10));
 
             const amount = e18.mul(10);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9900", 0);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900", weth.address);
 
             const initBalAlice = await cvxCrv.balanceOf(aliceAddress);
 
@@ -416,7 +416,11 @@ describe("Booster", () => {
             const stakeAddress = cvxCrvStaking.address;
 
             const amount = e18.mul(10);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9700", 0);
+            const minOut = await litDepositorHelper.getMinOut(
+                amount,
+                "9700",
+                "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            );
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
@@ -432,7 +436,11 @@ describe("Booster", () => {
 
         it("convertEthToBpt works if slippage is reasonable", async () => {
             const amount = e18.mul(1);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9500", 0);
+            const minOut = await litDepositorHelper.getMinOut(
+                amount,
+                "9500",
+                "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            );
 
             const initBalAlice = await cvxCrv.balanceOf(aliceAddress);
 
