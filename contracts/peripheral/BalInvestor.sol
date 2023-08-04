@@ -20,8 +20,6 @@ abstract contract BalInvestor {
     address public immutable BALANCER_POOL_TOKEN;
     bytes32 public immutable BAL_ETH_POOL_ID;
 
-    address internal constant ETHAddress = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     constructor(
         IBalancerVault _balancerVault,
         address _lit,
@@ -72,15 +70,15 @@ abstract contract BalInvestor {
     function _getMinOut(
         uint256 amount,
         uint256 minOutBps,
-        address asset
+        uint256 asset
     ) internal view returns (uint256) {
-        require(asset == LIT || asset == ETHAddress || asset == WETH, "!asset");
+        require(asset == 0 || asset == 1, "!asset");
 
         // Gets the balancer time weighted average price denominated in WETH
         // e.g.  if 1 WETH == 0.4 BPT, bptOraclePrice == 2.5
         uint256 bptOraclePrice = _getBptPrice(); // e.g bptOraclePrice = 3.52e14
 
-        if (asset == LIT) {
+        if (asset == 1) {
             // get min out for LIT in
             uint256 pairOraclePrice = _getPairPrice(); // e.g pairOraclePrice = 0.56e14
             bptOraclePrice = (bptOraclePrice * 1e18) / pairOraclePrice; // e.g bptOraclePriceInLit = 6.28e18

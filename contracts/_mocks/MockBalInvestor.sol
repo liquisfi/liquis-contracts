@@ -25,7 +25,7 @@ contract MockBalInvestor is BalInvestor {
     function getMinOut(
         uint256 _amount,
         uint256 _outputBps,
-        address _asset
+        uint256 _asset
     ) public view returns (uint256) {
         return _getMinOut(_amount, _outputBps, _asset);
     }

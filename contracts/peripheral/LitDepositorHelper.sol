@@ -20,6 +20,8 @@ interface IWETH {
 contract LitDepositorHelper is ILitDepositorHelper, BalInvestor, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     address public immutable crvDeposit;
 
     constructor(
@@ -49,7 +51,8 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor, ReentrancyGuard
         uint256 _outputBps,
         address _asset
     ) external view returns (uint256) {
-        return _getMinOut(_amount, _outputBps, _asset);
+        require(_asset == LIT || _asset == ETH || _asset == WETH, "!asset");
+        return (_asset == LIT) ? _getMinOut(_amount, _outputBps, 1) : _getMinOut(_amount, _outputBps, 0);
     }
 
     function deposit(
@@ -81,12 +84,12 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor, ReentrancyGuard
         address _stakeAddress,
         address _asset
     ) internal returns (uint256 bptOut) {
-        require(_asset == LIT || _asset == ETHAddress || _asset == WETH, "!asset");
+        require(_asset == LIT || _asset == ETH || _asset == WETH, "!asset");
 
         if (_asset == LIT) {
             IERC20(LIT).safeTransferFrom(msg.sender, address(this), _amount);
             _investSingleToPool(_amount, _minOut, 1);
-        } else if (_asset == ETHAddress) {
+        } else if (_asset == ETH) {
             IWETH(WETH).deposit{ value: _amount }();
             _investSingleToPool(_amount, _minOut, 0);
         } else {
