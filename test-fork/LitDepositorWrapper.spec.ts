@@ -103,7 +103,7 @@ describe("Booster", () => {
     const wethHolderAddress: string = "0x57757E3D981446D585Af0D9Ae4d7DF6D64647806";
     const crvBptHolderAddress: string = "0xb84dfdD51d18B1613432bfaE91dfcC48899D4151"; // 32k
 
-    const FORK_BLOCK_NUMBER: number = 17641669;
+    const FORK_BLOCK_NUMBER: number = 17835055;
 
     const setup = async () => {
         // Deploy Voter Proxy, get whitelisted on Bunni system
@@ -178,7 +178,7 @@ describe("Booster", () => {
         console.log(`~~~~ DEPLOYMENT FINISH ~~~~`);
         console.log(`~~~~~~~~~~~~~~~~~~~~~~~~~~~\n`);
 
-        // Instance of LIT & oLIT & veLIT
+        // Instance of LIT & veLIT
         lit = (await ethers.getContractAt("IERC20Extra", litAddress)) as IERC20Extra;
         velit = (await ethers.getContractAt("IERC20Extra", votingEscrowAddress)) as IERC20Extra;
 
@@ -226,10 +226,10 @@ describe("Booster", () => {
             const initLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
             const cvxCrvBalInit = await cvxCrv.balanceOf(deployerAddress);
             const amount = e18.mul(100000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9800");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9800", lit.address);
 
             await lit.connect(deployer).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS);
+            await litDepositorHelper.deposit(amount, minOut, true, ZERO_ADDRESS, litAddress);
             const deployerVeLitBalance = await velit.balanceOf(deployerAddress);
 
             const endLitVotingEscrowBal = await velit.balanceOf(voterProxy.address);
@@ -257,9 +257,9 @@ describe("Booster", () => {
 
             const stakedBalanceBefore = await cvxCrvStaking.balanceOf(aliceAddress);
 
-            const minOut = await litDepositorHelper.getMinOut(e18.mul(10000), "9900");
+            const minOut = await litDepositorHelper.getMinOut(e18.mul(10000), "9900", lit.address);
 
-            await litDepositorHelper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress);
+            await litDepositorHelper.connect(alice).deposit(e18.mul(10000), minOut, true, stakeAddress, litAddress);
 
             const stakedBalanceAfter = await cvxCrvStaking.balanceOf(aliceAddress);
 
@@ -312,12 +312,12 @@ describe("Booster", () => {
 
             const amount = e18.mul(1000);
 
-            const minOut = await litDepositorHelper.getMinOut(amount, "10000");
+            const minOut = await litDepositorHelper.getMinOut(amount, "10000", lit.address);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
 
             await expect(
-                litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress),
+                litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, litAddress),
             ).to.be.revertedWith("BAL#208");
         });
 
@@ -326,15 +326,28 @@ describe("Booster", () => {
             const stakeAddress = cvxCrvStaking.address;
 
             const amount = e18.mul(1000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9950");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9950", lit.address);
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, litAddress);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
             expect(endBalStaked.sub(initBalStaked).gt(minOut));
+        });
+
+        it("convertLitToBpt works if slippage is reasonable", async () => {
+            const amount = e18.mul(1000);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9950", lit.address);
+
+            const initBalAlice = await cvxCrv.balanceOf(aliceAddress);
+
+            await lit.connect(alice).approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.connect(alice).convertLitToBpt(amount, minOut);
+
+            const endBalAlice = await cvxCrv.balanceOf(aliceAddress);
+            expect(endBalAlice.sub(initBalAlice).gt(minOut));
         });
 
         it("zapIn with Lit works with decent slippage in big amounts (1M LIT)", async () => {
@@ -347,16 +360,96 @@ describe("Booster", () => {
             await lit.connect(litHolder).transfer(aliceAddress, e18.mul(1000000));
 
             const amount = e18.mul(1000000);
-            const minOut = await litDepositorHelper.getMinOut(amount, "9900");
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900", lit.address);
 
             const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
             await lit.connect(alice).approve(litDepositorHelper.address, amount);
-            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, litAddress);
 
             const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
 
             expect(endBalStaked.sub(initBalStaked).gt(minOut));
+        });
+
+        it("zapIn with WETH works if slippage is reasonable", async () => {
+            const lock = true;
+            const stakeAddress = cvxCrvStaking.address;
+
+            // Impersonate weth whale and airdrop 1 weth to alice
+            await impersonateAccount(wethHolderAddress, true);
+            const wethHolder = await ethers.getSigner(wethHolderAddress);
+            await weth.connect(wethHolder).transfer(aliceAddress, e18.mul(1));
+
+            const amount = e18.mul(1);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900", weth.address);
+
+            const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
+
+            await weth.connect(alice).approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.connect(alice).deposit(amount, minOut, lock, stakeAddress, externalAddresses.weth);
+
+            const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
+            expect(endBalStaked.sub(initBalStaked).gt(minOut));
+        });
+
+        it("convertWethToBpt works if slippage is reasonable", async () => {
+            // Impersonate weth whale and airdrop 10 weth to alice
+            await impersonateAccount(wethHolderAddress, true);
+            const wethHolder = await ethers.getSigner(wethHolderAddress);
+            await weth.connect(wethHolder).transfer(aliceAddress, e18.mul(10));
+
+            const amount = e18.mul(10);
+            const minOut = await litDepositorHelper.getMinOut(amount, "9900", weth.address);
+
+            const initBalAlice = await cvxCrv.balanceOf(aliceAddress);
+
+            await weth.connect(alice).approve(litDepositorHelper.address, amount);
+            await litDepositorHelper.connect(alice).convertWethToBpt(amount, minOut);
+
+            const endBalAlice = await cvxCrv.balanceOf(aliceAddress);
+            expect(endBalAlice.sub(initBalAlice).gt(minOut));
+        });
+
+        it("zapIn with ETH works if slippage is reasonable", async () => {
+            const lock = true;
+            const stakeAddress = cvxCrvStaking.address;
+
+            const amount = e18.mul(10);
+            const minOut = await litDepositorHelper.getMinOut(
+                amount,
+                "9700",
+                "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            );
+
+            const initBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
+
+            await litDepositorHelper
+                .connect(alice)
+                .deposit(amount, minOut, lock, stakeAddress, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", {
+                    value: amount,
+                });
+
+            const endBalStaked = await cvxCrvStaking.balanceOf(aliceAddress);
+            expect(endBalStaked.sub(initBalStaked).gt(minOut));
+        });
+
+        it("convertEthToBpt works if slippage is reasonable", async () => {
+            const amount = e18.mul(1);
+            const minOut = await litDepositorHelper.getMinOut(
+                amount,
+                "9500",
+                "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            );
+
+            const initBalAlice = await cvxCrv.balanceOf(aliceAddress);
+
+            await litDepositorHelper.connect(alice).convertEthToBpt(minOut, {
+                value: amount,
+            });
+
+            const endBalAlice = await cvxCrv.balanceOf(aliceAddress);
+            expect(endBalAlice.sub(initBalAlice).gt(minOut));
         });
     });
 

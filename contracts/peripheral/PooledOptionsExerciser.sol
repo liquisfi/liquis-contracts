@@ -230,6 +230,8 @@ contract PooledOptionsExerciser {
         // compute oLIT exercise amounts
         (uint256 amountIn, uint256 amountOut) = _exerciseAmounts();
 
+        if (amountOut == 0) return;
+
         // Update withdrawable amount for epoch
         // note, can only exercise once for every epoch
         totalWithdrawable[epoch] += amountOut;
@@ -304,8 +306,8 @@ contract PooledOptionsExerciser {
         bool _stake
     ) internal {
         _stake == true
-            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, lockerRewards)
-            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, address(0));
+            ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, lockerRewards, lit)
+            : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, amount, _minOut, true, address(0), lit);
     }
 
     /**

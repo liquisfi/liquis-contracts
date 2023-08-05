@@ -241,8 +241,8 @@ describe("Booster", () => {
         console.log("deployerLitBalance: ", (await lit.balanceOf(deployerAddress)).toString());
 
         await lit.connect(deployer).approve(litDepositorHelper.address, e18.mul(1000000));
-        const minOut = await litDepositorHelper.getMinOut(e18.mul(1000000), 9900);
-        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS);
+        const minOut = await litDepositorHelper.getMinOut(e18.mul(1000000), 9900, litAddress);
+        await litDepositorHelper.deposit(e18.mul(1000000), ZERO, true, ZERO_ADDRESS, litAddress);
         console.log("deployerBptMinOut: ", +minOut);
         console.log("deployerVeLitBalance: ", (await velit.balanceOf(deployerAddress)).toString());
         console.log("voterProxyVeLitBalance: ", (await velit.balanceOf(voterProxy.address)).toString());
@@ -761,12 +761,12 @@ describe("Booster", () => {
             const expectedLit = queuedDeployer.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
 
             // Check revert as well
-            const expectedMinOutForRevert = await litDepositorHelper.getMinOut(expectedLit, 10000);
+            const expectedMinOutForRevert = await litDepositorHelper.getMinOut(expectedLit, 10000, litAddress);
             await expect(
                 pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, expectedMinOutForRevert),
             ).to.be.revertedWith("BAL#208"); // BPT_OUT_MIN_AMOUNT
 
-            const expectedMinOut = await litDepositorHelper.getMinOut(expectedLit, 9900);
+            const expectedMinOut = await litDepositorHelper.getMinOut(expectedLit, 9900, litAddress);
 
             const tx = await pooledOptionsExerciser.withdrawAndLock(epoch.sub(1), true, expectedMinOut);
             const receipt = await tx.wait();
@@ -825,12 +825,12 @@ describe("Booster", () => {
             const expectedLit = queuedAlice.mul(e18).div(totalQueued).mul(totalWithdrawable).div(e18);
 
             // Check revert as well
-            const expectedMinOutForRevert = await litDepositorHelper.getMinOut(expectedLit, 10000);
+            const expectedMinOutForRevert = await litDepositorHelper.getMinOut(expectedLit, 10000, litAddress);
             await expect(
                 pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), true, expectedMinOutForRevert),
             ).to.be.revertedWith("BAL#208"); // BPT_OUT_MIN_AMOUNT
 
-            const expectedMinOut = await litDepositorHelper.getMinOut(expectedLit, 9950);
+            const expectedMinOut = await litDepositorHelper.getMinOut(expectedLit, 9950, litAddress);
 
             const tx = await pooledOptionsExerciser.connect(alice).withdrawAndLock(epoch.sub(1), false, expectedMinOut);
             const receipt = await tx.wait();

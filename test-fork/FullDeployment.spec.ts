@@ -876,12 +876,16 @@ xdescribe("Full Deployment", () => {
                     let tx = await crv.approve(phase3.litDepositorHelper.address, simpleToExactAmount(500));
                     await waitForTx(tx, debug);
 
-                    const minOut = await phase3.litDepositorHelper.getMinOut(simpleToExactAmount(500), 9900);
+                    const minOut = await phase3.litDepositorHelper.getMinOut(
+                        simpleToExactAmount(500),
+                        9900,
+                        crv.address,
+                    );
                     expect(minOut).gt(simpleToExactAmount(190));
 
                     tx = await phase3.litDepositorHelper
                         .connect(alice.signer)
-                        .deposit(simpleToExactAmount(500), minOut, true, ZERO_ADDRESS);
+                        .deposit(simpleToExactAmount(500), minOut, true, ZERO_ADDRESS, crv.address);
                     await waitForTx(tx, debug);
 
                     const balance = await phase3.cvxCrv.balanceOf(alice.address);

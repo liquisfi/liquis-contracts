@@ -3,17 +3,24 @@ pragma solidity 0.8.11;
 
 import { IERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts-0.8/security/ReentrancyGuard.sol";
 import { IBalancerVault } from "../interfaces/balancer/IBalancerCore.sol";
 import { ILitDepositorHelper } from "../interfaces/ILitDepositorHelper.sol";
 import { ICrvDepositor } from "../interfaces/ICrvDepositor.sol";
 import { BalInvestor } from "./BalInvestor.sol";
 
+interface IWETH {
+    function deposit() external payable;
+}
+
 /**
  * @title   LitDepositorHelper
  * @notice  Converts LIT -> balBPT and then wraps to liqLIT via the crvDepositor
  */
-contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
+contract LitDepositorHelper is ILitDepositorHelper, BalInvestor, ReentrancyGuard {
     using SafeERC20 for IERC20;
+
+    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     address public immutable crvDeposit;
 
@@ -36,19 +43,26 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
      * @dev Gets minimum output based on BPT oracle price
      * @param _amount Units of LIT to deposit
      * @param _outputBps Multiplier where 100% == 10000, 99.5% == 9950 and 98% == 9800
+     * @param _asset Address of the asset to query minOut
      * @return minOut Units of BPT to expect as output
      */
-    function getMinOut(uint256 _amount, uint256 _outputBps) external view returns (uint256) {
-        return _getMinOut(_amount, _outputBps);
+    function getMinOut(
+        uint256 _amount,
+        uint256 _outputBps,
+        address _asset
+    ) external view returns (uint256) {
+        require(_asset == LIT || _asset == ETH || _asset == WETH, "!asset");
+        return (_asset == LIT) ? _getMinOut(_amount, _outputBps, 1) : _getMinOut(_amount, _outputBps, 0);
     }
 
     function deposit(
         uint256 _amount,
         uint256 _minOut,
         bool _lock,
-        address _stakeAddress
-    ) external returns (uint256 bptOut) {
-        bptOut = _depositFor(msg.sender, _amount, _minOut, _lock, _stakeAddress);
+        address _stakeAddress,
+        address _asset
+    ) external payable nonReentrant returns (uint256 bptOut) {
+        bptOut = _depositFor(msg.sender, _amount, _minOut, _lock, _stakeAddress, _asset);
     }
 
     function depositFor(
@@ -56,9 +70,10 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
         uint256 _amount,
         uint256 _minOut,
         bool _lock,
-        address _stakeAddress
-    ) external returns (uint256 bptOut) {
-        bptOut = _depositFor(_for, _amount, _minOut, _lock, _stakeAddress);
+        address _stakeAddress,
+        address _asset
+    ) external payable nonReentrant returns (uint256 bptOut) {
+        bptOut = _depositFor(_for, _amount, _minOut, _lock, _stakeAddress, _asset);
     }
 
     function _depositFor(
@@ -66,9 +81,22 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
         uint256 _amount,
         uint256 _minOut,
         bool _lock,
-        address _stakeAddress
+        address _stakeAddress,
+        address _asset
     ) internal returns (uint256 bptOut) {
-        _investBalToPool(_amount, _minOut);
+        require(_asset == LIT || _asset == ETH || _asset == WETH, "!asset");
+
+        if (_asset == LIT) {
+            IERC20(LIT).safeTransferFrom(msg.sender, address(this), _amount);
+            _investSingleToPool(_amount, _minOut, 1);
+        } else if (_asset == ETH) {
+            IWETH(WETH).deposit{ value: _amount }();
+            _investSingleToPool(_amount, _minOut, 0);
+        } else {
+            IERC20(WETH).safeTransferFrom(msg.sender, address(this), _amount);
+            _investSingleToPool(_amount, _minOut, 0);
+        }
+
         bptOut = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
         ICrvDepositor(crvDeposit).depositFor(_for, bptOut, _lock, _stakeAddress);
     }
@@ -79,7 +107,37 @@ contract LitDepositorHelper is ILitDepositorHelper, BalInvestor {
      * @param _minOut Units of BPT to expect as output
      */
     function convertLitToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptOut) {
-        _investBalToPool(_amount, _minOut);
+        IERC20(LIT).safeTransferFrom(msg.sender, address(this), _amount);
+        _investSingleToPool(_amount, _minOut, 1);
+
+        bptOut = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
+        if (bptOut > 0) {
+            IERC20(BALANCER_POOL_TOKEN).safeTransfer(msg.sender, bptOut);
+        }
+    }
+
+    /**
+     * @dev Converts WETH to LIT/WETH and sends BPT to user
+     * @param _amount Units of WETH to deposit
+     * @param _minOut Units of BPT to expect as output
+     */
+    function convertWethToBpt(uint256 _amount, uint256 _minOut) external returns (uint256 bptOut) {
+        IERC20(WETH).safeTransferFrom(msg.sender, address(this), _amount);
+        _investSingleToPool(_amount, _minOut, 0);
+
+        bptOut = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
+        if (bptOut > 0) {
+            IERC20(BALANCER_POOL_TOKEN).safeTransfer(msg.sender, bptOut);
+        }
+    }
+
+    /**
+     * @dev Converts ETH to LIT/WETH and sends BPT to user
+     * @param _minOut Units of BPT to expect as output
+     */
+    function convertEthToBpt(uint256 _minOut) external payable nonReentrant returns (uint256 bptOut) {
+        IWETH(WETH).deposit{ value: msg.value }();
+        _investSingleToPool(msg.value, _minOut, 0);
 
         bptOut = IERC20(BALANCER_POOL_TOKEN).balanceOf(address(this));
         if (bptOut > 0) {
