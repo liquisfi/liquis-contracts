@@ -8,7 +8,7 @@ import { IBalancerVault, IPriceOracle, IAsset } from "../interfaces/balancer/IBa
 
 /**
  * @title   BalInvestor
- * @notice  Deposits $LIT into a LIT/WETH BPT. Hooks into TWAP to determine minOut.
+ * @notice  Deposits LIT or WETH into a LIT/WETH BPT. Hooks into TWAP to determine minOut.
  * @dev     Abstract contract for depositing LIT -> balBPT -> auraBAL via crvDepositor
  */
 abstract contract BalInvestor {
@@ -67,26 +67,48 @@ abstract contract BalInvestor {
         return IPriceOracle(BALANCER_POOL_TOKEN).getTimeWeightedAverage(queries)[0];
     }
 
-    function _getMinOut(uint256 amount, uint256 minOutBps) internal view returns (uint256) {
+    function _getMinOut(
+        uint256 amount,
+        uint256 minOutBps,
+        uint256 asset
+    ) internal view returns (uint256) {
+        require(asset == 0 || asset == 1, "!asset");
+
         // Gets the balancer time weighted average price denominated in WETH
         // e.g.  if 1 WETH == 0.4 BPT, bptOraclePrice == 2.5
         uint256 bptOraclePrice = _getBptPrice(); // e.g bptOraclePrice = 3.52e14
-        uint256 pairOraclePrice = _getPairPrice(); // e.g pairOraclePrice = 0.56e14
-        uint256 bptOraclePriceInLit = (bptOraclePrice * 1e18) / pairOraclePrice; // e.g bptOraclePriceInLit = 6.28e18
+
+        if (asset == 1) {
+            // get min out for LIT in
+            uint256 pairOraclePrice = _getPairPrice(); // e.g pairOraclePrice = 0.56e14
+            bptOraclePrice = (bptOraclePrice * 1e18) / pairOraclePrice; // e.g bptOraclePriceInLit = 6.28e18
+        }
+
         // e.g. minOut = (((100e18 * 1e18) / 2.5e18) * 9980) / 10000;
         // e.g. minout = 39.92e18
-        uint256 minOut = (((amount * 1e18) / bptOraclePriceInLit) * minOutBps) / 10000;
+        uint256 minOut = (((amount * 1e18) / bptOraclePrice) * minOutBps) / 10000;
         return minOut;
     }
 
-    function _investBalToPool(uint256 amount, uint256 minOut) internal {
-        IERC20(LIT).safeTransferFrom(msg.sender, address(this), amount);
+    // invest either WETH or LIT in BAL-20WETH-80LIT pool
+    function _investSingleToPool(
+        uint256 amount,
+        uint256 minOut,
+        uint256 asset
+    ) internal {
         IAsset[] memory assets = new IAsset[](2);
         assets[0] = IAsset(WETH);
         assets[1] = IAsset(LIT);
         uint256[] memory maxAmountsIn = new uint256[](2);
-        maxAmountsIn[0] = 0;
-        maxAmountsIn[1] = amount;
+
+        // asset == 0: invest WETH, asset == 1: invest LIT
+        if (asset == 0) {
+            maxAmountsIn[0] = amount;
+            maxAmountsIn[1] = 0;
+        } else {
+            maxAmountsIn[0] = 0;
+            maxAmountsIn[1] = amount;
+        }
 
         BALANCER_VAULT.joinPool(
             BAL_ETH_POOL_ID,

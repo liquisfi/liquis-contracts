@@ -68,7 +68,7 @@ describe("TestLitEth", () => {
             let tx = await testEthLit.approveToken();
             await tx.wait();
 
-            const minOut = await testEthLit.getMinOut(amount, 9980);
+            const minOut = await testEthLit.getMinOut(amount, 9980, "1");
             tx = await testEthLit.addBalToPool(amount.toString(), minOut);
             await tx.wait();
 
@@ -86,11 +86,11 @@ describe("TestLitEth", () => {
             const tx = await litToken.approve(testEthLit.address, amount);
             await tx.wait();
 
-            let minOut = await testEthLit.getMinOut(amount, 10005);
+            let minOut = await testEthLit.getMinOut(amount, 10005, "1");
 
             await expect(testEthLit.addBalToPool(amount.toString(), minOut)).to.be.revertedWith("BAL#208");
 
-            minOut = await testEthLit.getMinOut(amount, 9980);
+            minOut = await testEthLit.getMinOut(amount, 9980, "1");
 
             await testEthLit.addBalToPool(amount.toString(), minOut);
         });
@@ -99,7 +99,7 @@ describe("TestLitEth", () => {
             const tx = await litToken.approve(testEthLit.address, simpleToExactAmount(1, 24));
             await tx.wait();
 
-            const minOut = await testEthLit.getMinOut(simpleToExactAmount(1, 24), 9980);
+            const minOut = await testEthLit.getMinOut(simpleToExactAmount(1, 24), 9980, "1");
 
             await expect(testEthLit.addBalToPool(simpleToExactAmount(1, 24), minOut)).to.be.revertedWith("BAL#208");
         });

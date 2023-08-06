@@ -286,7 +286,7 @@ describe("PrelaunchRewardsPool", () => {
                     const holder = await ethers.getSigner(litHolder.address);
                     const amount = e18.mul(100000);
 
-                    const minOut = await litDepositorHelper.getMinOut(amount, 9850);
+                    const minOut = await litDepositorHelper.getMinOut(amount, 9850, litToken.address);
 
                     await litToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
                     await prelaunchRewardsPool.connect(holder).stakeLit(amount, minOut);
@@ -443,7 +443,7 @@ describe("PrelaunchRewardsPool", () => {
                     const holder = await ethers.getSigner(litHolder.address);
                     const amount = e18.mul(100000);
 
-                    const minOut = await litDepositorHelper.getMinOut(amount, 9850);
+                    const minOut = await litDepositorHelper.getMinOut(amount, 9850, litToken.address);
 
                     await litToken.connect(holder).approve(prelaunchRewardsPool.address, amount);
                     await prelaunchRewardsPool.connect(holder).stakeLit(amount, minOut);

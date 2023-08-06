@@ -372,8 +372,22 @@ contract FlashOptionsExerciser is IFlashLoanSimpleReceiver {
 
         if (claimed > 0) {
             bptOut = _stake == true
-                ? ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, claimed, minOut, true, lockerRewards)
-                : ILitDepositorHelper(litDepositorHelper).depositFor(msg.sender, claimed, minOut, true, address(0));
+                ? ILitDepositorHelper(litDepositorHelper).depositFor(
+                    msg.sender,
+                    claimed,
+                    minOut,
+                    true,
+                    lockerRewards,
+                    lit
+                )
+                : ILitDepositorHelper(litDepositorHelper).depositFor(
+                    msg.sender,
+                    claimed,
+                    minOut,
+                    true,
+                    address(0),
+                    lit
+                );
         } // otherwise bptBalance = 0
     }
 
