@@ -218,11 +218,12 @@ contract LiquisViewHelpers {
         // Some pools were added to the Booster without valid LP tokens
         // We need to try/catch all of these calls as a result
         address uniV3Pool;
-        address[] memory poolTokens;
-        int24[] memory ticks;
+        address[] memory poolTokens = new address[](2);
+        int24[] memory ticks = new int24[](2);
 
         try bunniLpToken.pool() returns (address fetchedPool) {
             uniV3Pool = fetchedPool;
+
             poolTokens[0] = IUniV3Pool(uniV3Pool).token0();
             poolTokens[1] = IUniV3Pool(uniV3Pool).token1();
 
@@ -230,8 +231,6 @@ contract LiquisViewHelpers {
             ticks[1] = bunniLpToken.tickUpper();
         } catch {
             uniV3Pool = address(0);
-            poolTokens = new address[](0);
-            ticks = new int24[](0);
         }
 
         ExtraRewards[] memory extraRewards = getExtraRewards(poolInfo.crvRewards);
