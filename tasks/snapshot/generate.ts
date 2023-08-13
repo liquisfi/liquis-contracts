@@ -14,7 +14,7 @@ import {
 import { getSigner } from "../utils";
 import { config } from "../deploy/mainnet-config";
 import { HardhatRuntime } from "../utils/networkAddressFactory";
-import { IGaugeController__factory, MockCurveGauge__factory } from "../../types";
+import { IGaugeController__factory, MockCurveGauge__factory, ERC20__factory } from "../../types";
 import { removedGauges, validNetworks } from "./constants";
 import { uniqBy } from "lodash";
 
@@ -80,4 +80,48 @@ task("snapshot:validate").setAction(async function (_: TaskArguments, hre: Hardh
             console.log("Missing:", i, addr);
         }
     }
+});
+
+task("gauges:print").setAction(async function (_: TaskArguments, hre: HardhatRuntime) {
+    const signer = await getSigner(hre);
+    const gauges = getGaugeChoices();
+
+    const gaugeController = IGaugeController__factory.connect(config.addresses.gaugeController, signer);
+
+    const count = Number((await gaugeController.n_gauges()).toString());
+
+    const cleanedGauges: GaugeChoice[] = [];
+
+    for (let i = 0; i < count; i++) {
+        const addr = await gaugeController.gauges(i);
+        const gauge = new Contract(
+            addr,
+            [
+                "function is_killed() external view returns (bool)",
+                "function lp_token() external view returns (address)",
+            ],
+            signer,
+        );
+
+        if (await gauge.is_killed()) continue;
+
+        const found = gauges.find((g: GaugeChoice) => compareAddresses(addr, g.address));
+        const isRemoved = removedGauges.find(g => compareAddresses(g, addr));
+        if (!found && !isRemoved) {
+            console.log("Missing:", i, addr);
+        }
+
+        try {
+            const lpTokenAddress = await gauge.lp_token();
+            const lpToken = ERC20__factory.connect(lpTokenAddress, signer);
+            const lpTokenName = await lpToken.name();
+
+            cleanedGauges.push({ address: gauge.address, label: lpTokenName });
+        } catch (e) {
+            console.log("Print task error:", gauge.address);
+            cleanedGauges.push({ address: gauge.address, label: "MISSING" });
+        }
+    }
+
+    console.log(cleanedGauges);
 });
