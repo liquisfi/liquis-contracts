@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { networkLabels, priorityGuagesAddresses, symbolOverrides, validNetworks } from "./constants";
+import { networkLabels, priorityGaugesAddresses, symbolOverrides, validNetworks } from "./constants";
 
 export interface Gauge {
     pool: {
@@ -95,10 +95,10 @@ export const sortGaugeList = (gaugeList: Gauge[]) => {
         return [...acc, ...gauges.filter(g => g.network === chainId)];
     }, []);
 
-    const priorityGuages = priorityGuagesAddresses.map(addr =>
+    const priorityGauges = priorityGaugesAddresses.map(addr =>
         gauges.find(g => g.address.toLowerCase() === addr.toLowerCase()),
     );
-    return [...priorityGuages, ...networkOrder.filter(x => !priorityGuagesAddresses.includes(x.address.toLowerCase()))];
+    return [...priorityGauges, ...networkOrder.filter(x => !priorityGaugesAddresses.includes(x.address.toLowerCase()))];
 };
 
 export const ordinalSuffix = (i: number) => {

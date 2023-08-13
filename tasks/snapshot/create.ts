@@ -32,7 +32,7 @@ task("snapshot:create")
 
         const networkName = hre.network.name;
         if (networkName !== "mainnet") {
-            console.log(`Invalid network ID. Found ${networkName} Expecting mainnet`);
+            console.log(`Invalid network ID. Found ${networkName}. Expecting mainnet`);
             return;
         }
 
@@ -46,7 +46,7 @@ task("snapshot:create")
         console.log("Creating proposal on snapshot");
         const latestBlock = taskArgs.snapshot;
         if (!latestBlock) {
-            console.log(`Invalid snashot provided. Found ${snapshot}`);
+            console.log(`Invalid snapshot provided. Found ${snapshot}`);
         }
         const client = new snapshot.Client712(config.hub);
 
@@ -104,8 +104,8 @@ task("snapshot:create")
                 const count = choices.filter((c: string) => c === choice).length;
                 if (count > 1) console.log("Duplicate:", choice);
             });
-            console.log("Duplicate labels not allowed");
-            return;
+            // console.log("Duplicate labels not allowed");
+            // return;
         }
 
         await new Promise(res => {

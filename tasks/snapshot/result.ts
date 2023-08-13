@@ -130,7 +130,7 @@ task("snapshot:result", "Get results for the first proposal that uses non standa
         // Processing
         // ----------------------------------------------------------
 
-        console.log("Successfull gauge votes");
+        console.log("Successful gauge votes");
         const tableData = [
             ["Gauge", "voteDelta", "percentage", "address", "weight"],
             ...votes.map(({ gauge, voteDelta, voteWeight, percentage }) => [
