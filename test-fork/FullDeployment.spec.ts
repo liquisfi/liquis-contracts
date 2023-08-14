@@ -81,35 +81,35 @@ xdescribe("Full Deployment", () => {
         await getEth(config.addresses.balancerVault);
 
         const tokenWhaleSigner = await impersonateAccount(config.addresses.balancerVault);
-        const crv = MockERC20__factory.connect(config.addresses.token, tokenWhaleSigner.signer);
+        const crv = ERC20__factory.connect(config.addresses.token, tokenWhaleSigner.signer);
         const tx = await crv.transfer(recipient, amount);
         await waitForTx(tx, debug);
     };
 
     const getCrvBpt = async (recipient: string, amount = simpleToExactAmount(250)) => {
         const tokenWhaleSigner = await impersonateAccount(config.addresses.tokenWhale);
-        const crvBpt = MockERC20__factory.connect(config.addresses.tokenBpt, tokenWhaleSigner.signer);
+        const crvBpt = ERC20__factory.connect(config.addresses.tokenBpt, tokenWhaleSigner.signer);
         const tx = await crvBpt.transfer(recipient, amount);
         await waitForTx(tx, debug);
     };
 
     const getWeth = async (recipient: string, amount = simpleToExactAmount(100)) => {
         const wethWhaleSigner = await impersonateAccount(config.addresses.wethWhale);
-        const weth = MockERC20__factory.connect(config.addresses.weth, wethWhaleSigner.signer);
+        const weth = ERC20__factory.connect(config.addresses.weth, wethWhaleSigner.signer);
         const tx = await weth.transfer(recipient, amount);
         await waitForTx(tx, debug);
     };
 
     const getLpToken = async (recipient: string, amount = simpleToExactAmount(10)) => {
         const lpWhaleSigner = await impersonateAccount(config.addresses.staBAL3Whale);
-        const lp = MockERC20__factory.connect(config.addresses.staBAL3, lpWhaleSigner.signer);
+        const lp = ERC20__factory.connect(config.addresses.staBAL3, lpWhaleSigner.signer);
         const tx = await lp.transfer(recipient, amount);
         await waitForTx(tx, debug);
     };
 
     const getLdo = async (recipient: string, amount = simpleToExactAmount(10)) => {
         const ldoWhale = await impersonateAccount(config.addresses.ldoWhale);
-        const ldo = MockERC20__factory.connect(config.addresses.ldo, ldoWhale.signer);
+        const ldo = ERC20__factory.connect(config.addresses.ldo, ldoWhale.signer);
         const tx = await ldo.transfer(recipient, amount);
         await waitForTx(tx, debug);
     };
@@ -751,9 +751,9 @@ xdescribe("Full Deployment", () => {
             before(async () => {
                 treasurySigner = await impersonateAccount(config.multisigs.treasuryMultisig);
                 balancerVault = IBalancerVault__factory.connect(config.addresses.balancerVault, treasurySigner.signer);
-                weth = MockERC20__factory.connect(config.addresses.weth, treasurySigner.signer);
+                weth = ERC20__factory.connect(config.addresses.weth, treasurySigner.signer);
                 aura = phase2.cvx.connect(treasurySigner.signer);
-                bpt = MockERC20__factory.connect(phase2.lbpBpt.address, treasurySigner.signer);
+                bpt = ERC20__factory.connect(phase2.lbpBpt.address, treasurySigner.signer);
             });
             it("allows treasuryDAO to withdraw LBP units", async () => {
                 const wethBalBefore = await weth.balanceOf(treasurySigner.address);
@@ -853,8 +853,8 @@ xdescribe("Full Deployment", () => {
             let crvBpt: ERC20;
             before(async () => {
                 alice = await impersonateAccount(testAccounts.alice);
-                crv = MockERC20__factory.connect(config.addresses.token, alice.signer);
-                crvBpt = MockERC20__factory.connect(config.addresses.tokenBpt, alice.signer);
+                crv = ERC20__factory.connect(config.addresses.token, alice.signer);
+                crvBpt = ERC20__factory.connect(config.addresses.tokenBpt, alice.signer);
 
                 await getCrv(alice.address, simpleToExactAmount(500));
                 await getCrvBpt(alice.address, simpleToExactAmount(500));
