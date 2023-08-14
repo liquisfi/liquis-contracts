@@ -80,7 +80,7 @@ contract BaseRewardPool is Permission {
     uint256 private _totalSupply;
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
-    mapping(address => uint256) private _balances;
+    mapping(address => uint256) internal _balances;
 
     address[] public extraRewards;
 
