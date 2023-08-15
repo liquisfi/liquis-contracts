@@ -15,6 +15,7 @@
         "liq": "0xc1EeD9232A0A44c2463ACB83698c162966FBc78d",
         "minter": "0xC220Ed128102d888af857d137a54b9B7573A41b2",
         "booster": "0xfaE849108F2A63Abe3BaB17E21Be077d07e7a9A2",
+        "rewardFactory": "0x12456fa31e57f91b70629c1196337074c966492a",
         "tokenFactory": "0xce830DA8667097BB491A70da268b76a081211814",
         "proxyFactory": "0xD5bFeBDce5c91413E41cc7B24C8402c59A344f7c",
         "stashFactory": "0x77AD263Cd578045105FBFC88A477CAd808d39Cf6",

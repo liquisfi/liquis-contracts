@@ -684,6 +684,8 @@ async function deployPhase2(
         writeConfigFile(outputConfig, hre);
         outputConfig.Deployments.booster = booster.address;
         writeConfigFile(outputConfig, hre);
+        outputConfig.Deployments.rewardFactory = rewardFactory.address;
+        writeConfigFile(outputConfig, hre);
         outputConfig.Deployments.tokenFactory = tokenFactory.address;
         writeConfigFile(outputConfig, hre);
         outputConfig.Deployments.proxyFactory = proxyFactory.address;
