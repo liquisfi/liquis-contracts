@@ -299,7 +299,7 @@ contract BaseRewardPool4626 is BaseRewardPool, ReentrancyGuard, IERC4626 {
         return true;
     }
 
-    function _transfer(address from, address to, uint256 amount) internal updateReward(from) updateReward(to)  virtual {
+    function _transfer(address from, address to, uint256 amount) internal updateReward(from) updateReward(to) virtual {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
 
