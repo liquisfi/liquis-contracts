@@ -31,7 +31,7 @@ library LiqMining {
      * @dev Calculates the amount of LIQ to mint based on the oLIT supply schedule.
      * Do not use this on chain.
      */
-    function convertCrvToCvx(uint256 _amount) external view returns (uint256 amount) {
+    function convertLitToLiq(uint256 _amount) external view returns (uint256 amount) {
         uint256 supply = liq.totalSupply();
         uint256 totalCliffs = liq.totalCliffs();
         uint256 maxSupply = liq.EMISSIONS_MAX_SUPPLY();

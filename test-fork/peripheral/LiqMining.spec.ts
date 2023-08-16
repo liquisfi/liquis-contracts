@@ -58,7 +58,7 @@ describe("LiqMining", () => {
         aliceAddress = (await ethers.getSigners())[0].address;
     });
     const expectMint = async (crvAmount: BN, expectedCvxAmount: BN, desc: string) => {
-        const cvxCalculated = await cvxMining.convertCrvToCvx(crvAmount);
+        const cvxCalculated = await cvxMining.convertLitToLiq(crvAmount);
         const tx = await liq.connect(operatorAccount.signer).mint(aliceAddress, crvAmount);
         await expect(tx).to.emit(liq, "Transfer").withArgs(ZERO_ADDRESS, aliceAddress, cvxCalculated);
         expect(cvxCalculated, `${desc} cvxCalculated`).to.be.eq(expectedCvxAmount);
