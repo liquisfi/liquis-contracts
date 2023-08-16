@@ -4,6 +4,7 @@ pragma solidity 0.8.11;
 import { IBalancerVault } from "../interfaces/balancer/IBalancerCore.sol";
 import { LiqLocker } from "../core/LiqLocker.sol";
 import { IBooster } from "../interfaces/IBooster.sol";
+import { Math } from "../utils/Math.sol";
 
 /**
  * @title   LiquisViewHelpers
@@ -13,6 +14,9 @@ import { IBooster } from "../interfaces/IBooster.sol";
  *          and should not be called from within a transaction.
  */
 contract LiquisViewHelpers {
+    using Math for uint256;
+
+    IERC20Detailed public immutable liq = IERC20Detailed(0xD82fd4D6D62f89A1E50b1db69AD19932314aa408);
     IBalancerVault public immutable balancerVault = IBalancerVault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
 
     struct Token {
@@ -330,6 +334,37 @@ contract LiquisViewHelpers {
         pendings = new uint256[](pools.length);
         for (uint256 i = 0; i < pools.length; i++) {
             pendings[i] = getEarmarkingReward(pools[i], booster, token);
+        }
+    }
+
+    function convertLitToLiq(uint256 _amount) external view returns (uint256 amount) {
+        uint256 supply = liq.totalSupply();
+        uint256 totalCliffs = 500;
+        uint256 maxSupply = 5e25;
+        uint256 initMintAmount = 5e25;
+        uint256 reductionPerCliff = 1e23;
+
+        // After LiqMinter.inflationProtectionTime has passed, this calculation might not be valid.
+        // uint256 emissionsMinted = supply - initMintAmount - minterMinted;
+        uint256 emissionsMinted = supply - initMintAmount;
+
+        uint256 cliff = emissionsMinted.div(reductionPerCliff);
+
+        // e.g. 100 < 500
+        if (cliff < totalCliffs) {
+            // e.g. (new) reduction = (500 - 100) * 0.25 + 70 = 170;
+            // e.g. (new) reduction = (500 - 250) * 0.25 + 70 = 132.5;
+            // e.g. (new) reduction = (500 - 400) * 0.25 + 70 = 95;
+            uint256 reduction = totalCliffs.sub(cliff).div(4).add(70);
+            // e.g. (new) amount = 1e19 * 170 / 500 =  34e17;
+            // e.g. (new) amount = 1e19 * 132.5 / 500 =  26.5e17;
+            // e.g. (new) amount = 1e19 * 95 / 500  =  19e16;
+            amount = _amount.mul(reduction).div(totalCliffs);
+            // e.g. amtTillMax = 5e25 - 1e25 = 4e25
+            uint256 amtTillMax = maxSupply.sub(emissionsMinted);
+            if (amount > amtTillMax) {
+                amount = amtTillMax;
+            }
         }
     }
 }
