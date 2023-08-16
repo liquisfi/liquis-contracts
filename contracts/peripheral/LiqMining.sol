@@ -33,15 +33,16 @@ library LiqMining {
      */
     function convertLitToLiq(uint256 _amount) external view returns (uint256 amount) {
         uint256 supply = liq.totalSupply();
-        uint256 totalCliffs = liq.totalCliffs();
-        uint256 maxSupply = liq.EMISSIONS_MAX_SUPPLY();
-        uint256 initMintAmount = liq.INIT_MINT_AMOUNT();
+        uint256 totalCliffs = 500;
+        uint256 maxSupply = 5e25;
+        uint256 initMintAmount = 5e25;
+        uint256 reductionPerCliff = 1e23;
 
         // After LiqMinter.inflationProtectionTime has passed, this calculation might not be valid.
         // uint256 emissionsMinted = supply - initMintAmount - minterMinted;
         uint256 emissionsMinted = supply - initMintAmount;
 
-        uint256 cliff = emissionsMinted.div(liq.reductionPerCliff());
+        uint256 cliff = emissionsMinted.div(reductionPerCliff);
 
         // e.g. 100 < 500
         if (cliff < totalCliffs) {
