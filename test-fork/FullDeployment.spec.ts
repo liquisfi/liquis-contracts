@@ -1123,18 +1123,6 @@ xdescribe("Full Deployment", () => {
                         expect(await feeCollector.voterProxy()).eq(voterProxy.address);
                         expect(await feeCollector.feeDistro()).eq(addresses.feeDistribution);
                     });
-                    it("has correct config for claimZap", async () => {
-                        const { claimZap, cvx, cvxCrv, litDepositorHelper, cvxLocker, cvxCrvRewards } = phase4;
-                        const { addresses } = config;
-
-                        expect(await claimZap.crv()).eq(addresses.token);
-                        expect(await claimZap.cvx()).eq(cvx.address);
-                        expect(await claimZap.cvxCrv()).eq(cvxCrv.address);
-                        expect(await claimZap.crvDepositWrapper()).eq(litDepositorHelper.address);
-                        expect(await claimZap.cvxCrvRewards()).eq(cvxCrvRewards.address);
-                        expect(await claimZap.locker()).eq(cvxLocker.address);
-                        expect(await claimZap.owner()).eq(deployerAddress);
-                    });
                     it("adds the pools", async () => {
                         const { booster, voterProxy, factories } = phase4;
                         const { addresses } = config;

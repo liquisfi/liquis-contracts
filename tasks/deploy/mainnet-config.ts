@@ -31,7 +31,6 @@ import {
     TokenFactory__factory,
     ProxyFactory__factory,
     ArbitratorVault__factory,
-    AuraClaimZap__factory,
     ClaimFeesHelper__factory,
     TempBooster__factory,
     TempBooster,
@@ -307,7 +306,6 @@ const getPhase3 = async (deployer: Signer): Promise<Phase3Deployed> => ({
 
 const getPhase4 = async (deployer: Signer): Promise<SystemDeployed> => ({
     ...(await getPhase3(deployer)),
-    claimZap: AuraClaimZap__factory.connect("0x623B83755a39B12161A63748f3f595A530917Ab2", deployer),
     feeCollector: ClaimFeesHelper__factory.connect("0xa96CCC5B7f04c7Ab74a43F81e07C342fb9808cF1", deployer),
 });
 
@@ -332,7 +330,6 @@ const getPhase6 = async (deployer: Signer): Promise<Phase6Deployed> => ({
         "0xa72932Aea1392b0Da9eDc34178dA2B29EcE2de54",
         deployer,
     ),
-    claimZap: AuraClaimZap__factory.connect("0x2E307704EfaE244c4aae6B63B601ee8DA69E92A9", deployer),
     stashV3: ExtraRewardStashV3__factory.connect("0x4A53301Fe213ECA70f904cD3766C07DB3A621bF8", deployer),
     poolMigrator: PoolMigrator__factory.connect("0x12addE99768a82871EAaecFbDB065b12C56F0578", deployer),
 });

@@ -7,8 +7,6 @@ import {
     MockCurveVoteEscrow__factory,
     BoosterOwner__factory,
     BoosterOwner,
-    AuraClaimZap__factory,
-    AuraClaimZap,
     BalLiquidityProvider,
     Booster__factory,
     Booster,
@@ -234,7 +232,6 @@ interface Phase3Deployed extends Phase2Deployed {
 }
 // Phase 4
 interface SystemDeployed extends Phase3Deployed {
-    claimZap: AuraClaimZap;
     feeCollector: ClaimFeesHelper;
 }
 
@@ -256,7 +253,6 @@ interface Phase6Deployed {
     poolManager: PoolManagerV3;
     poolManagerProxy: PoolManagerProxy;
     poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
-    claimZap: AuraClaimZap;
     stashV3: ExtraRewardStashV3;
     poolMigrator: PoolMigrator;
 }
@@ -1051,30 +1047,16 @@ async function deployPhase4(
 ): Promise<SystemDeployed> {
     const deployer = signer;
 
-    const { token, gauges, feeDistribution } = config;
-    const { cvx, cvxCrv, cvxLocker, cvxCrvRewards, poolManager, litDepositorHelper } = deployment;
+    const { gauges, feeDistribution } = config;
+    const { poolManager } = deployment;
 
     // PRE-4: daoMultisig.setProtectPool(false)
     //        daoMultisig.setFeeInfo(bbaUSD distro)
     //        daoMultisig.setFeeInfo($BAL distro)
     // -----------------------------
     // 4. Pool creation etc
-    //     - Claimzap
     //     - All initial gauges
     // -----------------------------
-
-    const claimZap = await deployContract<AuraClaimZap>(
-        hre,
-        new AuraClaimZap__factory(deployer),
-        "AuraClaimZap",
-        [token, cvx.address, cvxCrv.address, litDepositorHelper.address, cvxCrvRewards.address, cvxLocker.address],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    let tx = await claimZap.setApprovals();
-    await waitForTx(tx, debug, waitForBlocks);
 
     const gaugeLength = gauges.length;
     const gaugeController = IGaugeController__factory.connect(config.gaugeController, deployer);
@@ -1083,7 +1065,7 @@ async function deployPhase4(
             const weight = await gaugeController.get_gauge_weight(gauges[i]);
             if (weight.lt(simpleToExactAmount(15000))) continue;
         }
-        tx = await poolManager["addPool(address)"](gauges[i]);
+        let tx = await poolManager["addPool(address)"](gauges[i]);
         await waitForTx(tx, debug, waitForBlocks);
     }
 
@@ -1097,7 +1079,7 @@ async function deployPhase4(
         waitForBlocks,
     );
 
-    return { ...deployment, claimZap, feeCollector };
+    return { ...deployment, feeCollector };
 }
 
 async function deployTempBooster(
@@ -1331,16 +1313,6 @@ async function deployPhase6(
         waitForBlocks,
     );
 
-    const claimZap = await deployContract<AuraClaimZap>(
-        hre,
-        new AuraClaimZap__factory(deployer),
-        "AuraClaimZap",
-        [token, cvx.address, cvxCrv.address, litDepositorHelper.address, cvxCrvRewards.address, cvxLocker.address],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
     const poolMigrator = await deployContract<PoolMigrator>(
         hre,
         new PoolMigrator__factory(deployer),
@@ -1357,9 +1329,6 @@ async function deployPhase6(
     //     - factories (stashFactory.setImplementation)
     //     - pool management (poolManagerProxy.setOperator poolManagerProxy.setOwner, poolManagerSecondaryProxy.setOperator,  poolManagerSecondaryProxy.setOwner)
     // -----------------------------
-
-    tx = await claimZap.setApprovals();
-    await waitForTx(tx, debug, waitForBlocks);
 
     tx = await booster.setRewardContracts(cvxCrvRewards.address, cvxLocker.address);
     await waitForTx(tx, debug, waitForBlocks);
@@ -1431,7 +1400,6 @@ async function deployPhase6(
         poolManager,
         poolManagerProxy,
         poolManagerSecondaryProxy,
-        claimZap,
         stashV3,
         poolMigrator,
     };

@@ -281,19 +281,6 @@ describe("Full Migration", () => {
             expect(await poolManager.operator()).eq(multisigs.daoMultisig);
             expect(await poolManager.protectAddPool()).eq(true);
         });
-        it("has correct config for claimZap", async () => {
-            const { cvx, cvxCrv, litDepositorHelper, cvxLocker } = phase2;
-            const { claimZap, cvxCrvRewards } = phase6;
-            const { addresses } = config;
-
-            expect(await claimZap.crv()).eq(addresses.token);
-            expect(await claimZap.cvx()).eq(cvx.address);
-            expect(await claimZap.cvxCrv()).eq(cvxCrv.address);
-            expect(await claimZap.crvDepositWrapper()).eq(litDepositorHelper.address);
-            expect(await claimZap.cvxCrvRewards()).eq(cvxCrvRewards.address);
-            expect(await claimZap.locker()).eq(cvxLocker.address);
-        });
-
         it("has correct config for feeCollector", async () => {
             const { voterProxy } = phase2;
             const { feeCollector, booster } = phase6;
