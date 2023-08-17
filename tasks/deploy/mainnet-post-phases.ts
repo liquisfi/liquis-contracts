@@ -11,8 +11,6 @@ import {
     ClaimFeesHelper__factory,
     GaugeMigrator,
     GaugeMigrator__factory,
-    LiqMining,
-    LiqMining__factory,
 } from "../../types/generated";
 import { deployUpgrade01 } from "../../scripts/deployUpgrades";
 
@@ -86,18 +84,4 @@ task("deploy:mainnet:boosterSecondary").setAction(async function (_: TaskArgumen
     console.log("update newStashImpl address to:", newStashImpl.address);
     console.log("update poolManagerV4 address to:", poolManagerV4.address);
     console.log("update boosterOwnerSecondary address to:", boosterOwnerSecondary.address);
-});
-
-task("deploy:mainnet:liqMining").setAction(async function (_: TaskArguments, hre) {
-    const deployer = await getSigner(hre);
-    const liqMining = await deployContract<LiqMining>(
-        hre,
-        new LiqMining__factory(deployer),
-        "LiqMining",
-        [],
-        {},
-        debug,
-        waitForBlocks,
-    );
-    console.log("update liqMining address to:", liqMining.address);
 });
