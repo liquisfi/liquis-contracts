@@ -40,6 +40,10 @@ import {
     PooledOptionsExerciser,
     PooledOptionsExerciser__factory,
     LiqMinter,
+    LiquisClaimZap,
+    LiquisClaimZap__factory,
+    LiquisViewHelpers,
+    LiquisViewHelpers__factory,
 } from "../types/generated";
 import { deployContract, waitForTx } from "../tasks/utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
@@ -106,6 +110,8 @@ interface FullSystemDeployed extends PrelaunchDeployed {
     extraRewardsDistributor: ExtraRewardsDistributor;
     flashOptionsExerciser: FlashOptionsExerciser;
     pooledOptionsExerciser: PooledOptionsExerciser;
+    claimZap: LiquisClaimZap;
+    liquisViewHelpers: LiquisViewHelpers;
 }
 
 function getConfig(hre: HardhatRuntimeEnvironment) {
@@ -343,6 +349,26 @@ async function deployFullSystem(
         waitForBlocks,
     );
 
+    const claimZap = await deployContract<LiquisClaimZap>(
+        hre,
+        new LiquisClaimZap__factory(deployer),
+        "LiquisClaimZap",
+        [liq.address, liqLit.address, liqLitRewards.address, liqLocker.address],
+        {},
+        debug,
+        waitForBlocks,
+    );
+
+    const liquisViewHelpers = await deployContract<LiquisViewHelpers>(
+        hre,
+        new LiquisViewHelpers__factory(deployer),
+        "LiquisViewHelpers",
+        [],
+        {},
+        debug,
+        waitForBlocks,
+    );
+
     outputConfig.Deployments.rewardFactory = rewardFactory.address;
     writeConfigFile(outputConfig, hre);
 
@@ -392,6 +418,12 @@ async function deployFullSystem(
     writeConfigFile(outputConfig, hre);
 
     outputConfig.Deployments.pooledOptionsExerciser = pooledOptionsExerciser.address;
+    writeConfigFile(outputConfig, hre);
+
+    outputConfig.Deployments.claimZap = claimZap.address;
+    writeConfigFile(outputConfig, hre);
+
+    outputConfig.Deployments.liquisViewHelpers = liquisViewHelpers.address;
     writeConfigFile(outputConfig, hre);
 
     // Once VoterProxy is whitelisted an initial lock needs to be done
@@ -482,6 +514,8 @@ async function deployFullSystem(
         poolManagerSecondaryProxy,
         flashOptionsExerciser,
         pooledOptionsExerciser,
+        claimZap,
+        liquisViewHelpers,
     };
 }
 

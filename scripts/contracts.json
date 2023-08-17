@@ -34,6 +34,8 @@
         "penaltyForwarder": "",
         "flashOptionsExerciser": "",
         "pooledOptionsExerciser": "",
-        "prelaunchRewardsPool": "0x5c988c4E1F3cf1CA871A54Af3a1DcB5FeF2612Fc"
+        "prelaunchRewardsPool": "0x5c988c4E1F3cf1CA871A54Af3a1DcB5FeF2612Fc",
+        "claimZap": "",
+        "liquisViewHelpers": ""
     }
 }
