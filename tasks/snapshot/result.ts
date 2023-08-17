@@ -26,7 +26,7 @@ task("snapshot:result", "Get results for the first proposal that uses non standa
             }
         `;
 
-        const config = configs.main;
+        const config = configs.test; // Note test for testing and main for mainnet
         const proposalId = taskArgs.proposal;
         const debug = taskArgs.debug === "true";
         const data = await request(`${config.hub}/graphql`, query, { proposal: proposalId });
@@ -63,13 +63,13 @@ task("snapshot:result", "Get results for the first proposal that uses non standa
         // ----------------------------------------------------------
 
         const gaugeSnapshot = getGaugeSnapshot();
-        const voterProxyAddress = "0xaF52695E1bB01A16D33D7194C28C42b10e0Dbec2";
-        const gaugeControllerAddress = "0xc128468b7ce63ea702c1f104d55a2566b13d3abd";
+        const voterProxyAddress = "0x37aeB332D6E57112f1BFE36923a7ee670Ee9278b";
+        const gaugeControllerAddress = "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218";
         const gaugeController = IGaugeController__factory.connect(gaugeControllerAddress, signer);
         const gaugesWithExistingWeights = await Promise.all(
             gaugeSnapshot.map(async (gauge: Gauge) => {
                 const [, power] = await gaugeController.vote_user_slopes(voterProxyAddress, gauge.address);
-                return { address: gauge.address, label: parseLabel(gauge), existingWeight: power };
+                return { address: gauge.address, label: gauge.label, existingWeight: power };
             }),
         );
 
@@ -130,7 +130,7 @@ task("snapshot:result", "Get results for the first proposal that uses non standa
         // Processing
         // ----------------------------------------------------------
 
-        console.log("Successfull gauge votes");
+        console.log("Successful gauge votes");
         const tableData = [
             ["Gauge", "voteDelta", "percentage", "address", "weight"],
             ...votes.map(({ gauge, voteDelta, voteWeight, percentage }) => [

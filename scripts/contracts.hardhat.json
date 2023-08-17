@@ -15,6 +15,7 @@
         "liq": "0xfB12F7170FF298CDed84C793dAb9aBBEcc01E798",
         "minter": "0xc1EeD9232A0A44c2463ACB83698c162966FBc78d",
         "booster": "0xC220Ed128102d888af857d137a54b9B7573A41b2",
+        "rewardFactory": "0x12456fa31e57f91b70629c1196337074c966492a",
         "tokenFactory": "0x12456Fa31e57F91B70629c1196337074c966492a",
         "proxyFactory": "0xce830DA8667097BB491A70da268b76a081211814",
         "stashFactory": "0xD5bFeBDce5c91413E41cc7B24C8402c59A344f7c",
@@ -33,6 +34,8 @@
         "penaltyForwarder": "0x1bEfE2d8417e22Da2E0432560ef9B2aB68Ab75Ad",
         "flashOptionsExerciser": "0x04f1A5b9BD82a5020C49975ceAd160E98d8B77Af",
         "pooledOptionsExerciser": "0xde79380FBd39e08150adAA5C6c9dE3146f53029e",
-        "prelaunchRewardsPool": "0xbFD3c8A956AFB7a9754C951D03C9aDdA7EC5d638"
+        "prelaunchRewardsPool": "0xbFD3c8A956AFB7a9754C951D03C9aDdA7EC5d638",
+        "claimZap": "0x9bE634797af98cB560DB23260b5f7C6e98AcCAcf",
+        "liquisViewHelpers": "0xe4a4B3Bc2787aA913e5b4bbce907e8b213250BDe"
     }
 }

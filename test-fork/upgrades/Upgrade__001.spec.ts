@@ -86,7 +86,7 @@ describe("PoolManager/Stash/BoosterOwner Upgrades", () => {
         protocolDao = await impersonateAccount(config.multisigs.daoMultisig);
         phase6 = await config.getPhase6(protocolDao.signer);
         phase2 = await config.getPhase2(protocolDao.signer);
-        crv = MockERC20__factory.connect(config.addresses.token, deployer);
+        crv = ERC20__factory.connect(config.addresses.token, deployer);
 
         whales[cowWethPid] = await impersonateAccount(cowWethWhale);
 

@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import { IBalancerPool, IBalancerVault } from "../interfaces/balancer/IBalancerCore.sol";
+import { IBalancerVault } from "../interfaces/balancer/IBalancerCore.sol";
 import { LiqLocker } from "../core/LiqLocker.sol";
 import { IBooster } from "../interfaces/IBooster.sol";
+import { Math } from "../utils/Math.sol";
 
 /**
- * @title   AuraViewHelpers
+ * @title   LiquisViewHelpers
  * @author  AuraFinance
  * @notice  View-only contract to combine calls
  * @dev     IMPORTANT: These functions are extremely gas-intensive
-            and should not be called from within a transaction.
+ *          and should not be called from within a transaction.
  */
-contract AuraViewHelpers {
+contract LiquisViewHelpers {
+    using Math for uint256;
+
+    IERC20Detailed public immutable liq = IERC20Detailed(0xD82fd4D6D62f89A1E50b1db69AD19932314aa408);
     IBalancerVault public immutable balancerVault = IBalancerVault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
 
     struct Token {
@@ -31,29 +35,12 @@ contract AuraViewHelpers {
         address stash;
         bool shutdown;
         address rewardToken;
-        bytes32 poolId;
-        uint256[] normalizedWeights;
+        address uniV3Pool;
         address[] poolTokens;
-        uint256[] underlying;
+        int24[] ticks;
         uint256 totalSupply;
         RewardsData rewardsData;
         ExtraRewards[] extraRewards;
-    }
-
-    struct Vault {
-        address addr;
-        address underlying;
-        uint256 totalUnderlying;
-        uint256 totalSupply;
-        uint256 withdrawalPenalty;
-        ExtraRewards[] extraRewards;
-    }
-
-    struct VaultAccount {
-        address addr;
-        uint256 balance;
-        uint256 balanceOfUnderlying;
-        uint256[] extraRewardsEarned;
     }
 
     struct Locker {
@@ -96,51 +83,6 @@ contract AuraViewHelpers {
         uint256 earned;
         uint256[] extraRewardsEarned;
         uint256 staked;
-    }
-
-    function getVault(address _vault) external view returns (Vault memory vault) {
-        IAuraBalVault auraBalVault = IAuraBalVault(_vault);
-
-        address underlying = auraBalVault.underlying();
-        uint256 totalUnderlying = auraBalVault.totalUnderlying();
-        uint256 totalSupply = auraBalVault.totalSupply();
-        uint256 withdrawPenalty = auraBalVault.withdrawalPenalty();
-
-        ExtraRewards[] memory extraRewards = getExtraRewards(_vault);
-
-        vault = Vault({
-            addr: _vault,
-            underlying: underlying,
-            totalUnderlying: totalUnderlying,
-            totalSupply: totalSupply,
-            withdrawalPenalty: withdrawPenalty,
-            extraRewards: extraRewards
-        });
-    }
-
-    function getVaultAccount(address _vault, address _account)
-        external
-        view
-        returns (VaultAccount memory vaultAccount)
-    {
-        IAuraBalVault auraBalVault = IAuraBalVault(_vault);
-
-        uint256 balance = auraBalVault.balanceOf(_account);
-        uint256 balanceOfUnderlying = auraBalVault.balanceOfUnderlying(_account);
-
-        uint256 extraRewardsLength = auraBalVault.extraRewardsLength();
-        uint256[] memory extraRewardsEarned = new uint256[](extraRewardsLength);
-        for (uint256 i = 0; i < extraRewardsLength; i++) {
-            IBaseRewardPool extraRewardsPool = IBaseRewardPool(auraBalVault.extraRewards(i));
-            extraRewardsEarned[i] = extraRewardsPool.earned(_account);
-        }
-
-        vaultAccount = VaultAccount({
-            addr: _account,
-            balance: balance,
-            balanceOfUnderlying: balanceOfUnderlying,
-            extraRewardsEarned: extraRewardsEarned
-        });
     }
 
     function getLocker(address _locker) external view returns (Locker memory locker) {
@@ -213,12 +155,10 @@ contract AuraViewHelpers {
         IBaseRewardPool pool = IBaseRewardPool(_cvxCrvRewards);
         address cvxCrv = pool.stakingToken();
 
-        uint256[] memory normalizedWeights = new uint256[](1);
-        normalizedWeights[0] = 1;
         address[] memory poolTokens = new address[](1);
         poolTokens[0] = cvxCrv;
-        uint256[] memory underlying = new uint256[](1);
-        underlying[0] = IERC20Detailed(cvxCrv).balanceOf(_cvxCrvRewards);
+        int24[] memory ticks = new int24[](1);
+        ticks[0] = 0;
 
         RewardsData memory rewardsData = RewardsData({
             rewardRate: pool.rewardRate(),
@@ -240,10 +180,9 @@ contract AuraViewHelpers {
                 stash: address(0),
                 shutdown: false,
                 rewardToken: pool.rewardToken(),
-                poolId: bytes32(0),
-                normalizedWeights: normalizedWeights,
+                uniV3Pool: address(0),
                 poolTokens: poolTokens,
-                underlying: underlying,
+                ticks: ticks,
                 rewardsData: rewardsData,
                 extraRewards: extraRewards,
                 totalSupply: pool.totalSupply()
@@ -278,29 +217,24 @@ contract AuraViewHelpers {
 
     function getPool(IBooster.PoolInfo memory poolInfo, uint256 _pid) public view returns (Pool memory) {
         IBaseRewardPool rewardPool = IBaseRewardPool(poolInfo.crvRewards);
-        IBalancerPool balancerPool = IBalancerPool(poolInfo.lptoken);
+        IBunniLpToken bunniLpToken = IBunniLpToken(poolInfo.lptoken);
 
-        // Some pools were added to the Booster without valid LP tokens;
-        // we need to try/catch all of these calls as a result.
-        bytes32 poolId;
-        uint256[] memory normalizedWeights;
-        address[] memory poolTokens;
-        uint256[] memory underlying;
+        // Some pools were added to the Booster without valid LP tokens
+        // We need to try/catch all of these calls as a result
+        address uniV3Pool;
+        address[] memory poolTokens = new address[](2);
+        int24[] memory ticks = new int24[](2);
 
-        try balancerPool.getPoolId() returns (bytes32 fetchedPoolId) {
-            poolId = fetchedPoolId;
-            (poolTokens, underlying, ) = balancerVault.getPoolTokens(poolId);
+        try bunniLpToken.pool() returns (address fetchedPool) {
+            uniV3Pool = fetchedPool;
 
-            try balancerPool.getNormalizedWeights() returns (uint256[] memory weights) {
-                normalizedWeights = weights;
-            } catch {
-                normalizedWeights = new uint256[](0);
-            }
+            poolTokens[0] = IUniV3Pool(uniV3Pool).token0();
+            poolTokens[1] = IUniV3Pool(uniV3Pool).token1();
+
+            ticks[0] = bunniLpToken.tickLower();
+            ticks[1] = bunniLpToken.tickUpper();
         } catch {
-            poolId = bytes32(0);
-            poolTokens = new address[](0);
-            underlying = new uint256[](0);
-            normalizedWeights = new uint256[](0);
+            uniV3Pool = address(0);
         }
 
         ExtraRewards[] memory extraRewards = getExtraRewards(poolInfo.crvRewards);
@@ -323,10 +257,9 @@ contract AuraViewHelpers {
                 stash: poolInfo.stash,
                 shutdown: poolInfo.shutdown,
                 rewardToken: rewardPool.rewardToken(),
-                poolId: poolId,
-                normalizedWeights: normalizedWeights,
+                uniV3Pool: uniV3Pool,
                 poolTokens: poolTokens,
-                underlying: underlying,
+                ticks: ticks,
                 rewardsData: rewardsData,
                 extraRewards: extraRewards,
                 totalSupply: rewardPool.totalSupply()
@@ -403,6 +336,37 @@ contract AuraViewHelpers {
             pendings[i] = getEarmarkingReward(pools[i], booster, token);
         }
     }
+
+    function convertLitToLiq(uint256 _amount) external view returns (uint256 amount) {
+        uint256 supply = liq.totalSupply();
+        uint256 totalCliffs = 500;
+        uint256 maxSupply = 5e25;
+        uint256 initMintAmount = 5e25;
+        uint256 reductionPerCliff = 1e23;
+
+        // After LiqMinter.inflationProtectionTime has passed, this calculation might not be valid.
+        // uint256 emissionsMinted = supply - initMintAmount - minterMinted;
+        uint256 emissionsMinted = supply - initMintAmount;
+
+        uint256 cliff = emissionsMinted.div(reductionPerCliff);
+
+        // e.g. 100 < 500
+        if (cliff < totalCliffs) {
+            // e.g. (new) reduction = (500 - 100) * 0.25 + 70 = 170;
+            // e.g. (new) reduction = (500 - 250) * 0.25 + 70 = 132.5;
+            // e.g. (new) reduction = (500 - 400) * 0.25 + 70 = 95;
+            uint256 reduction = totalCliffs.sub(cliff).div(4).add(70);
+            // e.g. (new) amount = 1e19 * 170 / 500 =  34e17;
+            // e.g. (new) amount = 1e19 * 132.5 / 500 =  26.5e17;
+            // e.g. (new) amount = 1e19 * 95 / 500  =  19e16;
+            amount = _amount.mul(reduction).div(totalCliffs);
+            // e.g. amtTillMax = 5e25 - 1e25 = 4e25
+            uint256 amtTillMax = maxSupply.sub(emissionsMinted);
+            if (amount > amtTillMax) {
+                amount = amtTillMax;
+            }
+        }
+    }
 }
 
 interface IBaseRewardPool {
@@ -445,20 +409,26 @@ interface IERC20Detailed {
     function balanceOf(address owner) external view returns (uint256);
 }
 
-interface IAuraBalVault {
-    function underlying() external view returns (address);
+interface IBunniLpToken {
+    function pool() external view returns (address);
 
-    function withdrawalPenalty() external view returns (uint256);
+    function tickLower() external view returns (int24);
 
-    function extraRewards(uint256 index) external view returns (address);
+    function tickUpper() external view returns (int24);
 
-    function extraRewardsLength() external view returns (uint256);
+    function name() external view returns (string memory);
 
-    function totalUnderlying() external view returns (uint256);
+    function symbol() external view returns (string memory);
 
     function balanceOf(address user) external view returns (uint256);
 
-    function balanceOfUnderlying(address user) external view returns (uint256);
+    function decimals() external view returns (uint8);
 
     function totalSupply() external view returns (uint256);
+}
+
+interface IUniV3Pool {
+    function token0() external view returns (address);
+
+    function token1() external view returns (address);
 }

@@ -15,7 +15,7 @@ import {
     CrvDepositor,
     VoterProxy,
     CvxCrvToken,
-    ERC20,
+    MockERC20,
     LitDepositorHelper,
     BaseRewardPool,
 } from "../../types/generated";
@@ -36,7 +36,7 @@ describe("LitDepositorHelper", () => {
     let alice: Signer;
     let aliceAddress: string;
     let multisigs: MultisigConfig;
-    let crv: ERC20;
+    let crv: MockERC20;
     let litDepositorHelper: LitDepositorHelper;
     let cvxCrvStaking: BaseRewardPool;
     let contracts: Phase5Deployed;

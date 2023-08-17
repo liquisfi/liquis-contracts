@@ -104,10 +104,10 @@ const externalAddresses: ExtSystemConfig = {
 const naming = {
     cvxName: "Liquis",
     cvxSymbol: "LIQ",
-    vlCvxName: "Vote Locked Liq",
+    vlCvxName: "Vote Locked Liquis",
     vlCvxSymbol: "vlLIQ",
-    cvxCrvName: "Liq Lit",
-    cvxCrvSymbol: "liqLit",
+    cvxCrvName: "Liquis LIT",
+    cvxCrvSymbol: "liqLIT",
     tokenFactoryNamePostfix: " Liquis Deposit",
 };
 

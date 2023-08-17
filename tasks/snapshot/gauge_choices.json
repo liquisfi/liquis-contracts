@@ -1,130 +1,210 @@
 [
-    { "address": "0xE867AD0a48e8f815DC0cda2CDb275e0F163A480b", "label": "veBAL" },
-    { "address": "0x0312AA8D0BA4a1969Fddb382235870bF55f7f242", "label": "Stable auraBAL/B-80BAL-20WETH" },
-    { "address": "0x275dF57d2B23d53e20322b4bb71Bf1dCb21D0A00", "label": "50/50 AURA/WETH" },
-    { "address": "0x2e79D6f631177F8E7f08Fbd5110e893e1b1D790A", "label": "33/33/33 graviAURA/auraBAL/WETH" },
-    { "address": "0x56124eb16441A1eF12A4CCAeAbDD3421281b795A", "label": "Stable veLIT" },
-    { "address": "0xB5bd58C733948e3d65d86BA9604e06e5dA276FD1", "label": "TWAMM wstETH/rETH" },
-    { "address": "0x605eA53472A496c3d483869Fe8F355c12E861e19", "label": "50/50 SNX/WETH" },
-    { "address": "0x4ca6AC0509E6381Ca7CD872a6cdC0Fbf00600Fa1", "label": "60/40 WETH/DAI" },
-    { "address": "0x5F4d57fd9Ca75625e4B7520c71c02948A48595d0", "label": "50/50 YFI/WETH" },
-    { "address": "0x79eF6103A513951a3b25743DB509E267685726B7", "label": "MetaStable rETH/WETH" },
-    { "address": "0x1249c510e066731FF14422500466A7102603da9e", "label": "80/20 D2D/USDC" },
-    { "address": "0xcD4722B7c24C29e0413BDCd9e51404B4539D14aE", "label": "MetaStable wstETH/WETH" },
-    { "address": "0xc2D343E2C9498E905F53C818B88eB8064B42D036", "label": "80/20 VITA/WETH" },
-    { "address": "0x9AB7B0C7b154f626451c9e8a68dC04f58fb6e5Ce", "label": "50/50 USDC/WETH" },
-    { "address": "0x4E3c048BE671852277Ad6ce29Fd5207aA12fabff", "label": "50/50 WBTC/WETH" },
-    { "address": "0x777C45BD0a2AF1dA5fe4a532AD6B207D3CEd8b2d", "label": "50/50 VITA/WETH" },
-    { "address": "0x942CB1Ed80D3FF8028B3DD726e0E2A9671bc6202", "label": "80/20 LDO/WETH" },
-    { "address": "0xCB664132622f29943f67FA56CCfD1e24CC8B4995", "label": "80/20 GNO/WETH" },
-    { "address": "0x57AB3b673878C3fEaB7f8FF434C40Ab004408c4c", "label": "50/50 GNO/COW" },
-    { "address": "0x7C777eEA1dC264e71E567Fcc9B6DdaA9064Eff51", "label": "50/50 COW/WETH" },
-    { "address": "0x3F29e69955E5202759208DD0C5E0BA55ff934814", "label": "80/20 BADGER/WBTC" },
-    { "address": "0x09AFEc27F5A6201617aAd014CeEa8deb572B0608", "label": "80/20 NOTE/WETH" },
-    { "address": "0x47c56A900295df5224EC5e6751dC31eb900321D5", "label": "80/20 WNCG/WETH" },
-    { "address": "0xe2b680A8d02fbf48C7D9465398C4225d7b7A7f87", "label": "80/20 PAL/USDC" },
-    { "address": "0x27Fd581E9D0b2690C2f808cd40f7fe667714b575", "label": "50/50 DFX/WETH" },
-    { "address": "0xDD4Db3ff8A37FE418dB6FF34fC316655528B6bbC", "label": "Stable FIAT/DAI/USDC" },
-    { "address": "0xE5f24cD43f77fadF4dB33Dab44EB25774159AC66", "label": "40/40/20 WBTC/DIGG/graviAURA" },
-    { "address": "0xAf3c3dab54ca15068D09C67D128344916e177cA9", "label": "50/50 FOLD/WETH" },
-    { "address": "0x75cAceBb5b4a73a530EdcdFdE7cFfbfea44c026E", "label": "50/50 Silo/WETH" },
-    { "address": "0x46804462f147fF96e9CAFB20cA35A3B2600656DF", "label": "50/50 INV/DOLA" },
-    { "address": "0x91A75880b07d36672f5C8DFE0F2334f086e29D47", "label": "Stable MAI/USDC" },
-    { "address": "0x39a9E78c3b9b5B47f1f6632BD74890E2430215Cf", "label": "80/20 palStkAAVE/AAVE" },
-    { "address": "0x7Fc115BF013844D6eF988837F7ae6398af153532", "label": "80/20 T/WETH" },
-    { "address": "0x63E3951212cCCAFE3eDC7588FD4D20Ee5e7Ad73f", "label": "33/33/33 WETH/LUSD/LQTY" },
-    { "address": "0x5f2c3422a675860f0e019Ddd78C6fA681bE84bd4", "label": "50/50 OHM/WETH" },
-    { "address": "0x107A2209883621aFe2968da31C03190e0B2782C2", "label": "50/50 OHM/DAI" },
-    { "address": "0x01A9502C11f411b494c62746D37e89d6f7078657", "label": "MetaStable wstETH/cbETH" },
-    { "address": "0xBC02eF87f4E15EF78A571f3B2aDcC726Fee70d8b", "label": "Stable DOLA/USDC" },
-    { "address": "0x81C452E84B103555C2Dd2DEc0bFABC0c4d6B3065", "label": "50/50 RBN/USDC" },
-    { "address": "0x21D8dB8a46393FEdE4e91eAfBc0cCf092faCb469", "label": "MetaStable WETH/ankrETH" },
-    { "address": "0x4dC35eC8562596ddA6aEe8EceE59a76D4d72b83E", "label": "50/50 SD/USDC" },
-    { "address": "0x37eCa8DaaB052E722e3bf8ca861aa4e1C047143b", "label": "80/20 SD/WETH" },
-    { "address": "0x10a361766e64D7983a97202ac3a0F4cee06Eb717", "label": "MetaStable StaFi rETH/WETH" },
-    { "address": "0xFc4541437265945F13368F9F61c19dA427D41A02", "label": "Stable DOLA/CUSD" },
-    { "address": "0xE629c43BCad1029E12ED51432B9dd3432b656cc9", "label": "FX USDC/EURS" },
-    { "address": "0x4532fBa326D853A03644758B8B7438374F6780dC", "label": "50/50 SYN/WETH" },
-    { "address": "0xe9866B9dc2c1213433f614CbB22EdAA0FAFF9a66", "label": "MetaStable USDC/wUSDR" },
-    { "address": "0x190AE1f6EE5c0B7bc193fA9CD9bBe9b335F69C65", "label": "50/50 PENDLE/WETH" },
-    { "address": "0xA2a9Ebd6f4dEA4802083F2C8D08066A4e695e64B", "label": "ComposableStable wstETH/sfrxETH/rETH" },
-    { "address": "0x2C2179abce3413E27BDA6917f60ae37F96D01826", "label": "50/50 rETH/RPL" },
-    { "address": "0x87012b0C3257423fD74a5986F81a0f1954C17a1d", "label": "50/50 BADGER/rETH" },
-    { "address": "0x95201B61EF19C867dA0D093DF20021e1a559452c", "label": "50/50 LDO/wstETH" },
-    { "address": "0xf7B0751Fea697cf1A541A5f57D11058a8fB794ee", "label": "50/50 ACX/wstETH" },
-    { "address": "0x19A13793af96f534F0027b4b6a3eB699647368e7", "label": "ComposableStable bb-g-USDC/bb-g-DAI" },
-    { "address": "0x29C6361Af40fc1B6585ce0885319511dF4450a8E", "label": "ComposableStable bb-yv-DAI/bb-yv-USDC/bb-yv-USDT" },
-    { "address": "0x36365dA262dB3965Ba2E1C4411409Bf22508e0A1", "label": "50/50 TRYB/USDC" },
-    { "address": "0x33BcAa8A390e6DcF2f18AE5fDd9e38fD248219eB", "label": "ComposableStable bb-i-USDT/bb-i-USDC/bb-i-DAI" },
-    { "address": "0xE879f17910E77c01952b97E4A098B0ED15B6295c", "label": "50/50 OHM/wstETH" },
-    { "address": "0x183D73dA7adC5011EC3C46e33BB50271e59EC976", "label": "80/20 ALCX/WETH" },
-    { "address": "0x254f3a52Ba9e0cac4E32B648d129529622D1A46c", "label": "ComposableStable bb-ma2-USDC/bb-ma2-DAI/bb-ma2-USDT" },
-    { "address": "0xFd29298041eA355cF7e15652689F2865443C3144", "label": "ComposableStable bb-s-USDC/bb-s-USDT/bb-s-DAI" },
-    { "address": "0x6661136537dfDCA26EEA05c8500502d7D5796E5E", "label": "80/20 Silo/WETH" },
-    { "address": "0x5612876e6F6cA370d93873FE28c874e89E741fB9", "label": "ComposableStable DAI/USDC/USDT" },
-    { "address": "0x0052688295413b32626D226a205b95cDB337DE86", "label": "ComposableStable bb-a-DAI/bb-a-USDT/bb-a-USDC" },
-    { "address": "0x5f838591A5A8048F0E4C4c7fCca8fD9A25BF0590", "label": "ComposableStable bb-a-WETH/wstETH" },
-    { "address": "0xCd8bB8cEBc794842967849255C234e7b7619A518", "label": "50/50 USH/WETH" },
-    { "address": "0xD9cde95eFeD2d426F2741E2c44De9573116B8F07", "label": "50/50 USDC-DAI-USDT/WETH" },
-    { "address": "0x454eb2f12242397688DbfdA241487e67ed80507a", "label": "50/50 STG/bb-a-USD" },
-    { "address": "0xF17F1E67bc384E43b4acf69cc032AD086f15f262", "label": "50/50 TEMPLE/DAI" },
-    { "address": "0x70c6A653e273523FADfB4dF99558737906c230c6", "label": "ComposableStable bb-a-WETH/cbETH" },
-    { "address": "0x2fC4506354166e8B9183FBB6A68cd9C5F3Fb9Bc5", "label": "50/50 wstETH/COMP" },
-    { "address": "0xC764B55852F8849Ae69923e45ce077A576bF9a8d", "label": "ComposableStable bb-a-WETH/qETH" },
-    { "address": "0x2D42910D826e5500579D121596E98A6eb33C0a1b", "label": "80/20 wjAURA/WETH" },
-    { "address": "0x11Ff498C7c2A29fc4638BF45D9fF995C3297fcA5", "label": "ComposableStable bb-a-WETH/swETH" },
-    { "address": "0x78a54C8F4eAba82e45cBC20B9454a83CB296e09E", "label": "50/50 COIL/USDC" },
-    { "address": "0x8a88C1f44854C61a466aB55614F6A7778473418b", "label": "ComposableStable vETH/WETH" },
-    { "address": "0x5aF3B93Fb82ab8691b82a09CBBae7b8D3eB5Ac11", "label": "ComposableStable LUSD/BaoUSD" },
-    { "address": "0xd1c070eBc7Ec77f2134b3Ef75283b6C1fb31a157", "label": "ComposableStable wstETH/wBETH" },
-    { "address": "0x21cf9324D5B1AC739B7E6922B69500F1eEDB52e0", "label": "ComposableStable UZD/bb-a-USD" },
-    { "address": "0xc43bF12A008d3Cc48AF7da1e8e87622A78dc64da", "label": "ComposableStable bb-a-WETH/ankrETH" },
-    { "address": "0x69F1077AeCE23D5b0344330B5eB13f05d5e410a1", "label": "80/20 ARCH/WETH" },
-    { "manual": true, "address": "0xC4E72abE8A32Fd7D7BA787e1Ec860ecb8C0B333c", "label": "USDC/WETH/L" },
-    { "manual": true, "address": "0x5b79494824Bc256cD663648Ee1Aad251B32693A9", "label": "veUSH" },
-    { "address": "0xf460C9A5D00ef665F12Ee9634983A2b799dA5317", "label": "a-33/33/33 WBTC/WETH/USDC" },
-    { "address": "0x0EDF6cDd81BC3471C053341B7D8Dfd1Cb367AD93", "label": "a-50/50 MAGIC/USDC" },
-    { "address": "0xDf464348c4EC2Bf0e5D6926b9f707c8e02301adf", "label": "a-MetaStable wstETH/WETH" },
-    { "address": "0x09D1036B04ef49BC155D258D7360FA7aE8F5B84d", "label": "a-ComposableStable bb-rf-USDC/bb-rf-USDT/bb-rf-DAI" },
-    { "address": "0x260779495dA7Ce3A76b44F5C994cD18EBDa8177f", "label": "a-ComposableStable bb-DAI+/bb-USD+" },
-    { "address": "0x8135d6AbFd42707A87A7b94c5CFA3529f9b432AD", "label": "a-80/20 RDNT/WETH" },
-    { "address": "0x4944b07977A42C15c6a06CF4e204e24c60564104", "label": "a-ComposableStable bb-a-WETH/rETH" },
-    { "address": "0x54BeFB03BB58687cDE09cd082Bd78410e309D8C7", "label": "a-ComposableStable bb-a-USDT/bb-a-USDC/bb-a-DAI" },
-    { "address": "0xB5044FD339A7b858095324cC3F239C212956C179", "label": "a-ComposableStable wstETH/bb-a-WETH" },
-    { "address": "0x8204b749B808818DEb7957DbD030ceEA44D1FE18", "label": "a-50/50 STG/bb-a-USD" },
-    { "address": "0xd40a3C414Bb6f82fC5625e32895F49E53220f73b", "label": "a-50/50 wstETH-bb-a-WETH-BPT/bb-a-USD" },
-    { "address": "0xc4b6cc9A444337b1Cb8cBbDD9de4d983f609C391", "label": "a-ComposableStable WBTC/tBTC" },
-    { "address": "0xa8D974288Fe44ACC329D7d7a179707D27Ec4dd1c", "label": "a-50/50 tBTC/WETH" },
-    { "address": "0xD103Dd49B8051A09B399A52E9A8aB629392dE2fb", "label": "p-ComposableStable WMATIC/stMATIC" },
-    { "address": "0xF5C7F74103d4E9D1fF8FBa3420c6319723e3473A", "label": "p-25/25/25/25 WMATIC/USDC/WETH/BAL" },
-    { "address": "0x1604b7E80975555e0aCEaca9C81807FbB4D65Cf1", "label": "p-33/33/33 WBTC/USDC/WETH" },
-    { "address": "0xd1177e2157a7fD6A0484B79f8E50e8A9305F8063", "label": "p-Stable 20WETH-80BAL/tetuBAL" },
-    { "address": "0x1f5Cb5b832f27E24A3b0ad4b837d3Ed26FF7aC6E", "label": "p-80/20 TETU/USDC" },
-    { "address": "0xc534C30749b6C198D35a7836E26076E7745D8936", "label": "p-MetaStable USDC/wUSDR" },
-    { "address": "0xA4c104AB9116a84714C081e0Ed6d750221e4c756", "label": "p-80/20 SPHERE/WMATIC" },
-    { "address": "0xe603cc3f7Ec38cC6ab1Eef7FdA9Bb599493e9a24", "label": "p-50/50 THX/stMATIC" },
-    { "address": "0x0a650F4E0C416c24C8713c322d5AAA531a5A0112", "label": "p-80/20 SD/MaticX" },
-    { "address": "0x790DE8ABE859f399023BCe73B5FE5C4870cD816A", "label": "p-ComposableStable jEUR/agEUR" },
-    { "address": "0x16289F675Ca54312a8fCF99341e7439982888077", "label": "p-ComposableStable jEUR/PAR" },
-    { "address": "0x31F99c542CbE456FcbBe99D4bf849Af4D7fB5405", "label": "p-ComposableStable tetuQi/QI" },
-    { "address": "0x39cEEbb561a65216A4B776ea752d3137e9d6C0F0", "label": "p-ComposableStable bb-t-USDT/bb-t-USDC/bb-t-DAI" },
-    { "address": "0xDd3b4161D2a4c609884E20Ed71b4e85BE44572E6", "label": "p-ComposableStable stMATIC/bb-a-WMATIC" },
-    { "address": "0x082AACfaf4db8AC0642CBED50df732D3C309E679", "label": "p-ComposableStable bb-a-WMATIC/MaticX" },
-    { "address": "0x21483F79a1aE94536Dc1d5dDfC6f591fB3B430Df", "label": "p-ComposableStable WMATIC/ankrMATIC" },
-    { "address": "0x2cc5BebcFdAAD20f2a608EC153d1C7BED66EeEC3", "label": "p-80/20 TNGBL/USDC" },
-    { "address": "0x6b641e334f63f0D882538Fe189efC0702d961696", "label": "p-ComposableStable bb-a-USDC/bb-a-DAI/bb-a-USDT" },
-    { "address": "0x47D7269829Ba9571D98Eb6DDc34e9C8f1A4C327f", "label": "p-ComposableStable wstETH/bb-a-WETH" },
-    { "address": "0x455f20c54b5712a84454468c7831f7c431aeEB1C", "label": "p-ComposableStable BRZ/jBRL" },
-    { "address": "0x02DFcC6ca6611cCBDCe51049a332afDB91465584", "label": "p-50/50 stMATIC-bb-a-WMATIC-BPT/bb-am-USD" },
-    { "address": "0x416d15C36c6DaAd2b9410B79aE557e6F07DcB642", "label": "p-ComposableStable bb-a-WETH/frxETH" },
-    { "address": "0xCDb532170f8B524D047287bFEfAcd0cC02441b4A", "label": "p-50/50 wstETH-bb-a-WETH-BPT/bb-am-USD" },
-    { "address": "0xBAdF0c8702B7Cb06bBEC351d18071804759e312c", "label": "p-50/50 bb-am-USD/2BRL (BRZ)" },
-    { "address": "0x539D6eDbd16F2F069A06716416C3a6E98cC29DD0", "label": "p-80/20 LUCHA/WMATIC" },
-    { "manual": true, "address": "0x145011e0C04805E11BEf23c1EEd848Faf49bB779", "label": "p-50/50 xSGD/USDC" },
-    { "address": "0xecF0a26a290cbf3DDBAB7eC5Fb44Ef5A294cAc18", "label": "p-ComposableStable FRAX/bb-am-USD" },
-    { "address": "0xDaCD99029b4B94CD04fE364aAc370829621C1C64", "label": "o-MetaStable WETH/rETH" },
-    { "address": "0x21b2Ef3DC22B7bd4634205081c667e39742075E2", "label": "g-33/33/33 bb-ag-WBTC/bb-ag-WETH/bb-ag-USD" },
-    { "address": "0xE41736b4e78be41Bd03EbAf8F86EA493C6e9EA96", "label": "g-50/50 bb-ag-WETH/bb-ag-GNO" },
-    { "address": "0xcB2c2AF6c3E88b4a89aa2aae1D7C8120EEe9Ad0e", "label": "g-50/50 bb-ag-USD/bb-ag-GNO" },
-    { "address": "0x3B6A85B5e1e6205ebF4d4eabf147D10e8e4bf0A5", "label": "g-ComposableStable bb-ag-WXDAI/bb-ag-USDT/bb-ag-USDC" }
+    {
+        "address": "0xd4d8E88bf09efCf3F5bf27135Ef12c1276d9063C",
+        "label": "Bunni USDC/WETH LP"
+    },
+    {
+        "address": "0x5ef860746a5f2ea24ddbD54EaeF0dDa65d5157a0",
+        "label": "Bunni WETH/USDT LP"
+    },
+    {
+        "address": "0x4420689Dc6b5CDE6Ff3B873CDbfD8519383a1681",
+        "label": "Bunni WBTC/WETH LP"
+    },
+    {
+        "address": "0x44971D8903125Dcad768c130090C7480608D422d",
+        "label": "Bunni DAI/WETH LP"
+    },
+    {
+        "address": "0xEbC60e3DD7b90382461F49fb98787CA81a30CA23",
+        "label": "Bunni LINK/WETH LP"
+    },
+    {
+        "address": "0x345ECB6aB8EF4B5cBE4b5AA31D533EED894790B4",
+        "label": "Bunni LDO/WETH LP"
+    },
+    {
+        "address": "0x6e868d1A902Da6b26521bf92E437b9b6DCC6955A",
+        "label": "Bunni APE/WETH LP"
+    },
+    {
+        "address": "0x9E3b20Afe88f823614FB3bDe416c69A806F8D090",
+        "label": "Bunni UNI/WETH LP"
+    },
+    {
+        "address": "0xecdfE2FB3D5542026E415e3813C4CFdedA19e7d3",
+        "label": "Bunni BIT/WETH LP"
+    },
+    {
+        "address": "0xdc4AdbA5722144542fCBe86bdB57D28154aDF7E5",
+        "label": "Bunni 1INCH/WETH LP"
+    },
+    {
+        "address": "0x36B88F590CAaCAa2E855DB449Cdb7b0a0D0cE4E6",
+        "label": "Bunni MATIC/WETH LP"
+    },
+    {
+        "address": "0xE61C1E33dF4921F8B4EF0ee3f7031b472AFB52cF",
+        "label": "Bunni USDC/USDT LP"
+    },
+    {
+        "address": "0x1c78EfD3B11baC329ffD8CCa15FAE26dbD54A720",
+        "label": "Bunni DAI/USDC LP"
+    },
+    {
+        "address": "0x6c30636d750D63A1361D5885c8aA33f922ACC9A3",
+        "label": "Bunni cbETH/WETH LP"
+    },
+    {
+        "address": "0x471A34823DDd9506fe8dFD6BC5c2890e4114Fafe",
+        "label": "Bunni FRAX/USDC LP"
+    },
+    {
+        "address": "0x4A0f5be682622c659c4A3C5996071d8E55695D4c",
+        "label": "Bunni ∞-yvUSDC-xPYT/∞-yvUSDC-NYT LP"
+    },
+    {
+        "address": "0x7a5252e430C58E527016B2cFF68641C8b8BE21B7",
+        "label": "Bunni ∞-wlstETH-NYT/∞-stETH-xPYT LP"
+    },
+    {
+        "address": "0xAD879AEC78BFEAad11715D097fd82e00e52327a6",
+        "label": "Bunni ∞-yvWETH-xPYT/∞-yvWETH-NYT LP"
+    },
+    {
+        "address": "0x4Bf0082080d937897330BAB735c2Baa99FF16F19",
+        "label": "Bunni frxETH/WETH LP"
+    },
+    {
+        "address": "0xD20a7dcdDeF53142e7Cb5474Ba469B800Ea8DFeb",
+        "label": "Bunni LQTY/WETH LP"
+    },
+    {
+        "address": "0x3aCFa22E2d6573C15298A19C0e51506248696DeB",
+        "label": "Bunni SGT/WETH LP"
+    },
+    {
+        "address": "0xE410b7577882dD1d5c9a00bB1D806A4EA02FAB30",
+        "label": "Bunni SUDO/WETH LP"
+    },
+    {
+        "address": "0xC118C27C5e364054C0e206049c7e09C7D9D18989",
+        "label": "Bunni DOP/WETH LP"
+    },
+    {
+        "address": "0x4CF5CB105D8baC299d010C71E1932a859d731B7b",
+        "label": "Bunni wstETH/WETH LP"
+    },
+    {
+        "address": "0x3b5F433940eD3f57F9ab73e725cf91cfaaef8789",
+        "label": "Bunni FRAX/PAL LP"
+    },
+    {
+        "address": "0xc0Bbfa70b31Bd1645B4f5ddC93b6Da14A5D46a29",
+        "label": "Bunni MON/WETH LP"
+    },
+    {
+        "address": "0x46f10e7Bc133191cAAF58FA6cf064014b7BDeBA6",
+        "label": "Bunni DCHF/USDC LP"
+    },
+    {
+        "address": "0xf59Dfd237c7a8cf8f47bF6304815F2182F56Ae78",
+        "label": "Bunni ∞-AA_idle_cpFAS-USDT4626-PYT/∞-AA_idle_cpFAS-USDT4626-NYT LP"
+    },
+    {
+        "address": "0x9Ca4f7c8CCFd421D84ACD355Ea819C8d37c0B598",
+        "label": "Bunni EURe/USDC LP"
+    },
+    {
+        "address": "0x2F99bc91fCBEC71BBDb997ce1E7AA73dB93a75Ad",
+        "label": "Bunni WETH/AMKT LP"
+    },
+    {
+        "address": "0xa718193E1348FD4dEF3063E7F4b4154BAAcB0214",
+        "label": "Bunni WETH/swETH LP"
+    },
+    {
+        "address": "0x42Bafd7c5793Ae2c883A3163D0A37f5969d0BCE1",
+        "label": "Bunni boxETH/WETH LP"
+    },
+    {
+        "address": "0xA1A4BAb0768A089f633Fcb196D428001D2C4Fe6a",
+        "label": "Bunni LUSD/bLUSD LP"
+    },
+    {
+        "address": "0x53F36500141765f74E4745aCd7195d12a2DA6f42",
+        "label": "Bunni DCHF/XCHF LP"
+    },
+    {
+        "address": "0xCb619EEB54cA6E9e8bdf0B1BD17811752d685310",
+        "label": "Bunni FRAX/alUSD LP"
+    },
+    {
+        "address": "0xC900F482F7D037366D24f7aca44425d775E500b5",
+        "label": "Bunni alETH/frxETH LP"
+    },
+    {
+        "address": "0x0DD538156cc4b0966d4aB60358Ad2B12f57B0961",
+        "label": "Bunni GRAI/USDC LP"
+    },
+    {
+        "address": "0xb98FE645C7e2c39b726747dCb72848a9fd8c425F",
+        "label": "Bunni WETH/swETH LP"
+    },
+    {
+        "address": "0x3f28CA531Cb4767EEBFD8974a7a782058C53AF6a",
+        "label": "Bunni BSN/WETH LP"
+    },
+    {
+        "address": "0x3090124ffA5aaDbb1Bf3006e06599cB8E9633df8",
+        "label": "Bunni ABI/WETH LP"
+    },
+    {
+        "address": "0x270D9A0b9137c99bdFe8dD14FC527D3922a91678",
+        "label": "Bunni GRAI/swETH LP"
+    },
+    {
+        "address": "0xa665F67e1743415d7FD0b3c40c7Cf90bc1e7Bb39",
+        "label": "MISSING"
+    },
+    {
+        "address": "0x79DE2381b7181178555905319db7dA8a1Af72645",
+        "label": "Bunni LUSD/bLUSD LP"
+    },
+    {
+        "address": "0xd614e32088C5f5Dc389014Ec5727E03a0811b8c8",
+        "label": "Bunni WBTC/BADGER LP"
+    },
+    {
+        "address": "0x082c0198B69e8e321A409A7dC5AD3238E4CD7D81",
+        "label": "Bunni GHO/USDC LP"
+    },
+    {
+        "address": "0x00B20FFd6c2d27a5B9764ad2367f60e16e08eD3B",
+        "label": "MISSING"
+    },
+    {
+        "address": "0x5fb10C79c7198D18F69a9aeB64e3FeaB66778e48",
+        "label": "MISSING"
+    },
+    {
+        "address": "0x846b89167040e655de785C8dDda57866182E268B",
+        "label": "MISSING"
+    },
+    {
+        "address": "0x6fFaC7b1DB79460093c06ceaE86d3BacA2F3CDFD",
+        "label": "MISSING"
+    },
+    {
+        "address": "0x677ed6De139058ede31B2fB296F827F8C35A632a",
+        "label": "MISSING"
+    },
+    {
+        "address": "0xa9092a2cfd11f8e42cFD84c0217743f28b3c285C",
+        "label": "MISSING"
+    },
+    {
+        "address": "0x04D20FfF44c6FdDB4aFfecc56960Bb87B381bcc3",
+        "label": "Bunni USDC/DUSD LP"
+    }
 ]

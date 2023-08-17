@@ -77,7 +77,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await cvxCrv.deployed();
     console.log(`Deployed at: ${cvxCrv.address}`);
 
-    config.Deployments.cvxCrv = cvxCrv.address;
+    config.Deployments.liqLit = cvxCrv.address;
     writeConfigFile(config);
 
     // await tenderly.verify({

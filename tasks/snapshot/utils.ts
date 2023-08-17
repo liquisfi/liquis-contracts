@@ -1,19 +1,17 @@
 import * as fs from "fs";
 import * as path from "path";
-import { networkLabels, priorityGuagesAddresses, symbolOverrides, validNetworks } from "./constants";
+import { networkLabels, priorityGaugesAddresses, symbolOverrides, validNetworks } from "./constants";
 
 export interface Gauge {
     pool: {
-        symbol: string;
-        poolType: string;
         tokens: {
-            weight: string;
             symbol: string;
             address: string;
         }[];
     };
     network: number;
     address: string;
+    label: string;
 }
 
 export interface GaugeChoice {
@@ -27,7 +25,7 @@ export const compareAddresses = (a: string, b: string): boolean => {
 
 export function getGaugeSnapshot() {
     // https://raw.githubusercontent.com/balancer/frontend-v2/develop/src/data/voting-gauges.json
-    const savePath = path.resolve(__dirname, "./gauge_snapshot.json");
+    const savePath = path.resolve(__dirname, "./gauge_snapshot_bunni.json");
     return JSON.parse(fs.readFileSync(savePath, "utf-8"));
 }
 
@@ -41,23 +39,20 @@ export function saveGaugeChoices(gauges: GaugeChoice[]) {
     fs.writeFileSync(path.resolve(__dirname, "./gauge_choices.json"), JSON.stringify(gauges));
 }
 
+export function saveGaugeSnapshot(gauges: Gauge[]) {
+    fs.writeFileSync(path.resolve(__dirname, "./gauge_snapshot_bunni.json"), JSON.stringify(gauges));
+}
+
 export const parseLabel = (gauge: Gauge) => {
-    if (gauge.pool.symbol === "veBAL") return "veBAL";
+    if (gauge.address === "0xE867AD0a48e8f815DC0cda2CDb275e0F163A480b") return "veBAL";
 
     const networkStr = networkLabels[gauge.network] ? `${networkLabels[gauge.network]}-` : "";
-    const weightStr =
-        gauge.pool.poolType === "Weighted"
-            ? gauge.pool.tokens.map(token => Math.floor(Number(token.weight) * 100)).join("/")
-            : gauge.pool.poolType;
 
     const tokenStr = gauge.pool.tokens
         .map(token => symbolOverrides[token.address.toLowerCase()] || token.symbol)
         .join("/");
-    if (gauge.pool.poolType === "StablePhantom") {
-        return [networkStr, tokenStr].join("");
-    }
 
-    return [networkStr, weightStr, " ", tokenStr].join("");
+    return [networkStr, " ", tokenStr].join("");
 };
 
 export const sortGaugeList = (gaugeList: Gauge[]) => {
@@ -67,22 +62,17 @@ export const sortGaugeList = (gaugeList: Gauge[]) => {
             return { ...gauge, pool: { ...gauge.pool, tokens: [gauge.pool.tokens[1], gauge.pool.tokens[0]] } };
         }
 
-        // Deal with stable pools
-        if (gauge.pool.tokens[0].weight === "null") {
+        // Deal with child gauges
+        if (gauge.pool.tokens[0].symbol === "N/A") {
             return gauge;
         }
 
-        // Deal with WETH 50/50 pools
+        // Deal with WETH pools
         const hasWeth = gauge.pool.tokens.some(token => token.symbol === "WETH");
-        const is5050 = gauge.pool.tokens.filter(token => token.weight === "0.5").length == 2;
-        if (hasWeth && is5050) {
+        if (hasWeth) {
             const tokens = gauge.pool.tokens.sort(a => (a.symbol === "WETH" ? 1 : -1));
             return { ...gauge, pool: { ...gauge.pool, tokens } };
         }
-
-        // Sort all other pools by descending weight eg 80/20
-        const tokens = gauge.pool.tokens.sort((a, b) => Number(b.weight) - Number(a.weight));
-        return { ...gauge, pool: { ...gauge.pool, tokens } };
     });
 
     const chainOrder = [1, 42161, 137, 10, 100];
@@ -95,10 +85,10 @@ export const sortGaugeList = (gaugeList: Gauge[]) => {
         return [...acc, ...gauges.filter(g => g.network === chainId)];
     }, []);
 
-    const priorityGuages = priorityGuagesAddresses.map(addr =>
+    const priorityGauges = priorityGaugesAddresses.map(addr =>
         gauges.find(g => g.address.toLowerCase() === addr.toLowerCase()),
     );
-    return [...priorityGuages, ...networkOrder.filter(x => !priorityGuagesAddresses.includes(x.address.toLowerCase()))];
+    return [...priorityGauges, ...networkOrder.filter(x => !priorityGaugesAddresses.includes(x.address.toLowerCase()))];
 };
 
 export const ordinalSuffix = (i: number) => {

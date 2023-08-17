@@ -11,16 +11,17 @@
         "balancerPoolId": "0x9232a548dd9e81bac65500b5e0d918f8ba93675c000200000000000000000423"
     },
     "Deployments": {
-        "voterProxy": "",
-        "liq": "",
-        "minter": "",
-        "booster": "",
+        "voterProxy": "0x37aeB332D6E57112f1BFE36923a7ee670Ee9278b",
+        "liq": "0xD82fd4D6D62f89A1E50b1db69AD19932314aa408",
+        "minter": "0x2e8617079e97Ac78fCE7a2A2ec7c4a84492b805e",
+        "booster": "0x631e58246A88c3957763e1469cb52f93BC1dDCF2",
+        "rewardFactory": "",
         "tokenFactory": "",
         "proxyFactory": "",
         "stashFactory": "",
         "stashV3": "",
-        "liqLit": "",
-        "crvDepositor": "",
+        "liqLit": "0x03C6F0Ca0363652398abfb08d154F114e61c4Ad8",
+        "crvDepositor": "0xB96Bce10480d2a8eb2995Ee4f04a70d48997856a",
         "liqLitRewards": "",
         "poolManagerProxy": "",
         "poolManagerSecondaryProxy": "",
@@ -28,11 +29,13 @@
         "boosterOwner": "",
         "arbitratorVault": "",
         "liqLocker": "",
-        "litDepositorHelper": "",
+        "litDepositorHelper": "0x97a2585Ddb121db8E9a3B6575E302F9c610AF08c",
         "extraRewardsDistributor": "",
         "penaltyForwarder": "",
         "flashOptionsExerciser": "",
         "pooledOptionsExerciser": "",
-        "prelaunchRewardsPool": ""
+        "prelaunchRewardsPool": "0x5c988c4E1F3cf1CA871A54Af3a1DcB5FeF2612Fc",
+        "claimZap": "",
+        "liquisViewHelpers": ""
     }
 }

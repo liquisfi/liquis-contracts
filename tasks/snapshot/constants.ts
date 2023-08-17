@@ -5,7 +5,7 @@ export const configs = {
     },
     test: {
         hub: "https://testnet.snapshot.org",
-        space: "432423532464535344321.eth",
+        space: "liquistesting.eth",
     },
 };
 
@@ -17,7 +17,7 @@ export const symbolOverrides = {
     "0x9559aaa82d9649c7a7b220e7c461d2e74c9a3593": "StaFi rETH",
 };
 
-export const priorityGuagesAddresses = [
+export const priorityGaugesAddresses = [
     "0xe867ad0a48e8f815dc0cda2cdb275e0f163a480b", // veBAL
     "0x0312aa8d0ba4a1969fddb382235870bf55f7f242", // auraBAL-B-80BAL-20WETH
     "0x275df57d2b23d53e20322b4bb71bf1dcb21d0a00", // WETH-AURA
