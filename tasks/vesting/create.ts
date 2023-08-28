@@ -39,9 +39,8 @@ task("vesting:deploy").setAction(async function (_: TaskArguments, hre) {
     const vestingStart = currentTime.add(DELAY);
     const vestedEscrows = [];
 
-    const vestingDistro = distroList.vesting
-        .map(v => ({ ...v, admin: multisigs.daoMultisig }))
-        .concat(distroList.immutableVesting.map(v => ({ ...v, admin: ZERO_ADDRESS })));
+    const vestingDistro = distroList.vesting.map(v => ({ ...v, admin: multisigs.treasuryMultisig }));
+    //.concat(distroList.immutableVesting.map(v => ({ ...v, admin: ZERO_ADDRESS })));
 
     let totalAmount: BN = BN.from(0);
 
