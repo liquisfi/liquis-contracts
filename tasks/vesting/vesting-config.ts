@@ -1,0 +1,109 @@
+import { simpleToExactAmount } from "../../test-utils/math";
+import { ONE_WEEK, ZERO_ADDRESS } from "../../test-utils/constants";
+
+const multisigs = {
+    treasuryMultisig: "0xcd3010D150B9674294A0589678E020372D8E5d8c",
+    daoMultisig: "0xd9dDB1129941377166C7Aa5834F6c9B56BA100fe",
+};
+
+const specialPartners = [
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(10_000_000) }, // Liquis
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(3_000_000) }, // Moneta
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(3_000_000) }, // Aura
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(500_000) }, // Convex
+];
+
+const teamVesting = [
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_000_000) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_185_741.37084624) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_185_741.37084624) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_000_000) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_000_000) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(541_838.064767322) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_000_000) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_185_741.37084624) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_185_741.37084624) },
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_215_196.45184771) },
+];
+
+const partnersVesting = [
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(100_000) }, // Abachi
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_500_000) }, // Aura
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_000_000) }, // Badger
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_000_000) }, // DeFiCollective
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(360_000) }, // Gravita
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(250_000) }, // Mimo
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(1_000_000) }, // Moneta
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(450_000) }, // Paladin
+    { address: ZERO_ADDRESS, amount: simpleToExactAmount(425_000) }, // Swell
+];
+
+const votersVesting = [
+    { address: "0xf78Ef3831f42F36402a7c17436B8A32C3Ee7ded1", amount: simpleToExactAmount(431.5496522817503) },
+    { address: "0xF6Ee1A630BC3eCd8C3fB11520d5952031D7b4C24", amount: simpleToExactAmount(17064.059570000452) },
+    { address: "0xDda8901508211dfd3a2A912fEb0b913a6558c113", amount: simpleToExactAmount(10766.089356479693) },
+    { address: "0xde6EA9A2992df0DFa3Ca5Cf09F9f7c2592930342", amount: simpleToExactAmount(21555.84463007588) },
+    { address: "0xAD0f62D1841529EA7442de3f967A42A8410a48dA", amount: simpleToExactAmount(7860.178680112838) },
+    { address: "0x34c9c2E48F43DacE5192002c0d1C3C40EdF463Bd", amount: simpleToExactAmount(111228.07552683375) },
+    { address: "0x5592cB82f5B11A4E42B1275A973E6B712194e239", amount: simpleToExactAmount(102491.70218440043) },
+    { address: "0x9b295791419933c5451a0C503132AfB64366Cc4e", amount: simpleToExactAmount(3543.7010860385617) },
+    { address: "0xAfD5f60aA8eb4F488eAA0eF98c1C5B0645D9A0A0", amount: simpleToExactAmount(92671.36323521685) },
+    { address: "0x770569f85346B971114e11E4Bb5F7aC776673469", amount: simpleToExactAmount(601.3854334659753) },
+    { address: "0x1bfD64aB61EACf714B2Aa37347057203f3AcA71f", amount: simpleToExactAmount(57247.26747115835) },
+    { address: "0xCa398e17D838F26A7e39eFC31d67FAe20118272b", amount: simpleToExactAmount(93477.57173151025) },
+    { address: "0x20907A020A4A85669F2940D645e94C5B6490d1ad", amount: simpleToExactAmount(33719.64303766072) },
+    { address: "0x8E64Cb7ba3FA9e92Ac22C8e7D8e07f758c60B27A", amount: simpleToExactAmount(10.659842732034246) },
+    { address: "0x009d13E9bEC94Bf16791098CE4E5C168D27A9f07", amount: simpleToExactAmount(1610.7724551945566) },
+    { address: "0x13d64c4063785695733f9c04a5cB0c03789CA5e6", amount: simpleToExactAmount(550.0716225371614) },
+    { address: "0x6dB995701fc2e6EF646A801322C78E2E8172EA34", amount: simpleToExactAmount(23280.515056086366) },
+    { address: "0x66F576C1eDa4044A01bF68A78564F39bA3BbF65b", amount: simpleToExactAmount(25698.58000406718) },
+    { address: "0xf578475B51f9f77b2421C321D4c0D530942a5448", amount: simpleToExactAmount(2464.0728387251384) },
+    { address: "0x860001218D2476481629B7c64960bd6eDbEdD848", amount: simpleToExactAmount(55804.17885081639) },
+    { address: "0x9E8784794cd73B52886cBB1A3538A4594A6c9e8d", amount: simpleToExactAmount(19631.322605023368) },
+    { address: "0x43E0eeD8ef9f6A3BAE31151dbCcb778b809c5b7b", amount: simpleToExactAmount(81624.69788928398) },
+    { address: "0x5f350bF5feE8e254D6077f8661E9C7B83a30364e", amount: simpleToExactAmount(68750.19456778484) },
+    { address: "0x49072cd3Bf4153DA87d5eB30719bb32bdA60884B", amount: simpleToExactAmount(793.2851788117973) },
+    { address: "0x359B0ceb2daBcBB6588645de3B480c8203aa5b76", amount: simpleToExactAmount(22547.795567697427) },
+    { address: "0x6B12e9D58bB0fFbbDdAaF0F9461c00EA4c4b563f", amount: simpleToExactAmount(140146.36986864795) },
+    { address: "0x4421E6f16A59582c8108D153aAB0Fb7B4A3EDDbe", amount: simpleToExactAmount(249.12033877060003) },
+    { address: "0x80C5f123248E5E196948c3d1a09Cb4FF0C437Dc2", amount: simpleToExactAmount(4161.903941219958) },
+    { address: "0x994B5C8B30766EaCe220B76f8C1DE27849f05aB3", amount: simpleToExactAmount(18.027777365510445) },
+];
+
+const distroList = {
+    immutableVesting: [
+        {
+            period: ONE_WEEK.mul(208),
+            recipients: [
+                { address: multisigs.treasuryMultisig, amount: simpleToExactAmount(0) }, // Treasury
+            ],
+        },
+    ],
+    vesting: [
+        // 24 MONTHS
+        {
+            period: ONE_WEEK.mul(104),
+            recipients: teamVesting,
+        },
+        // 24 MONTHS
+        {
+            period: ONE_WEEK.mul(104),
+            recipients: votersVesting,
+        },
+        // 48 MONTHS
+        {
+            period: ONE_WEEK.mul(208),
+            recipients: partnersVesting,
+        },
+        // 48 MONTHS
+        {
+            period: ONE_WEEK.mul(208),
+            recipients: specialPartners,
+        },
+    ],
+};
+
+export const config = {
+    multisigs,
+    distroList,
+};
