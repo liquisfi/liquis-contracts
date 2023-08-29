@@ -69,6 +69,7 @@ contract PoolManager{
      * @notice Add a new curve pool to the system
      */
     function addPool(address _gauge, uint256 _stashVersion) external returns(bool){
+        require(msg.sender == operator, "!auth");
         _addPool(_gauge,_stashVersion);
         return true;
     }
