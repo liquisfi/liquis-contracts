@@ -81,7 +81,7 @@ describe("PoolMigrator", () => {
                 }),
         );
         // shutdown system
-        await phase2.poolManagerSecondaryProxy.shutdownSystem();
+        await phase2.poolManagerProxy.shutdownSystem();
         await phase2.boosterOwner.shutdownSystem();
         // update voterproxy operator
         await phase2.voterProxy.setOperator(phase6.booster.address);

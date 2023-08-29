@@ -13,8 +13,8 @@ import {
     LiqLocker,
     LiqToken,
     BoosterOwner,
-    PoolManagerSecondaryProxy,
-    PoolManagerV3,
+    PoolManagerProxy,
+    PoolManager,
 } from "../../types/generated";
 import { Signer } from "ethers";
 import { hashMessage } from "@ethersproject/hash";
@@ -51,9 +51,9 @@ describe("VoterProxy", () => {
     let mocks: DeployMocksResult;
     let liqLocker: LiqLocker;
     let cvx: LiqToken;
-    let poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
+    let poolManagerProxy: PoolManagerProxy;
     let boosterOwner: BoosterOwner;
-    let poolManager: PoolManagerV3;
+    let poolManager: PoolManager;
 
     let deployer: Signer;
     let deployerAddress: string;
@@ -90,7 +90,7 @@ describe("VoterProxy", () => {
         liqLocker = contracts.cvxLocker;
         cvx = contracts.cvx;
         boosterOwner = contracts.boosterOwner;
-        poolManagerSecondaryProxy = contracts.poolManagerSecondaryProxy;
+        poolManagerProxy = contracts.poolManagerProxy;
         poolManager = contracts.poolManager;
 
         const operatorAccount = await impersonateAccount(contracts.booster.address);
@@ -248,8 +248,8 @@ describe("VoterProxy", () => {
                 await poolManager.connect(daoMultisig).shutdownPool(i);
             }
 
-            // 2. shutdown system on poolManagerSecondaryProxy
-            await poolManagerSecondaryProxy.connect(daoMultisig).shutdownSystem();
+            // 2. shutdown system on poolManagerProxy
+            await poolManagerProxy.connect(daoMultisig).shutdownSystem();
 
             // 3. shutdown system on booster owner
             await boosterOwner.connect(daoMultisig).shutdownSystem();

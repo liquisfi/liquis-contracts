@@ -8,8 +8,6 @@ import {
     BaseRewardPool,
     BaseRewardPool__factory,
     LitDepositorHelper,
-    PoolManagerV4,
-    PoolManagerV4__factory,
     LiqLocker,
     LiqLocker__factory,
     LitDepositorHelper__factory,
@@ -25,16 +23,10 @@ import {
     ExtraRewardStashV3__factory,
     PoolManagerProxy,
     PoolManagerProxy__factory,
-    PoolManagerSecondaryProxy,
-    PoolManagerSecondaryProxy__factory,
+    PoolManager,
+    PoolManager__factory,
     BoosterOwner,
     BoosterOwner__factory,
-    ArbitratorVault,
-    ArbitratorVault__factory,
-    ExtraRewardsDistributor,
-    ExtraRewardsDistributor__factory,
-    AuraPenaltyForwarder,
-    AuraPenaltyForwarder__factory,
     FlashOptionsExerciser,
     FlashOptionsExerciser__factory,
     PooledOptionsExerciser,
@@ -98,16 +90,12 @@ interface FullSystemDeployed extends PrelaunchDeployed {
     proxyFactory: ProxyFactory;
     stashFactory: StashFactoryV2;
     stashV3: ExtraRewardStashV3;
-    arbitratorVault: ArbitratorVault;
     liqLitRewards: BaseRewardPool;
     crvDepositor: CrvDepositor;
     litDepositorHelper: LitDepositorHelper;
-    poolManager: PoolManagerV4;
     poolManagerProxy: PoolManagerProxy;
-    poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
+    poolManager: PoolManager;
     liqLocker: LiqLocker;
-    penaltyForwarder: AuraPenaltyForwarder;
-    extraRewardsDistributor: ExtraRewardsDistributor;
     flashOptionsExerciser: FlashOptionsExerciser;
     pooledOptionsExerciser: PooledOptionsExerciser;
     claimZap: LiquisClaimZap;
@@ -241,21 +229,11 @@ async function deployFullSystem(
         waitForBlocks,
     );
 
-    const poolManagerSecondaryProxy = await deployContract<PoolManagerSecondaryProxy>(
+    const poolManager = await deployContract<PoolManager>(
         hre,
-        new PoolManagerSecondaryProxy__factory(deployer),
-        "PoolManagerProxy",
-        [gaugeController, poolManagerProxy.address, booster.address, deployerAddress],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    const poolManager = await deployContract<PoolManagerV4>(
-        hre,
-        new PoolManagerV4__factory(deployer),
-        "PoolManagerV4",
-        [poolManagerSecondaryProxy.address, multisigs.daoMultisig],
+        new PoolManager__factory(deployer),
+        "PoolManager",
+        [poolManagerProxy.address, booster.address, gaugeController, multisigs.daoMultisig],
         {},
         debug,
         waitForBlocks,
@@ -265,24 +243,7 @@ async function deployFullSystem(
         hre,
         new BoosterOwner__factory(deployer),
         "BoosterOwner",
-        [
-            multisigs.daoMultisig,
-            poolManagerSecondaryProxy.address,
-            booster.address,
-            stashFactory.address,
-            ZERO_ADDRESS,
-            true,
-        ],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    const arbitratorVault = await deployContract<ArbitratorVault>(
-        hre,
-        new ArbitratorVault__factory(deployer),
-        "ArbitratorVault",
-        [booster.address],
+        [multisigs.daoMultisig, poolManagerProxy.address, booster.address, stashFactory.address, ZERO_ADDRESS, true],
         {},
         debug,
         waitForBlocks,
@@ -293,26 +254,6 @@ async function deployFullSystem(
         new LiqLocker__factory(deployer),
         "LiqLocker",
         [naming.vlCvxName, naming.vlCvxSymbol, liq.address, liqLit.address, liqLitRewards.address, token],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    const extraRewardsDistributor = await deployContract<ExtraRewardsDistributor>(
-        hre,
-        new ExtraRewardsDistributor__factory(deployer),
-        "ExtraRewardsDistributor",
-        [liqLocker.address],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    const penaltyForwarder = await deployContract<AuraPenaltyForwarder>(
-        hre,
-        new AuraPenaltyForwarder__factory(deployer),
-        "AuraPenaltyForwarder",
-        [extraRewardsDistributor.address, liq.address, ONE_WEEK.mul(7).div(2), multisigs.daoMultisig],
         {},
         debug,
         waitForBlocks,
@@ -390,28 +331,16 @@ async function deployFullSystem(
     outputConfig.Deployments.poolManagerProxy = poolManagerProxy.address;
     writeConfigFile(outputConfig, hre);
 
-    outputConfig.Deployments.poolManagerSecondaryProxy = poolManagerSecondaryProxy.address;
-    writeConfigFile(outputConfig, hre);
-
     outputConfig.Deployments.poolManager = poolManager.address;
     writeConfigFile(outputConfig, hre);
 
     outputConfig.Deployments.boosterOwner = boosterOwner.address;
     writeConfigFile(outputConfig, hre);
 
-    outputConfig.Deployments.arbitratorVault = arbitratorVault.address;
-    writeConfigFile(outputConfig, hre);
-
     outputConfig.Deployments.liqLocker = liqLocker.address;
     writeConfigFile(outputConfig, hre);
 
     outputConfig.Deployments.litDepositorHelper = litDepositorHelper.address;
-    writeConfigFile(outputConfig, hre);
-
-    outputConfig.Deployments.extraRewardsDistributor = extraRewardsDistributor.address;
-    writeConfigFile(outputConfig, hre);
-
-    outputConfig.Deployments.penaltyForwarder = penaltyForwarder.address;
     writeConfigFile(outputConfig, hre);
 
     outputConfig.Deployments.flashOptionsExerciser = flashOptionsExerciser.address;
@@ -450,19 +379,10 @@ async function deployFullSystem(
     tx = await booster.setPoolManager(poolManagerProxy.address);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await poolManagerProxy.setOperator(poolManagerSecondaryProxy.address);
+    tx = await poolManagerProxy.setOperator(poolManager.address);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await poolManagerProxy.setOwner(ZERO_ADDRESS);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await poolManagerSecondaryProxy.setOperator(poolManager.address);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await poolManagerSecondaryProxy.setOwner(multisigs.daoMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await arbitratorVault.setOperator(multisigs.daoMultisig);
+    tx = await poolManagerProxy.setOwner(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
     // Dao multisig protected methods
@@ -478,12 +398,6 @@ async function deployFullSystem(
     // Set final owner to BoosterOwner contract
     // tx = await booster.setOwner(boosterOwner.address);
     // await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await extraRewardsDistributor.modifyWhitelist(penaltyForwarder.address, true);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await extraRewardsDistributor.transferOwnership(multisigs.daoMultisig);
-    await waitForTx(tx, debug, waitForBlocks);
 
     tx = await pooledOptionsExerciser.setOwner(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
@@ -502,16 +416,12 @@ async function deployFullSystem(
         proxyFactory,
         stashFactory,
         stashV3,
-        arbitratorVault,
         liqLitRewards,
         crvDepositor,
         litDepositorHelper,
+        poolManagerProxy,
         poolManager,
         liqLocker,
-        penaltyForwarder,
-        extraRewardsDistributor,
-        poolManagerProxy,
-        poolManagerSecondaryProxy,
         flashOptionsExerciser,
         pooledOptionsExerciser,
         claimZap,
