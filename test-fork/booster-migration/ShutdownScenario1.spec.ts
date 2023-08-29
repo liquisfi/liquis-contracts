@@ -90,11 +90,11 @@ describe("System shutdown", () => {
             );
         });
         it("shutdown system", async () => {
-            await phase2.poolManagerSecondaryProxy.shutdownSystem();
+            await phase2.poolManagerProxy.shutdownSystem();
             await phase2.boosterOwner.shutdownSystem();
             expect(await phase2.booster.isShutdown()).eq(true);
         });
-        it("update voterproxy operator", async () => {
+        it("update voterProxy operator", async () => {
             await phase2.voterProxy.setOperator(tempBooster.address);
             expect(await phase2.voterProxy.operator()).eq(tempBooster.address);
             await phase2.cvx.updateOperator();
@@ -115,7 +115,7 @@ describe("System shutdown", () => {
             const balAfter = await lpToken.balanceOf(wethAuraDepositor.address);
 
             const balance = balAfter.sub(balBefore);
-            console.log("LP tokens transfered:", formatEther(balance));
+            console.log("LP tokens transferred:", formatEther(balance));
             expect(balance).gt(ZERO);
             expect(balance).eq(tokenBalance);
         });

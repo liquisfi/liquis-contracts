@@ -10,7 +10,7 @@ import {
     BaseRewardPool4626__factory,
     LitDepositorHelper,
     IERC20Extra,
-    PoolManagerV3,
+    PoolManager,
     LiqLocker,
     LiquisClaimZap,
     LiquisClaimZap__factory,
@@ -89,7 +89,7 @@ describe("Booster", () => {
     let cvxLocker: LiqLocker;
 
     let litDepositorHelper: LitDepositorHelper;
-    let poolManager: PoolManagerV3;
+    let poolManager: PoolManager;
 
     let lit: IERC20Extra;
     let olit: IERC20Extra;

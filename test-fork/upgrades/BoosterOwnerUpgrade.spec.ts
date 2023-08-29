@@ -58,7 +58,7 @@ describe("Booster Owner Upgrade", () => {
         expect(await phase6.boosterOwner.owner()).eq(boosterOwnerSecondary.address);
     });
     it("can force shutdown system", async () => {
-        await phase6.poolManagerSecondaryProxy.connect(protocolDao.signer).shutdownSystem();
+        await phase6.poolManagerProxy.connect(protocolDao.signer).shutdownSystem();
         await boosterOwnerSecondary.connect(protocolDao.signer).queueForceShutdown();
         await increaseTime(await phase6.boosterOwner.FORCE_DELAY());
         await increaseTime(1);

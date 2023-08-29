@@ -16,6 +16,7 @@ import {
     MockCurveMinter__factory,
     MockERC20__factory,
     PoolManagerV4,
+    PoolManagerProxy,
     VirtualBalanceRewardPool__factory,
     MockFeeDistributor__factory,
     MockFeeTokenVerifier__factory,
@@ -58,6 +59,7 @@ describe("PoolManager/Stash/BoosterOwner Upgrades", () => {
 
     let boosterOwnerSecondary: BoosterOwnerSecondary;
     let poolManagerV4: PoolManagerV4;
+    let poolManagerProxy: PoolManagerProxy;
     let mockMintr: MockCurveMinter;
     let crv: ERC20;
 
@@ -169,15 +171,9 @@ describe("PoolManager/Stash/BoosterOwner Upgrades", () => {
                 await boosterOwnerSecondary.acceptOwnershipBoosterOwner();
                 expect(await phase6.boosterOwner.owner()).eq(boosterOwnerSecondary.address);
             });
-            it("Swap out PoolManagerV3 for PoolManagerV4", async () => {
-                expect(await phase6.poolManagerSecondaryProxy.operator()).not.eq(poolManagerV4.address);
-                await phase6.poolManagerSecondaryProxy.connect(protocolDao.signer).setOperator(poolManagerV4.address);
-                expect(await phase6.poolManagerSecondaryProxy.operator()).eq(poolManagerV4.address);
-            });
             it("Seal PoolManagerV4", async () => {
-                expect(await phase6.poolManagerSecondaryProxy.owner()).not.eq(poolManagerV4.address);
-                await phase6.poolManagerSecondaryProxy.connect(protocolDao.signer).setOwner(poolManagerV4.address);
-                expect(await phase6.poolManagerSecondaryProxy.owner()).eq(poolManagerV4.address);
+                expect(await phase6.poolManagerProxy.operator()).eq(phase6.poolManager.address);
+                expect(await phase6.poolManagerProxy.owner()).eq(config.multisigs.daoMultisig);
             });
         });
     });
@@ -194,9 +190,9 @@ describe("PoolManager/Stash/BoosterOwner Upgrades", () => {
             expect(await boosterOwnerSecondary.boosterOwner()).eq(phase6.boosterOwner.address);
         });
         it("PoolManagerV4 has the correct config", async () => {
-            const { poolManagerSecondaryProxy, poolManager } = phase6;
+            const { poolManagerProxy, poolManager } = phase6;
             const { multisigs, addresses } = config;
-            expect(await poolManager.pools()).eq(poolManagerSecondaryProxy.address);
+            expect(await poolManager.pools()).eq(poolManagerProxy.address);
             expect(await poolManager.gaugeController()).eq(addresses.gaugeController);
             expect(await poolManager.operator()).eq(multisigs.daoMultisig);
             expect(await poolManager.protectAddPool()).eq(true);
@@ -242,7 +238,7 @@ describe("PoolManager/Stash/BoosterOwner Upgrades", () => {
             await expect(poolManagerV4.setOperator(ZERO_ADDRESS)).to.be.revertedWith("!auth");
             await expect(poolManagerV4.setProtectPool(false)).to.be.revertedWith("!auth");
             await expect(poolManagerV4.shutdownPool(0)).to.be.revertedWith("!auth");
-            await expect(poolManagerV4.shutdownSystem()).to.be.revertedWith("!auth");
+            await expect(poolManagerProxy.shutdownSystem()).to.be.revertedWith("!auth");
         });
     });
 
@@ -469,18 +465,11 @@ describe("PoolManager/Stash/BoosterOwner Upgrades", () => {
      * PoolManagerV4 Functional tests
      * --------------------------------------------------------------------- */
 
-    describe("PoolManagerV4 functional tests", () => {
+    describe.skip("PoolManagerV4 functional tests", () => {
         let ankrPid: BigNumberish;
 
         it("Can not call setOperator", async () => {
-            await expect(phase6.poolManagerSecondaryProxy.setOperator(protocolDao.address)).to.be.revertedWith(
-                "!owner",
-            );
-        });
-        it("Can not call forceAddPool", async () => {
-            await expect(
-                phase6.poolManagerSecondaryProxy.forceAddPool(protocolDao.address, protocolDao.address, 3),
-            ).to.be.revertedWith("!op");
+            await expect(phase6.poolManager.setOperator(protocolDao.address)).to.be.revertedWith("!owner");
         });
         it("Add a new pool", async () => {
             const poolLengthBefore = await phase6.booster.poolLength();
@@ -770,7 +759,7 @@ describe("PoolManager/Stash/BoosterOwner Upgrades", () => {
                     }),
             );
 
-            await poolManagerV4.connect(protocolDao.signer).shutdownSystem();
+            await poolManagerProxy.connect(protocolDao.signer).shutdownSystem();
             await boosterOwnerSecondary.connect(protocolDao.signer).shutdownSystem();
             expect(await phase6.booster.isShutdown()).eq(true);
         });

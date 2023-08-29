@@ -220,10 +220,10 @@ xdescribe("Full Deployment", () => {
                     expect(await booster.poolLength()).eq(0);
                 });
                 it("Booster Owner has correct config", async () => {
-                    const { booster, boosterOwner, poolManagerSecondaryProxy, factories } = phase2;
+                    const { booster, boosterOwner, poolManagerProxy, factories } = phase2;
                     const { multisigs } = config;
 
-                    expect(await boosterOwner.poolManager()).eq(poolManagerSecondaryProxy.address);
+                    expect(await boosterOwner.poolManager()).eq(poolManagerProxy.address);
                     expect(await boosterOwner.booster()).eq(booster.address);
                     expect(await boosterOwner.stashFactory()).eq(factories.stashFactory.address);
                     expect(await boosterOwner.rescueStash()).eq(ZERO_ADDRESS);
@@ -305,26 +305,19 @@ xdescribe("Full Deployment", () => {
                     expect(await litDepositorHelper.BAL_ETH_POOL_ID()).eq(addresses.balancerPoolId);
                 });
                 it("poolManagerProxy has correct config", async () => {
-                    const { booster, poolManagerProxy, poolManagerSecondaryProxy } = phase2;
+                    const { booster, poolManagerProxy } = phase2;
+                    const { multisigs } = config;
                     expect(await poolManagerProxy.pools()).eq(booster.address);
                     expect(await poolManagerProxy.owner()).eq(ZERO_ADDRESS);
-                    expect(await poolManagerProxy.operator()).eq(poolManagerSecondaryProxy.address);
-                });
-                it("poolManagerSecondaryProxy has correct config", async () => {
-                    const { booster, poolManagerProxy, poolManagerSecondaryProxy, poolManager } = phase2;
-                    const { multisigs, addresses } = config;
-                    expect(await poolManagerSecondaryProxy.gaugeController()).eq(addresses.gaugeController);
-                    expect(await poolManagerSecondaryProxy.pools()).eq(poolManagerProxy.address);
-                    expect(await poolManagerSecondaryProxy.booster()).eq(booster.address);
-                    expect(await poolManagerSecondaryProxy.owner()).eq(multisigs.daoMultisig);
-                    expect(await poolManagerSecondaryProxy.operator()).eq(poolManager.address);
-                    expect(await poolManagerSecondaryProxy.isShutdown()).eq(false);
+                    expect(await poolManagerProxy.operator()).eq(multisigs.daoMultisig);
+                    expect(await poolManagerProxy.isShutdown()).eq(false);
                 });
                 it("poolManager has correct config", async () => {
-                    const { poolManagerSecondaryProxy, poolManager } = phase2;
+                    const { booster, poolManagerProxy, poolManager } = phase2;
                     const { multisigs, addresses } = config;
-                    expect(await poolManager.pools()).eq(poolManagerSecondaryProxy.address);
                     expect(await poolManager.gaugeController()).eq(addresses.gaugeController);
+                    expect(await poolManager.pools()).eq(poolManagerProxy.address);
+                    expect(await poolManager.booster()).eq(booster.address);
                     expect(await poolManager.operator()).eq(multisigs.daoMultisig);
                     expect(await poolManager.protectAddPool()).eq(true);
                 });

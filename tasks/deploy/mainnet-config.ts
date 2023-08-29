@@ -23,9 +23,8 @@ import {
     BalLiquidityProvider__factory,
     BaseRewardPool__factory,
     ExtraRewardsDistributor__factory,
-    PoolManagerV3__factory,
+    PoolManager__factory,
     PoolManagerProxy__factory,
-    PoolManagerSecondaryProxy__factory,
     RewardFactory__factory,
     StashFactoryV2__factory,
     TokenFactory__factory,
@@ -267,12 +266,8 @@ const getPhase2 = async (deployer: Signer): Promise<Phase2Deployed> => ({
     cvxCrvRewards: BaseRewardPool__factory.connect("0x5e5ea2048475854a5702F5B8468A51Ba1296EFcC", deployer),
     crvDepositor: CrvDepositor__factory.connect("0xeAd792B55340Aa20181A80d6a16db6A0ECd1b827", deployer),
     litDepositorHelper: LitDepositorHelper__factory.connect("0x68655AD9852a99C87C0934c7290BB62CFa5D4123", deployer),
-    poolManager: PoolManagerV3__factory.connect("0xf843F61508Fc17543412DE55B10ED87f4C28DE50", deployer),
+    poolManager: PoolManager__factory.connect("0xf843F61508Fc17543412DE55B10ED87f4C28DE50", deployer),
     poolManagerProxy: PoolManagerProxy__factory.connect("0x16A04E58a77aB1CE561A37371dFb479a8594947A", deployer),
-    poolManagerSecondaryProxy: PoolManagerSecondaryProxy__factory.connect(
-        "0xdc274F4854831FED60f9Eca12CaCbD449134cF67",
-        deployer,
-    ),
     cvxLocker: LiqLocker__factory.connect("0x3Fa73f1E5d8A792C80F426fc8F84FBF7Ce9bBCAC", deployer),
     vestedEscrows: [
         LiqVestedEscrow__factory.connect("0x5bd3fCA8D3d8c94a6419d85E0a76ec8Da52d836a", deployer),
@@ -324,12 +319,8 @@ const getPhase6 = async (deployer: Signer): Promise<Phase6Deployed> => ({
         proxyFactory: ProxyFactory__factory.connect("0xf5E2cFde016bd55BEF42a5A4bAad7E21cd39720d", deployer),
     },
     cvxCrvRewards: BaseRewardPool__factory.connect("0x00A7BA8Ae7bca0B10A32Ea1f8e2a1Da980c6CAd2", deployer),
-    poolManager: PoolManagerV3__factory.connect("0xB58Eb197c35157E6F3351718C4C387D284562BE5", deployer),
+    poolManager: PoolManager__factory.connect("0xB58Eb197c35157E6F3351718C4C387D284562BE5", deployer),
     poolManagerProxy: PoolManagerProxy__factory.connect("0x2c809Ec701C088099c911AF9DdfA4A1Db6110F3c", deployer),
-    poolManagerSecondaryProxy: PoolManagerSecondaryProxy__factory.connect(
-        "0xa72932Aea1392b0Da9eDc34178dA2B29EcE2de54",
-        deployer,
-    ),
     stashV3: ExtraRewardStashV3__factory.connect("0x4A53301Fe213ECA70f904cD3766C07DB3A621bF8", deployer),
     poolMigrator: PoolMigrator__factory.connect("0x12addE99768a82871EAaecFbDB065b12C56F0578", deployer),
 });
