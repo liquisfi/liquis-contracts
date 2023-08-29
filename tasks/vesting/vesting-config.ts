@@ -28,11 +28,11 @@ const teamVesting = [
 const partnersVesting = [
     { address: "0x6FcE4c6CDd8C4e6C7486553D09BdD9aEE61cF095", amount: simpleToExactAmount(100_000) }, // Abachi
     { address: "0xA9ed98B5Fb8428d68664f3C5027c62A10d45826b", amount: simpleToExactAmount(1_000_000) }, // Badger
+    { address: "0x11cC283d06FA762061df2B0D2f0787651ceef659", amount: simpleToExactAmount(1_000_000) }, // Frax
     { address: "0x7EE02ce5ccce84B892DC42d9FE3B938AcA9C2933", amount: simpleToExactAmount(360_000) }, // Gravita
     { address: "0x4a266739E40664e80470CC335120a2A1fA0B3F3f", amount: simpleToExactAmount(250_000) }, // Mimo
     { address: "0x5592cB82f5B11A4E42B1275A973E6B712194e239", amount: simpleToExactAmount(1_000_000) }, // Moneta
     { address: "0x1Ae6DCBc88d6f81A7BCFcCC7198397D776F3592E", amount: simpleToExactAmount(450_000) }, // Paladin
-    { address: ZERO_ADDRESS, amount: simpleToExactAmount(425_000) }, // Swell
 ];
 
 const votersVesting = [
