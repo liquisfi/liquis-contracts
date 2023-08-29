@@ -8,7 +8,7 @@ import {
     BaseRewardPool,
     LitDepositorHelper,
     IERC20Extra,
-    PoolManagerV3,
+    PoolManager,
     LiqLocker,
     ClaimFeesHelper,
     ClaimFeesHelper__factory,
@@ -80,7 +80,7 @@ describe("Booster", () => {
     let claimFeesHelper: ClaimFeesHelper;
 
     let litDepositorHelper: LitDepositorHelper;
-    let poolManager: PoolManagerV3;
+    let poolManager: PoolManager;
 
     let lit: IERC20Extra;
     let olit: IERC20Extra;

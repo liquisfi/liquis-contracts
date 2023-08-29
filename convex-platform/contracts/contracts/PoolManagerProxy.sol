@@ -15,6 +15,7 @@ contract PoolManagerProxy{
     address public immutable pools;
     address public owner;
     address public operator;
+    bool public isShutdown;
 
     /**
      * @param _pools      Contract can call addPool currently Booster
@@ -53,8 +54,14 @@ contract PoolManagerProxy{
     // function revertControl() external{
     // }
 
+    //shutdown pool management and disallow new pools. change is immutable
+    function shutdownSystem() external onlyOwner{
+        isShutdown = true;
+    }
+
     //shutdown a pool - only OPERATOR
     function shutdownPool(uint256 _pid) external onlyOperator returns(bool){
+        require(!isShutdown, "shutdown");
         return IPools(pools).shutdownPool(_pid);
     }
 
@@ -64,7 +71,7 @@ contract PoolManagerProxy{
      *          it hasn't already been added
      */
     function addPool(address _lptoken, address _gauge, uint256 _stashVersion) external onlyOperator returns(bool){
-
+        require(!isShutdown, "shutdown");
         require(_gauge != address(0),"gauge is 0");
         require(_lptoken != address(0),"lp token is 0");
 
@@ -75,7 +82,7 @@ contract PoolManagerProxy{
         //must also check that the lp token is not a registered gauge
         //because curve gauges are tokenized
         gaugeExists = IPools(pools).gaugeMap(_lptoken);
-        require(!gaugeExists, "already registered lptoken");
+        require(!gaugeExists, "lptoken is gauge");
 
         return IPools(pools).addPool(_lptoken,_gauge,_stashVersion);
     }

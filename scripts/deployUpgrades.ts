@@ -6,8 +6,8 @@ import {
     BoosterOwnerSecondary__factory,
     ExtraRewardStashV3,
     ExtraRewardStashV3__factory,
-    PoolManagerV4,
-    PoolManagerV4__factory,
+    PoolManager,
+    PoolManager__factory,
 } from "../types";
 import { deployContract } from "../tasks/utils";
 import { config } from "../tasks/deploy/mainnet-config";
@@ -31,11 +31,11 @@ export async function deployUpgrade01(
         waitForBlocks,
     );
 
-    const poolManagerV4 = await deployContract<PoolManagerV4>(
+    const poolManager = await deployContract<PoolManager>(
         hre,
-        new PoolManagerV4__factory(signer),
-        "PoolManagerV4",
-        [phase6.poolManagerSecondaryProxy.address, multisigs.daoMultisig],
+        new PoolManager__factory(signer),
+        "PoolManager",
+        [phase6.poolManagerProxy.address, phase6.booster.address, addresses.gaugeController, multisigs.daoMultisig],
         {},
         debug,
         waitForBlocks,
@@ -54,6 +54,6 @@ export async function deployUpgrade01(
     return {
         extraRewardStashV3,
         boosterOwnerSecondary,
-        poolManagerV4,
+        poolManager,
     };
 }

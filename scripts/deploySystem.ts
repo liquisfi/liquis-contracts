@@ -24,8 +24,8 @@ import {
     CvxCrvToken,
     CrvDepositor__factory,
     CrvDepositor,
-    PoolManagerV3__factory,
-    PoolManagerV3,
+    PoolManager__factory,
+    PoolManager,
     BaseRewardPool__factory,
     BaseRewardPool,
     ArbitratorVault__factory,
@@ -34,8 +34,6 @@ import {
     ExtraRewardStashV3__factory,
     PoolManagerProxy__factory,
     PoolManagerProxy,
-    PoolManagerSecondaryProxy__factory,
-    PoolManagerSecondaryProxy,
     MockERC20__factory,
     IBalancerPool__factory,
     ConvexMasterChef,
@@ -211,9 +209,8 @@ interface Phase2Deployed extends Phase1Deployed {
     cvxCrvRewards: BaseRewardPool;
     crvDepositor: CrvDepositor;
     litDepositorHelper: LitDepositorHelper;
-    poolManager: PoolManagerV3;
+    poolManager: PoolManager;
     poolManagerProxy: PoolManagerProxy;
-    poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
     cvxLocker: LiqLocker;
     chef?: ConvexMasterChef;
     vestedEscrows: LiqVestedEscrow[];
@@ -250,9 +247,8 @@ interface Phase6Deployed {
     feeCollector: ClaimFeesHelper;
     factories: Factories;
     cvxCrvRewards: BaseRewardPool;
-    poolManager: PoolManagerV3;
+    poolManager: PoolManager;
     poolManagerProxy: PoolManagerProxy;
-    poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
     stashV3: ExtraRewardStashV3;
     poolMigrator: PoolMigrator;
 }
@@ -540,21 +536,11 @@ async function deployPhase2(
         waitForBlocks,
     );
 
-    const poolManagerSecondaryProxy = await deployContract<PoolManagerSecondaryProxy>(
+    const poolManager = await deployContract<PoolManager>(
         hre,
-        new PoolManagerSecondaryProxy__factory(deployer),
-        "PoolManagerProxy",
-        [gaugeController, poolManagerProxy.address, booster.address, deployerAddress],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    const poolManager = await deployContract<PoolManagerV3>(
-        hre,
-        new PoolManagerV3__factory(deployer),
-        "PoolManagerV3",
-        [poolManagerSecondaryProxy.address, gaugeController, multisigs.daoMultisig],
+        new PoolManager__factory(deployer),
+        "PoolManager",
+        [poolManagerProxy.address, booster.address, gaugeController, multisigs.daoMultisig],
         {},
         debug,
         waitForBlocks,
@@ -564,14 +550,7 @@ async function deployPhase2(
         hre,
         new BoosterOwner__factory(deployer),
         "BoosterOwner",
-        [
-            multisigs.daoMultisig,
-            poolManagerSecondaryProxy.address,
-            booster.address,
-            stashFactory.address,
-            ZERO_ADDRESS,
-            true,
-        ],
+        [multisigs.daoMultisig, poolManagerProxy.address, booster.address, stashFactory.address, ZERO_ADDRESS, true],
         {},
         debug,
         waitForBlocks,
@@ -698,8 +677,6 @@ async function deployPhase2(
         writeConfigFile(outputConfig, hre);
         outputConfig.Deployments.poolManagerProxy = poolManagerProxy.address;
         writeConfigFile(outputConfig, hre);
-        outputConfig.Deployments.poolManagerSecondaryProxy = poolManagerSecondaryProxy.address;
-        writeConfigFile(outputConfig, hre);
         outputConfig.Deployments.poolManager = poolManager.address;
         writeConfigFile(outputConfig, hre);
         outputConfig.Deployments.boosterOwner = boosterOwner.address;
@@ -776,16 +753,10 @@ async function deployPhase2(
     tx = await booster.setPoolManager(poolManagerProxy.address);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await poolManagerProxy.setOperator(poolManagerSecondaryProxy.address);
+    tx = await poolManagerProxy.setOperator(poolManager.address);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await poolManagerProxy.setOwner(ZERO_ADDRESS);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await poolManagerSecondaryProxy.setOperator(poolManager.address);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await poolManagerSecondaryProxy.setOwner(multisigs.daoMultisig);
+    tx = await poolManagerProxy.setOwner(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await booster.setFactories(rewardFactory.address, stashFactory.address, tokenFactory.address);
@@ -942,7 +913,6 @@ async function deployPhase2(
         penaltyForwarder,
         extraRewardsDistributor,
         poolManagerProxy,
-        poolManagerSecondaryProxy,
         flashOptionsExerciser,
         pooledOptionsExerciser,
         prelaunchRewardsPool,
@@ -1256,21 +1226,11 @@ async function deployPhase6(
         waitForBlocks,
     );
 
-    const poolManagerSecondaryProxy = await deployContract<PoolManagerSecondaryProxy>(
+    const poolManager = await deployContract<PoolManager>(
         hre,
-        new PoolManagerSecondaryProxy__factory(deployer),
-        "PoolManagerProxy",
-        [gaugeController, poolManagerProxy.address, booster.address, deployerAddress],
-        {},
-        debug,
-        waitForBlocks,
-    );
-
-    const poolManager = await deployContract<PoolManagerV3>(
-        hre,
-        new PoolManagerV3__factory(deployer),
-        "PoolManagerV3",
-        [poolManagerSecondaryProxy.address, gaugeController, multisigs.daoMultisig],
+        new PoolManager__factory(deployer),
+        "PoolManager",
+        [poolManagerProxy.address, booster.address, gaugeController, multisigs.daoMultisig],
         {},
         debug,
         waitForBlocks,
@@ -1280,14 +1240,7 @@ async function deployPhase6(
         hre,
         new BoosterOwner__factory(deployer),
         "BoosterOwner",
-        [
-            multisigs.daoMultisig,
-            poolManagerSecondaryProxy.address,
-            booster.address,
-            stashFactory.address,
-            ZERO_ADDRESS,
-            true,
-        ],
+        [multisigs.daoMultisig, poolManagerProxy.address, booster.address, stashFactory.address, ZERO_ADDRESS, true],
         {},
         debug,
         waitForBlocks,
@@ -1327,7 +1280,7 @@ async function deployPhase6(
     // 6.2: Configurations
     //     - booster (setRewardContracts, setPoolManager, setVoteDelegate, setFees, setFeeInfo, setFeeInfo, setTreasury, setFeeManager, setOwner)
     //     - factories (stashFactory.setImplementation)
-    //     - pool management (poolManagerProxy.setOperator poolManagerProxy.setOwner, poolManagerSecondaryProxy.setOperator,  poolManagerSecondaryProxy.setOwner)
+    //     - pool management (poolManagerProxy.setOperator poolManagerProxy.setOwner)
     // -----------------------------
 
     tx = await booster.setRewardContracts(cvxCrvRewards.address, cvxLocker.address);
@@ -1336,19 +1289,10 @@ async function deployPhase6(
     tx = await booster.setPoolManager(poolManagerProxy.address);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await poolManagerProxy.setOperator(poolManagerSecondaryProxy.address);
+    tx = await poolManagerProxy.setOperator(poolManager.address);
     await waitForTx(tx, debug, waitForBlocks);
 
-    tx = await poolManagerProxy.setOwner(ZERO_ADDRESS);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await poolManagerSecondaryProxy.setOperator(poolManager.address);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await poolManagerSecondaryProxy.setUsedAddress([token, cvx.address]);
-    await waitForTx(tx, debug, waitForBlocks);
-
-    tx = await poolManagerSecondaryProxy.setOwner(multisigs.daoMultisig);
+    tx = await poolManagerProxy.setOwner(multisigs.daoMultisig);
     await waitForTx(tx, debug, waitForBlocks);
 
     tx = await booster.setFactories(rewardFactory.address, stashFactory.address, tokenFactory.address);
@@ -1399,7 +1343,6 @@ async function deployPhase6(
         cvxCrvRewards,
         poolManager,
         poolManagerProxy,
-        poolManagerSecondaryProxy,
         stashV3,
         poolMigrator,
     };

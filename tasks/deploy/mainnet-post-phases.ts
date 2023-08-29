@@ -77,11 +77,11 @@ task("deploy:mainnet:boosterSecondary").setAction(async function (_: TaskArgumen
 
     const {
         extraRewardStashV3: newStashImpl,
-        poolManagerV4,
+        poolManager,
         boosterOwnerSecondary,
     } = await deployUpgrade01(hre, deployer, debug, waitForBlocks);
 
     console.log("update newStashImpl address to:", newStashImpl.address);
-    console.log("update poolManagerV4 address to:", poolManagerV4.address);
+    console.log("update poolManagerV4 address to:", poolManager.address);
     console.log("update boosterOwnerSecondary address to:", boosterOwnerSecondary.address);
 });

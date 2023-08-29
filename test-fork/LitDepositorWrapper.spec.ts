@@ -9,7 +9,7 @@ import {
     BaseRewardPool,
     LitDepositorHelper,
     IERC20Extra,
-    PoolManagerV3,
+    PoolManager,
 } from "../types/generated";
 import { Signer } from "ethers";
 import { ZERO_ADDRESS, ZERO, e18 } from "../test-utils/constants";
@@ -72,7 +72,7 @@ describe("Booster", () => {
 
     let crvDepositor: CrvDepositor;
     let litDepositorHelper: LitDepositorHelper;
-    let poolManager: PoolManagerV3;
+    let poolManager: PoolManager;
 
     let cvxCrvStaking: BaseRewardPool;
     let cvxCrv: CvxCrvToken;
