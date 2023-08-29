@@ -8,8 +8,8 @@ import {
     BaseRewardPool,
     BaseRewardPool__factory,
     LitDepositorHelper,
-    PoolManagerV3,
-    PoolManagerV3__factory,
+    PoolManagerV4,
+    PoolManagerV4__factory,
     LiqLocker,
     LiqLocker__factory,
     LitDepositorHelper__factory,
@@ -102,7 +102,7 @@ interface FullSystemDeployed extends PrelaunchDeployed {
     liqLitRewards: BaseRewardPool;
     crvDepositor: CrvDepositor;
     litDepositorHelper: LitDepositorHelper;
-    poolManager: PoolManagerV3;
+    poolManager: PoolManagerV4;
     poolManagerProxy: PoolManagerProxy;
     poolManagerSecondaryProxy: PoolManagerSecondaryProxy;
     liqLocker: LiqLocker;
@@ -251,11 +251,11 @@ async function deployFullSystem(
         waitForBlocks,
     );
 
-    const poolManager = await deployContract<PoolManagerV3>(
+    const poolManager = await deployContract<PoolManagerV4>(
         hre,
-        new PoolManagerV3__factory(deployer),
-        "PoolManagerV3",
-        [poolManagerSecondaryProxy.address, gaugeController, multisigs.daoMultisig],
+        new PoolManagerV4__factory(deployer),
+        "PoolManagerV4",
+        [poolManagerSecondaryProxy.address, multisigs.daoMultisig],
         {},
         debug,
         waitForBlocks,
