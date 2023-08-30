@@ -5,7 +5,7 @@ import { BigNumber as BN } from "ethers";
 import { getSigner, deployContract, waitForTx } from "../utils";
 import { LiqVestedEscrow, LiqVestedEscrow__factory, LiqToken__factory } from "../../types/generated";
 import { ONE_WEEK, e18 } from "../../test-utils/constants";
-import { config } from "./vesting-config";
+import { vestingConfig as config } from "./vesting-config";
 
 const mainnetDeployment = {
     voterProxy: "0x37aeB332D6E57112f1BFE36923a7ee670Ee9278b",

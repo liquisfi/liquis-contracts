@@ -102,7 +102,7 @@ const distroList = {
     ],
 };
 
-export const config = {
+export const vestingConfig = {
     multisigs,
     distroList,
     liqLockerAddress,
