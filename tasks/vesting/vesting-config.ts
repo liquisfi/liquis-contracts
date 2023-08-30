@@ -6,6 +6,8 @@ const multisigs = {
     daoMultisig: "0xd9dDB1129941377166C7Aa5834F6c9B56BA100fe",
 };
 
+const liqLockerAddress = "0x748A0F458B9E71061ca0aC543B984473F203E1CB";
+
 const specialPartners = [
     { address: "0xcd3010D150B9674294A0589678E020372D8E5d8c", amount: simpleToExactAmount(10_000_000) }, // Liquis
     { address: "0x5592cB82f5B11A4E42B1275A973E6B712194e239", amount: simpleToExactAmount(2_000_000) }, // Moneta
@@ -103,4 +105,5 @@ const distroList = {
 export const config = {
     multisigs,
     distroList,
+    liqLockerAddress,
 };

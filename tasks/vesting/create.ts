@@ -4,7 +4,7 @@ import { logContracts } from "../utils/deploy-utils";
 import { BigNumber as BN } from "ethers";
 import { getSigner, deployContract, waitForTx } from "../utils";
 import { LiqVestedEscrow, LiqVestedEscrow__factory, LiqToken__factory } from "../../types/generated";
-import { ZERO_ADDRESS, ONE_WEEK, e18 } from "../../test-utils/constants";
+import { ONE_WEEK, e18 } from "../../test-utils/constants";
 import { config } from "./vesting-config";
 
 const mainnetDeployment = {
@@ -29,10 +29,9 @@ task("vesting:deploy").setAction(async function (_: TaskArguments, hre) {
     // Vesting escrow streams
     // ------------------------
 
-    const { distroList, multisigs } = config;
+    const { distroList, multisigs, liqLockerAddress } = config;
 
     const liq = LiqToken__factory.connect(mainnetDeployment.liq, deployer);
-    const liqLockerAddress = ZERO_ADDRESS;
 
     const currentTime = BN.from((await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp);
     const DELAY = ONE_WEEK;
