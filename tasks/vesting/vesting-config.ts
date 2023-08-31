@@ -14,7 +14,7 @@ const specialPartners = [
     { address: "0xfc78f8e1Af80A3bF5A1783BB59eD2d1b10f78cA9", amount: simpleToExactAmount(1_000_000) }, // Aura
 ];
 
-const teamVesting = [
+const teamAndVotersVesting = [
     { address: "0x9a8FEe232DCF73060Af348a1B62Cdb0a19852d13", amount: simpleToExactAmount(1_000_000) },
     { address: "0x9958A330F640Af224f03dd9218A51208F77c3CFc", amount: simpleToExactAmount(1_244_564.90025801) },
     { address: "0xBe48c91215eA411eF648f93829cD5aF6E5f48498", amount: simpleToExactAmount(1_244_564.90025801) },
@@ -25,20 +25,6 @@ const teamVesting = [
     { address: "0x13900D21774402731959Bc2Ec6D8166c0E86B87c", amount: simpleToExactAmount(1_244_564.90025801) },
     { address: "0x8F68e0CFd779125b984BBE15229a7872A6187A68", amount: simpleToExactAmount(1_244_564.90025801) },
     { address: "0x9595b576c42708FE012aFc5d017d4100323B06F1", amount: simpleToExactAmount(1_274_019.98125948) },
-];
-
-const partnersVesting = [
-    { address: "0x6FcE4c6CDd8C4e6C7486553D09BdD9aEE61cF095", amount: simpleToExactAmount(100_000) }, // Abachi
-    { address: "0xA9ed98B5Fb8428d68664f3C5027c62A10d45826b", amount: simpleToExactAmount(1_000_000) }, // Badger
-    { address: "0x11cC283d06FA762061df2B0D2f0787651ceef659", amount: simpleToExactAmount(1_000_000) }, // Frax
-    { address: "0x7EE02ce5ccce84B892DC42d9FE3B938AcA9C2933", amount: simpleToExactAmount(360_000) }, // Gravita
-    { address: "0x4a266739E40664e80470CC335120a2A1fA0B3F3f", amount: simpleToExactAmount(250_000) }, // Mimo
-    { address: "0x5592cB82f5B11A4E42B1275A973E6B712194e239", amount: simpleToExactAmount(1_000_000) }, // Moneta
-    { address: "0x1Ae6DCBc88d6f81A7BCFcCC7198397D776F3592E", amount: simpleToExactAmount(450_000) }, // Paladin
-    { address: "0xFb3bD022D5DAcF95eE28a6B07825D4Ff9C5b3814", amount: simpleToExactAmount(100_000) }, // Idle
-];
-
-const votersVesting = [
     { address: "0xf78Ef3831f42F36402a7c17436B8A32C3Ee7ded1", amount: simpleToExactAmount(431.5496522817503) },
     { address: "0xF6Ee1A630BC3eCd8C3fB11520d5952031D7b4C24", amount: simpleToExactAmount(17064.059570000452) },
     { address: "0xDda8901508211dfd3a2A912fEb0b913a6558c113", amount: simpleToExactAmount(10766.089356479693) },
@@ -70,6 +56,17 @@ const votersVesting = [
     { address: "0x994B5C8B30766EaCe220B76f8C1DE27849f05aB3", amount: simpleToExactAmount(18.027777365510445) },
 ];
 
+const partnersVesting = [
+    { address: "0x6FcE4c6CDd8C4e6C7486553D09BdD9aEE61cF095", amount: simpleToExactAmount(100_000) }, // Abachi
+    { address: "0xA9ed98B5Fb8428d68664f3C5027c62A10d45826b", amount: simpleToExactAmount(1_000_000) }, // Badger
+    { address: "0x11cC283d06FA762061df2B0D2f0787651ceef659", amount: simpleToExactAmount(1_000_000) }, // Frax
+    { address: "0x7EE02ce5ccce84B892DC42d9FE3B938AcA9C2933", amount: simpleToExactAmount(360_000) }, // Gravita
+    { address: "0x4a266739E40664e80470CC335120a2A1fA0B3F3f", amount: simpleToExactAmount(250_000) }, // Mimo
+    { address: "0x5592cB82f5B11A4E42B1275A973E6B712194e239", amount: simpleToExactAmount(1_000_000) }, // Moneta
+    { address: "0x1Ae6DCBc88d6f81A7BCFcCC7198397D776F3592E", amount: simpleToExactAmount(450_000) }, // Paladin
+    { address: "0xFb3bD022D5DAcF95eE28a6B07825D4Ff9C5b3814", amount: simpleToExactAmount(100_000) }, // Idle
+];
+
 const distroList = {
     immutableVesting: [
         {
@@ -83,12 +80,7 @@ const distroList = {
         // 24 MONTHS
         {
             period: ONE_WEEK.mul(104),
-            recipients: teamVesting,
-        },
-        // 24 MONTHS
-        {
-            period: ONE_WEEK.mul(104),
-            recipients: votersVesting,
+            recipients: teamAndVotersVesting,
         },
         // 48 MONTHS
         {
