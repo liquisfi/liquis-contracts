@@ -265,9 +265,9 @@ function getPoolAddress(utils: any, receipt: ContractReceipt): string {
 }
 
 function getConfig(hre: HardhatRuntimeEnvironment) {
-    if (hre.network.name === "mainnet") {
-        return MainnetConfig;
-    }
+    // if (hre.network.name === "mainnet") {
+    //     return MainnetConfig;
+    // }
     if (hre.network.name === "localhost" || hre.network.name === "hardhat") {
         return HardhatConfig;
     }
@@ -281,9 +281,9 @@ function getConfig(hre: HardhatRuntimeEnvironment) {
 function writeConfigFile(config: any, hre: HardhatRuntimeEnvironment) {
     let filePath;
     switch (hre.network.name) {
-        case "mainnet":
-            filePath = "scripts/contracts.json";
-            break;
+        // case "mainnet":
+        //     filePath = "scripts/contracts.json";
+        //     break;
         case "localhost":
             filePath = "scripts/contracts.hardhat.json";
             break;
