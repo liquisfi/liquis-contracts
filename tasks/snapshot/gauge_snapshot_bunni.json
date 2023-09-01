@@ -399,7 +399,7 @@
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0x0DD538156cc4b0966d4aB60358Ad2B12f57B0961",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0x0DD538156cc4b0966d4aB60358Ad2B12f57B0961"
     },
     {
         "pool": {
@@ -424,27 +424,16 @@
         "label": "Bunni BSN/WETH LP"
     },
     {
-        "pool": {
-            "tokens": [
-                { "symbol": "ABI", "address": "0xa31DFe74cDA04de990CafC6a0aB2BB6d6C9077CD" },
-                { "symbol": "WETH", "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" }
-            ]
-        },
-        "network": 1,
-        "address": "0x3090124ffA5aaDbb1Bf3006e06599cB8E9633df8",
-        "label": "Bunni ABI/WETH LP"
-    },
-    {
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0x270D9A0b9137c99bdFe8dD14FC527D3922a91678",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0x270D9A0b9137c99bdFe8dD14FC527D3922a91678"
     },
     {
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0xa665F67e1743415d7FD0b3c40c7Cf90bc1e7Bb39",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0xa665F67e1743415d7FD0b3c40c7Cf90bc1e7Bb39"
     },
     {
         "pool": {
@@ -483,37 +472,37 @@
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0x00B20FFd6c2d27a5B9764ad2367f60e16e08eD3B",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0x00B20FFd6c2d27a5B9764ad2367f60e16e08eD3B"
     },
     {
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0x5fb10C79c7198D18F69a9aeB64e3FeaB66778e48",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0x5fb10C79c7198D18F69a9aeB64e3FeaB66778e48"
     },
     {
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0x846b89167040e655de785C8dDda57866182E268B",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0x846b89167040e655de785C8dDda57866182E268B"
     },
     {
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0x6fFaC7b1DB79460093c06ceaE86d3BacA2F3CDFD",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0x6fFaC7b1DB79460093c06ceaE86d3BacA2F3CDFD"
     },
     {
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0x677ed6De139058ede31B2fB296F827F8C35A632a",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0x677ed6De139058ede31B2fB296F827F8C35A632a"
     },
     {
         "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
         "network": 1,
         "address": "0xa9092a2cfd11f8e42cFD84c0217743f28b3c285C",
-        "label": "MISSING"
+        "label": "Root Liquidity Gauge 0xa9092a2cfd11f8e42cFD84c0217743f28b3c285C"
     },
     {
         "pool": {
@@ -525,5 +514,28 @@
         "network": 1,
         "address": "0x04D20FfF44c6FdDB4aFfecc56960Bb87B381bcc3",
         "label": "Bunni USDC/DUSD LP"
+    },
+    {
+        "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
+        "network": 1,
+        "address": "0x5665Eaa91d49B2807e185647CE8489f39C0e5fA4",
+        "label": "Root Liquidity Gauge 0x5665Eaa91d49B2807e185647CE8489f39C0e5fA4"
+    },
+    {
+        "pool": { "tokens": [{ "symbol": "N/A", "address": "N/A" }] },
+        "network": 1,
+        "address": "0x730deAbcB65DC273613320BA6cF9ddc213661D12",
+        "label": "Root Liquidity Gauge 0x730deAbcB65DC273613320BA6cF9ddc213661D12"
+    },
+    {
+        "pool": {
+            "tokens": [
+                { "symbol": "ABI", "address": "0xBF0B8b7475EdB32D103001Efd19FdD2753d7B76D" },
+                { "symbol": "WETH", "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" }
+            ]
+        },
+        "network": 1,
+        "address": "0x74f794Bd59e51B9f72D84b7c1274e38681A4d518",
+        "label": "Bunni ABI/WETH LP"
     }
 ]

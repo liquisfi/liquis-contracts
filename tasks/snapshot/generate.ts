@@ -124,10 +124,34 @@ task("gauges:choices:print").setAction(async function (_: TaskArguments, hre: Ha
             const lpToken = BunniToken__factory.connect(lpTokenAddress, signer);
             const lpTokenName = await lpToken.name();
 
-            cleanedGauges.push({ address: gauge.address, label: lpTokenName });
+            const uniPoolAddress = await lpToken.pool();
+            const uniPool = IUniswapV3PoolImmutables__factory.connect(uniPoolAddress, signer);
+
+            const token0Address = await uniPool.token0();
+            const token1Address = await uniPool.token1();
+
+            const token0 = ERC20__factory.connect(token0Address, signer);
+            const token1 = ERC20__factory.connect(token1Address, signer);
+
+            const token0Decimals = await token0.decimals();
+            const token1Decimals = await token1.decimals();
+
+            const diff = token0Decimals - token1Decimals;
+            const exp = Math.pow(10, diff);
+
+            const tickLower = await lpToken.tickLower();
+            const tickUpper = await lpToken.tickUpper();
+
+            const priceLower = Math.pow(Math.pow(1.0001, tickLower) * exp, -1);
+            const priceUpper = Math.pow(Math.pow(1.0001, tickUpper) * exp, -1);
+
+            cleanedGauges.push({
+                address: gauge.address,
+                label: `${lpTokenName} [${priceLower.toFixed(6)} - ${priceUpper.toFixed(6)}]`,
+            });
         } catch (e) {
             console.log("Print task error:", gauge.address);
-            cleanedGauges.push({ address: gauge.address, label: "MISSING" });
+            cleanedGauges.push({ address: gauge.address, label: `Root Liquidity Gauge ${gauge.address}` });
         }
     }
 
@@ -195,7 +219,12 @@ task("gauges:snapshot:print").setAction(async function (_: TaskArguments, hre: H
                 tokens: [{ symbol: "N/A", address: "N/A" }],
             };
 
-            snapshotGauges.push({ pool: poolType, network: 1, address: gauge.address, label: "MISSING" });
+            snapshotGauges.push({
+                pool: poolType,
+                network: 1,
+                address: gauge.address,
+                label: `Root Liquidity Gauge ${gauge.address}`,
+            });
         }
     }
 

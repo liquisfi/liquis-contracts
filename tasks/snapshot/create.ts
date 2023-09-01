@@ -95,7 +95,7 @@ task("snapshot:create")
         console.log(`Title: ${title}`);
 
         const body =
-            "Please read gauge voting rules before voting: https://docs.aura.finance/aura/governance/gauge-voting#gauge-voting-rules-and-information\n\nBe sure to also consult the voting dashboard for gauge voting insights: https://app.aura.finance/#/lock";
+            "Please read gauge voting rules before voting: https://docs.liquis.app/governance/gauge-voting\n\nBe sure to also consult the voting dashboard for gauge voting insights: https://liquis.app/lock-liq";
         console.log("Body:", body);
 
         const choices = gaugeList.map((gauge: GaugeChoice) => gauge.label);

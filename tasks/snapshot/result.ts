@@ -6,7 +6,7 @@ import { HardhatRuntime } from "../utils/networkAddressFactory";
 import { getSigner } from "../../tasks/utils";
 import { IGaugeController__factory } from "../../types/generated";
 import { configs } from "./constants";
-import { Gauge, GaugeChoice, getGaugeChoices, getGaugeSnapshot, parseLabel } from "./utils";
+import { Gauge, GaugeChoice, getGaugeChoices, getGaugeSnapshot } from "./utils";
 
 task("snapshot:result", "Get results for the first proposal that uses non standard labels")
     .addParam("proposal", "The proposal ID of the snapshot")
@@ -54,7 +54,7 @@ task("snapshot:result", "Get results for the first proposal that uses non standa
         }
 
         const successfulGauges = results
-            .filter(({ percentage }) => percentage > 0.002)
+            .filter(({ percentage }) => percentage > 0.001)
             .sort((a, b) => b.percentage - a.percentage);
 
         // ----------------------------------------------------------

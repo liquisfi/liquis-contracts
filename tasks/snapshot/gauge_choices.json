@@ -1,210 +1,174 @@
 [
     {
         "address": "0xd4d8E88bf09efCf3F5bf27135Ef12c1276d9063C",
-        "label": "Bunni USDC/WETH LP"
+        "label": "Bunni USDC/WETH LP [4998.918171 - 500.241957]"
     },
     {
         "address": "0x5ef860746a5f2ea24ddbD54EaeF0dDa65d5157a0",
-        "label": "Bunni WETH/USDT LP"
+        "label": "Bunni WETH/USDT LP [0.001999 - 0.000200]"
     },
     {
         "address": "0x4420689Dc6b5CDE6Ff3B873CDbfD8519383a1681",
-        "label": "Bunni WBTC/WETH LP"
+        "label": "Bunni WBTC/WETH LP [0.199904 - 0.025002]"
     },
     {
         "address": "0x44971D8903125Dcad768c130090C7480608D422d",
-        "label": "Bunni DAI/WETH LP"
+        "label": "Bunni DAI/WETH LP [5001.905048 - 500.040588]"
     },
     {
         "address": "0xEbC60e3DD7b90382461F49fb98787CA81a30CA23",
-        "label": "Bunni LINK/WETH LP"
+        "label": "Bunni LINK/WETH LP [659.627592 - 69.116136]"
     },
     {
         "address": "0x345ECB6aB8EF4B5cBE4b5AA31D533EED894790B4",
-        "label": "Bunni LDO/WETH LP"
+        "label": "Bunni LDO/WETH LP [3434.384237 - 137.793159]"
     },
     {
         "address": "0x6e868d1A902Da6b26521bf92E437b9b6DCC6955A",
-        "label": "Bunni APE/WETH LP"
+        "label": "Bunni APE/WETH LP [1500.621034 - 59.847246]"
     },
     {
         "address": "0x9E3b20Afe88f823614FB3bDe416c69A806F8D090",
-        "label": "Bunni UNI/WETH LP"
+        "label": "Bunni UNI/WETH LP [1152.452459 - 45.961708]"
     },
     {
         "address": "0xecdfE2FB3D5542026E415e3813C4CFdedA19e7d3",
-        "label": "Bunni BIT/WETH LP"
+        "label": "Bunni BIT/WETH LP [14846.504540 - 595.666247]"
     },
     {
         "address": "0xdc4AdbA5722144542fCBe86bdB57D28154aDF7E5",
-        "label": "Bunni 1INCH/WETH LP"
+        "label": "Bunni 1INCH/WETH LP [15986.757979 - 651.759756]"
     },
     {
         "address": "0x36B88F590CAaCAa2E855DB449Cdb7b0a0D0cE4E6",
-        "label": "Bunni MATIC/WETH LP"
+        "label": "Bunni MATIC/WETH LP [7766.323224 - 311.597696]"
     },
     {
         "address": "0xE61C1E33dF4921F8B4EF0ee3f7031b472AFB52cF",
-        "label": "Bunni USDC/USDT LP"
+        "label": "Bunni USDC/USDT LP [1.000400 - 0.999900]"
     },
     {
         "address": "0x1c78EfD3B11baC329ffD8CCa15FAE26dbD54A720",
-        "label": "Bunni DAI/USDC LP"
+        "label": "Bunni DAI/USDC LP [1.000197 - 0.999897]"
     },
     {
         "address": "0x6c30636d750D63A1361D5885c8aA33f922ACC9A3",
-        "label": "Bunni cbETH/WETH LP"
+        "label": "Bunni cbETH/WETH LP [1.020200 - 0.999001]"
     },
     {
         "address": "0x471A34823DDd9506fe8dFD6BC5c2890e4114Fafe",
-        "label": "Bunni FRAX/USDC LP"
+        "label": "Bunni FRAX/USDC LP [1.000698 - 1.000297]"
     },
     {
         "address": "0x4A0f5be682622c659c4A3C5996071d8E55695D4c",
-        "label": "Bunni ∞-yvUSDC-xPYT/∞-yvUSDC-NYT LP"
+        "label": "Bunni ∞-yvUSDC-xPYT/∞-yvUSDC-NYT LP [1.000000 - 0.111259]"
     },
     {
         "address": "0x7a5252e430C58E527016B2cFF68641C8b8BE21B7",
-        "label": "Bunni ∞-wlstETH-NYT/∞-stETH-xPYT LP"
+        "label": "Bunni ∞-wlstETH-NYT/∞-stETH-xPYT LP [9.024021 - 1.000000]"
     },
     {
         "address": "0xAD879AEC78BFEAad11715D097fd82e00e52327a6",
-        "label": "Bunni ∞-yvWETH-xPYT/∞-yvWETH-NYT LP"
+        "label": "Bunni ∞-yvWETH-xPYT/∞-yvWETH-NYT LP [1.000000 - 0.110815]"
     },
     {
         "address": "0x4Bf0082080d937897330BAB735c2Baa99FF16F19",
-        "label": "Bunni frxETH/WETH LP"
+        "label": "Bunni frxETH/WETH LP [1.002002 - 0.998002]"
     },
     {
         "address": "0xD20a7dcdDeF53142e7Cb5474Ba469B800Ea8DFeb",
-        "label": "Bunni LQTY/WETH LP"
+        "label": "Bunni LQTY/WETH LP [4691.826955 - 162.999204]"
     },
     {
         "address": "0x3aCFa22E2d6573C15298A19C0e51506248696DeB",
-        "label": "Bunni SGT/WETH LP"
+        "label": "Bunni SGT/WETH LP [16309.695605 - 160.733227]"
     },
     {
         "address": "0xE410b7577882dD1d5c9a00bB1D806A4EA02FAB30",
-        "label": "Bunni SUDO/WETH LP"
+        "label": "Bunni SUDO/WETH LP [1997.436776 - 196.318044]"
     },
     {
         "address": "0xC118C27C5e364054C0e206049c7e09C7D9D18989",
-        "label": "Bunni DOP/WETH LP"
+        "label": "Bunni DOP/WETH LP [∞ - 0.000000]"
     },
     {
         "address": "0x4CF5CB105D8baC299d010C71E1932a859d731B7b",
-        "label": "Bunni wstETH/WETH LP"
+        "label": "Bunni wstETH/WETH LP [0.905747 - 0.849598]"
     },
     {
         "address": "0x3b5F433940eD3f57F9ab73e725cf91cfaaef8789",
-        "label": "Bunni FRAX/PAL LP"
+        "label": "Bunni FRAX/PAL LP [∞ - 0.000000]"
     },
     {
         "address": "0xc0Bbfa70b31Bd1645B4f5ddC93b6Da14A5D46a29",
-        "label": "Bunni MON/WETH LP"
+        "label": "Bunni MON/WETH LP [∞ - 0.000000]"
     },
     {
         "address": "0x46f10e7Bc133191cAAF58FA6cf064014b7BDeBA6",
-        "label": "Bunni DCHF/USDC LP"
+        "label": "Bunni DCHF/USDC LP [1.111368 - 0.769211]"
     },
     {
         "address": "0xf59Dfd237c7a8cf8f47bF6304815F2182F56Ae78",
-        "label": "Bunni ∞-AA_idle_cpFAS-USDT4626-PYT/∞-AA_idle_cpFAS-USDT4626-NYT LP"
+        "label": "Bunni ∞-AA_idle_cpFAS-USDT4626-PYT/∞-AA_idle_cpFAS-USDT4626-NYT LP [1.000000 - 0.111259]"
     },
     {
         "address": "0x9Ca4f7c8CCFd421D84ACD355Ea819C8d37c0B598",
-        "label": "Bunni EURe/USDC LP"
+        "label": "Bunni EURe/USDC LP [1.110258 - 0.799802]"
     },
     {
         "address": "0x2F99bc91fCBEC71BBDb997ce1E7AA73dB93a75Ad",
-        "label": "Bunni WETH/AMKT LP"
+        "label": "Bunni WETH/AMKT LP [0.073544 - 0.031561]"
     },
     {
         "address": "0xa718193E1348FD4dEF3063E7F4b4154BAAcB0214",
-        "label": "Bunni WETH/swETH LP"
+        "label": "Bunni WETH/swETH LP [1.080038 - 1.020200]"
     },
     {
         "address": "0x42Bafd7c5793Ae2c883A3163D0A37f5969d0BCE1",
-        "label": "Bunni boxETH/WETH LP"
+        "label": "Bunni boxETH/WETH LP [1.030453 - 1.000000]"
     },
     {
         "address": "0xA1A4BAb0768A089f633Fcb196D428001D2C4Fe6a",
-        "label": "Bunni LUSD/bLUSD LP"
+        "label": "Bunni LUSD/bLUSD LP [1.239849 - 1.162988]"
     },
     {
         "address": "0x53F36500141765f74E4745aCd7195d12a2DA6f42",
-        "label": "Bunni DCHF/XCHF LP"
+        "label": "Bunni DCHF/XCHF LP [1.020404 - 0.980396]"
     },
     {
         "address": "0xCb619EEB54cA6E9e8bdf0B1BD17811752d685310",
-        "label": "Bunni FRAX/alUSD LP"
+        "label": "Bunni FRAX/alUSD LP [1.050218 - 0.939886]"
     },
     {
         "address": "0xC900F482F7D037366D24f7aca44425d775E500b5",
-        "label": "Bunni alETH/frxETH LP"
-    },
-    {
-        "address": "0x0DD538156cc4b0966d4aB60358Ad2B12f57B0961",
-        "label": "Bunni GRAI/USDC LP"
+        "label": "Bunni alETH/frxETH LP [1.075727 - 0.952183]"
     },
     {
         "address": "0xb98FE645C7e2c39b726747dCb72848a9fd8c425F",
-        "label": "Bunni WETH/swETH LP"
+        "label": "Bunni WETH/swETH LP [1.035618 - 1.015112]"
     },
     {
         "address": "0x3f28CA531Cb4767EEBFD8974a7a782058C53AF6a",
-        "label": "Bunni BSN/WETH LP"
-    },
-    {
-        "address": "0x3090124ffA5aaDbb1Bf3006e06599cB8E9633df8",
-        "label": "Bunni ABI/WETH LP"
-    },
-    {
-        "address": "0x270D9A0b9137c99bdFe8dD14FC527D3922a91678",
-        "label": "Bunni GRAI/swETH LP"
-    },
-    {
-        "address": "0xa665F67e1743415d7FD0b3c40c7Cf90bc1e7Bb39",
-        "label": "MISSING"
+        "label": "Bunni BSN/WETH LP [347792.752489 - 34182.805546]"
     },
     {
         "address": "0x79DE2381b7181178555905319db7dA8a1Af72645",
-        "label": "Bunni LUSD/bLUSD LP"
+        "label": "Bunni LUSD/bLUSD LP [1.239849 - 1.154876]"
     },
     {
         "address": "0xd614e32088C5f5Dc389014Ec5727E03a0811b8c8",
-        "label": "Bunni WBTC/BADGER LP"
+        "label": "Bunni WBTC/BADGER LP [0.000355 - 0.000036]"
     },
     {
         "address": "0x082c0198B69e8e321A409A7dC5AD3238E4CD7D81",
-        "label": "Bunni GHO/USDC LP"
-    },
-    {
-        "address": "0x00B20FFd6c2d27a5B9764ad2367f60e16e08eD3B",
-        "label": "MISSING"
-    },
-    {
-        "address": "0x5fb10C79c7198D18F69a9aeB64e3FeaB66778e48",
-        "label": "MISSING"
-    },
-    {
-        "address": "0x846b89167040e655de785C8dDda57866182E268B",
-        "label": "MISSING"
-    },
-    {
-        "address": "0x6fFaC7b1DB79460093c06ceaE86d3BacA2F3CDFD",
-        "label": "MISSING"
-    },
-    {
-        "address": "0x677ed6De139058ede31B2fB296F827F8C35A632a",
-        "label": "MISSING"
-    },
-    {
-        "address": "0xa9092a2cfd11f8e42cFD84c0217743f28b3c285C",
-        "label": "MISSING"
+        "label": "Bunni GHO/USDC LP [1.024901 - 0.974919]"
     },
     {
         "address": "0x04D20FfF44c6FdDB4aFfecc56960Bb87B381bcc3",
-        "label": "Bunni USDC/DUSD LP"
+        "label": "Bunni USDC/DUSD LP [1.010456 - 0.970838]"
+    },
+    {
+        "address": "0x74f794Bd59e51B9f72D84b7c1274e38681A4d518",
+        "label": "Bunni ABI/WETH LP [∞ - 0.000000]"
     }
 ]
