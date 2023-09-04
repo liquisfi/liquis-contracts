@@ -5146,11 +5146,11 @@ __metadata:
 
 "convex-platform@file:convex-platform/contracts::locator=%40liquisfi%2Fliquis-contracts%40workspace%3A.":
   version: 0.0.0
-  resolution: "convex-platform@file:convex-platform/contracts#convex-platform/contracts::hash=a59f60&locator=%40liquisfi%2Fliquis-contracts%40workspace%3A."
+  resolution: "convex-platform@file:convex-platform/contracts#convex-platform/contracts::hash=1bc3f9&locator=%40liquisfi%2Fliquis-contracts%40workspace%3A."
   dependencies:
     "@openzeppelin/contracts-0.6": "npm:@openzeppelin/contracts@3.4.0"
     "@openzeppelin/contracts-upgradeable-0.6": "npm:@openzeppelin/contracts-upgradeable@3.4.0"
-  checksum: 406bbf63adf99878c64ab6596ed92665d8262689129fe9f8ad49741adb0ac07e84f6afe8d2e0d7516a9e13b2f6ea300bdeda9dfef35f7a3fd84dfff6d1e40a84
+  checksum: edfd6dfcb0ec5a63dc7a2e07910e5e32b0d29a8d1383271e6d66c753447695eea0cdf32087c6e0add1eb49bc66361e06b51935947273e246372715f60feb57d6
   languageName: node
   linkType: hard
 
