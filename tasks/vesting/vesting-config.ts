@@ -67,6 +67,12 @@ const partnersVesting = [
     { address: "0xFb3bD022D5DAcF95eE28a6B07825D4Ff9C5b3814", amount: simpleToExactAmount(100_000) }, // Idle
 ];
 
+const extraPartners = [
+    { address: "0x5Be9631FBAd536F0e38Bf456517C8d249990e2F4", amount: simpleToExactAmount(100_000) }, // Davos
+    { address: "0xFb3bD022D5DAcF95eE28a6B07825D4Ff9C5b3814", amount: simpleToExactAmount(100_000) }, // Idle
+    { address: "0x2364963e6b99281def39aeda6a8acee790d93af4", amount: simpleToExactAmount(425_000) }, // Swell
+];
+
 const distroList = {
     immutableVesting: [
         {
@@ -78,19 +84,19 @@ const distroList = {
     ],
     vesting: [
         // 24 MONTHS
-        {
-            period: ONE_WEEK.mul(104),
-            recipients: teamAndVotersVesting,
-        },
+        // {
+        //     period: ONE_WEEK.mul(104),
+        //     recipients: teamAndVotersVesting,
+        // },
+        // 48 MONTHS
+        // {
+        //     period: ONE_WEEK.mul(208),
+        //     recipients: partnersVesting,
+        // },
         // 48 MONTHS
         {
             period: ONE_WEEK.mul(208),
-            recipients: partnersVesting,
-        },
-        // 48 MONTHS
-        {
-            period: ONE_WEEK.mul(208),
-            recipients: specialPartners,
+            recipients: extraPartners,
         },
     ],
 };
