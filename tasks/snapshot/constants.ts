@@ -1,7 +1,7 @@
 export const configs = {
     main: {
         hub: "https://hub.snapshot.org",
-        space: "gauges.aurafinance.eth",
+        space: "liquis.eth",
     },
     test: {
         hub: "https://testnet.snapshot.org",

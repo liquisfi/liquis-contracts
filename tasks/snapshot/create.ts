@@ -94,8 +94,7 @@ task("snapshot:create")
         } ${startDate.getUTCFullYear()}`;
         console.log(`Title: ${title}`);
 
-        const body =
-            "Please read gauge voting rules before voting: https://docs.liquis.app/governance/gauge-voting\n\nBe sure to also consult the voting dashboard for gauge voting insights: https://liquis.app/lock-liq";
+        const body = "Please read gauge voting rules before voting: https://docs.liquis.app/governance/gauge-voting\n";
         console.log("Body:", body);
 
         const choices = gaugeList.map((gauge: GaugeChoice) => gauge.label);
