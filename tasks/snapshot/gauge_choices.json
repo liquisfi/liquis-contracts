@@ -144,12 +144,20 @@
         "label": "Bunni alETH/frxETH LP [1.075727 - 0.952183]"
     },
     {
+        "address": "0x0DD538156cc4b0966d4aB60358Ad2B12f57B0961",
+        "label": "Bunni GRAI/USDC LP [1.020810 - 0.989652]"
+    },
+    {
         "address": "0xb98FE645C7e2c39b726747dCb72848a9fd8c425F",
         "label": "Bunni WETH/swETH LP [1.035618 - 1.015112]"
     },
     {
         "address": "0x3f28CA531Cb4767EEBFD8974a7a782058C53AF6a",
         "label": "Bunni BSN/WETH LP [347792.752489 - 34182.805546]"
+    },
+    {
+        "address": "0x270D9A0b9137c99bdFe8dD14FC527D3922a91678",
+        "label": "Bunni GRAI/swETH LP [3101.366274 - 1098.444013]"
     },
     {
         "address": "0x79DE2381b7181178555905319db7dA8a1Af72645",
@@ -170,5 +178,9 @@
     {
         "address": "0x74f794Bd59e51B9f72D84b7c1274e38681A4d518",
         "label": "Bunni ABI/WETH LP [∞ - 0.000000]"
+    },
+    {
+        "address": "0x66f83e7a4F7Fd407B6564f25174D544a4B16aAf8",
+        "label": "Bunni WETH/IZE LP [∞ - 0.000000]"
     }
 ]
