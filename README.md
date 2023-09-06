@@ -1,6 +1,8 @@
 # Liquis Finance
 
 [![Test Coverage](https://github.com/liquisfi/liquis-contracts/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/liquisfi/liquis-contracts/actions/workflows/test-coverage.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/liquisfi/liquis-contracts/badge.svg?branch=cli-fixes-coverage)](https://coveralls.io/github/liquisfi/liquis-contracts?branch=cli-fixes-coverage)
+
 
 ## Security
 
