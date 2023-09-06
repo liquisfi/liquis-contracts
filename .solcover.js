@@ -12,11 +12,24 @@ module.exports = {
         "convex-platform/contracts/contracts/RewardHook.sol",
         "interfaces",
         "chef",
+        "peripheral/FlashOptionsExerciser.sol",
+        "peripheral/GaugeMigrator.sol",
+        "peripheral/LiquisClaimZap.sol",
+        "peripheral/LiquisViewHelpers.sol",
+        "peripheral/LitDepositorHelper.sol",
+        "peripheral/PoolMigrator.sol",
+        "peripheral/PooledOptionsExerciser.sol",
+        "peripheral/ZapInEth.sol",
+        "peripheral/BalLiquidityProvider.sol",
         "peripheral/BoosterHelper.sol",
         "peripheral/ClaimFeesHelper.sol",
         "peripheral/RewardPoolDepositWrapper.sol",
         "peripheral/UniswapMigrator.sol",
-        "compounder/rewardHandlers/BBUSDHandler.sol",
+        "rewards/PrelaunchRewardsPool.sol",
+        "utils/Math.sol",
+        "utils/Permission.sol"
     ],
     configureYulOptimizer: true,
 };
+
+
