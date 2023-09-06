@@ -1,6 +1,5 @@
-name: Test Coverage (Manual)
-on:
-  workflow_dispatch:
+on: ["push"]
+name: test coverage
 jobs:
     build:
         if: github.event.pull_request.draft == false
