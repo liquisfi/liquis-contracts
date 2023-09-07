@@ -64,7 +64,6 @@ const partnersVesting = [
     { address: "0x4a266739E40664e80470CC335120a2A1fA0B3F3f", amount: simpleToExactAmount(250_000) }, // Mimo
     { address: "0x5592cB82f5B11A4E42B1275A973E6B712194e239", amount: simpleToExactAmount(1_000_000) }, // Moneta
     { address: "0x1Ae6DCBc88d6f81A7BCFcCC7198397D776F3592E", amount: simpleToExactAmount(450_000) }, // Paladin
-    { address: "0xFb3bD022D5DAcF95eE28a6B07825D4Ff9C5b3814", amount: simpleToExactAmount(100_000) }, // Idle
 ];
 
 const extraPartners = [
