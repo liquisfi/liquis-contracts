@@ -26,7 +26,7 @@ task("snapshot:result", "Get results for the first proposal that uses non standa
             }
         `;
 
-        const config = configs.test; // Note test for testing and main for mainnet
+        const config = configs.main; // Note test for testing and main for mainnet
         const proposalId = taskArgs.proposal;
         const debug = taskArgs.debug === "true";
         const data = await request(`${config.hub}/graphql`, query, { proposal: proposalId });
