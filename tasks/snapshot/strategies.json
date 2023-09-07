@@ -2,16 +2,6 @@
     "symbol": "vlLIQ (delegated)",
     "strategies": [
         {
-            "name": "erc20-votes-with-override",
-            "params": {
-                "symbol": "vlLIQ",
-                "address": "0x748A0F458B9E71061ca0aC543B984473F203E1CB",
-                "decimals": 18,
-                "isSnapshotDelegatedScore": true,
-                "includeSnapshotDelegations": true
-            }
-        },
-        {
             "name": "contract-call",
             "params": {
                 "symbol": "vestingLIQ",
