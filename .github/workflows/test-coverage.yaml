@@ -1,6 +1,5 @@
-name: Test Coverage (Manual)
-on:
-  workflow_dispatch:
+on: ["push"]
+name: test coverage
 jobs:
     build:
         if: github.event.pull_request.draft == false
@@ -21,4 +20,4 @@ jobs:
             - name: Coveralls
               uses: coverallsapp/github-action@master
               with:
-                  github-token: ${{ secrets.ACCESS_TOKEN }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
