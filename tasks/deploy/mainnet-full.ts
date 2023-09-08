@@ -1,6 +1,6 @@
 import { task } from "hardhat/config";
 import { TaskArguments } from "hardhat/types";
-import { logContracts } from "../utils/deploy-utils";
+import { logContracts, deployContract } from "../utils/deploy-utils";
 import { Signer } from "ethers";
 import { getSigner } from "../utils";
 import { deployFullSystem, ExtSystemConfig, PrelaunchDeployed } from "../../scripts/deployFullSystem";
@@ -11,6 +11,8 @@ import {
     Booster__factory,
     CvxCrvToken__factory,
     CrvDepositor__factory,
+    BoosterHelper,
+    BoosterHelper__factory,
 } from "../../types/generated";
 
 const naming = {
@@ -82,6 +84,23 @@ task("deploy:mainnet:fullSystem").setAction(async function (_: TaskArguments, hr
         3,
     );
     logContracts(fullSystem as unknown as { [key: string]: { address: string } });
+});
+
+task("deploy:mainnet:boosterHelper").setAction(async function (taskArguments: TaskArguments, hre) {
+    const deployer = await getSigner(hre);
+
+    const constructorArguments = [mainnetDeployment.booster, externalAddresses.token];
+    const boosterHelper = await deployContract<BoosterHelper>(
+        hre,
+        new BoosterHelper__factory(deployer),
+        "BoosterHelper",
+        constructorArguments,
+        {},
+        true,
+        3,
+    );
+
+    console.log("deployed BoosterHelper to:", boosterHelper.address);
 });
 
 export const config = {

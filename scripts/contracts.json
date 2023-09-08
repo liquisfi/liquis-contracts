@@ -32,6 +32,7 @@
         "pooledOptionsExerciser": "0x57956b5EC3e7592F8785A96Ba25763A6f2a042f0",
         "prelaunchRewardsPool": "0x5c988c4E1F3cf1CA871A54Af3a1DcB5FeF2612Fc",
         "claimZap": "0xad161b8bEb5bf2Af9cDA30E3988B13F62E70431B",
-        "liquisViewHelpers": "0xD58dd6deF2d0e8E16ffc537c7f269719e19b9fE4"
+        "liquisViewHelpers": "0xD58dd6deF2d0e8E16ffc537c7f269719e19b9fE4",
+        "boosterHelper": "0x4eA2eFb759591Eec7f916F89547D339A69d171F4"
     }
 }
