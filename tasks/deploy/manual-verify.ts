@@ -2,7 +2,7 @@ import { task } from "hardhat/config";
 import { TaskArguments } from "hardhat/types";
 import { verifyEtherscan } from "../utils/etherscan";
 import { getSigner } from "../utils";
-import { DepositToken__factory, StashToken__factory } from "../../types/generated";
+import { DepositToken__factory, StashToken__factory, VirtualBalanceRewardPool__factory } from "../../types/generated";
 
 task("verify:mainnet").setAction(async function (_: TaskArguments, hre) {
     const deployer = await getSigner(hre);
@@ -16,9 +16,17 @@ task("verify:mainnet").setAction(async function (_: TaskArguments, hre) {
     //     "liq",
     // ];
 
-    const contract = StashToken__factory.connect("0x799ba7dd6fa77cb12ccb1cbe5b3687e2433df8f7", deployer);
+    // const contract = StashToken__factory.connect("0x799ba7dd6fa77cb12ccb1cbe5b3687e2433df8f7", deployer);
 
-    const constructorArgs = ["0x0cde7f7d31f0440651f7253bd61ca762e86bad38"];
+    // const constructorArgs = ["0x0cde7f7d31f0440651f7253bd61ca762e86bad38"];
+
+    const contract = VirtualBalanceRewardPool__factory.connect("0x271B96395f53fb14cDD41C654ef15e83DE57dEDf", deployer);
+
+    const constructorArgs = [
+        "0x7Ea6930a9487ce8d039f7cC89432435E6D5AcB23",
+        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "0x631e58246A88c3957763e1469cb52f93BC1dDCF2",
+    ];
 
     const abiEncodedConstructorArgs = contract.interface.encodeDeploy(constructorArgs);
 
