@@ -1,5 +1,17 @@
 [
     {
+        "address": "0x157C6F527dE5987235ae1305608494731Ff03b10",
+        "label": "Bunni WETH/LIQ LP [∞ - 0.000000]"
+    },
+    {
+        "address": "0xbB6Fb649929420dc56d90B013C2e4cAeE291e759",
+        "label": "Bunni liqLIT/BAL-20WETH-80LIT LP [∞ - 0.000000]"
+    },
+    {
+        "address": "0x8e375Dfb1b347D3E84fA9dfe1EeCdC5fD7845e9e",
+        "label": "Bunni liqLIT/BAL-20WETH-80LIT LP [1.111149 - 0.909014]"
+    },
+    {
         "address": "0xd4d8E88bf09efCf3F5bf27135Ef12c1276d9063C",
         "label": "Bunni USDC/WETH LP [4998.918171 - 500.241957]"
     },
