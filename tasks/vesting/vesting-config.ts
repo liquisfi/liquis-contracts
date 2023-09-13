@@ -72,6 +72,11 @@ const extraPartners = [
     { address: "0x2364963e6b99281def39aeda6a8acee790d93af4", amount: simpleToExactAmount(425_000) }, // Swell
 ];
 
+const thirdPartners = [
+    { address: "0x926dF14a23BE491164dCF93f4c468A50ef659D5B", amount: simpleToExactAmount(1_000_000) }, // Inverse
+    { address: "0xFdC004B6B92b45B224d37dc45dBA5cA82c1e08f2", amount: simpleToExactAmount(100_000) }, // BlueBerry
+];
+
 const distroList = {
     immutableVesting: [
         {
@@ -95,7 +100,7 @@ const distroList = {
         // 48 MONTHS
         {
             period: ONE_WEEK.mul(208),
-            recipients: extraPartners,
+            recipients: thirdPartners,
         },
     ],
 };
