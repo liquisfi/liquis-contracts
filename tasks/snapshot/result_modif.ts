@@ -130,7 +130,12 @@ task("snapshot:result:modif", "Get results for the first proposal that uses non 
         const totalWeightBefore = weights.reduce((acc, x) => acc + x, 0);
 
         const voteDelta = totalVotes - totalWeightBefore;
-        weights[0] += voteDelta;
+
+        // Add the delta of rounding to the LIQ-WETH gauge
+        const index = successfulGauges.findIndex(gauge => gauge.address === selectedGauges[0].address);
+        if (index !== -1) {
+            weights[index] += voteDelta;
+        }
 
         const totalWeightAfter = weights.reduce((acc, x) => acc + x, 0);
 
