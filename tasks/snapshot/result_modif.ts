@@ -3,12 +3,35 @@ import { task } from "hardhat/config";
 import { TaskArguments } from "hardhat/types";
 import { request, gql } from "graphql-request";
 import { HardhatRuntime } from "../utils/networkAddressFactory";
-import { getSigner } from "../../tasks/utils";
+import { getSigner } from "../utils";
 import { IGaugeController__factory } from "../../types/generated";
 import { configs } from "./constants";
 import { GaugeChoice, getGaugeChoices } from "./utils";
 
-task("snapshot:result", "Get results for the first proposal that uses non standard labels")
+const selectedGauges = [
+    {
+        address: "0x157C6F527dE5987235ae1305608494731Ff03b10",
+        label: "Bunni WETH/LIQ LP [∞ - 0.000000]",
+        extraWeight: 500,
+        percentage: 0.05,
+    },
+    {
+        address: "0xbB6Fb649929420dc56d90B013C2e4cAeE291e759",
+        label: "Bunni liqLIT/BAL-20WETH-80LIT LP [∞ - 0.000000]",
+        extraWeight: 200,
+        percentage: 0.02,
+    },
+    {
+        address: "0x8e375Dfb1b347D3E84fA9dfe1EeCdC5fD7845e9e",
+        label: "Bunni liqLIT/BAL-20WETH-80LIT LP [1.111149 - 0.909014]",
+        extraWeight: 300,
+        percentage: 0.03,
+    },
+];
+
+// yarn hardhat --config tasks.config.ts snapshot:result:modif --proposal 0xd6...a2e0 --debug true --network mainnet
+
+task("snapshot:result:modif", "Get results for the first proposal that uses non standard labels")
     .addParam("proposal", "The proposal ID of the snapshot")
     .addOptionalParam("debug", "Debug mode", "false")
     .setAction(async function (taskArgs: TaskArguments, hre: HardhatRuntime) {
@@ -77,8 +100,33 @@ task("snapshot:result", "Get results for the first proposal that uses non standa
         // ----------------------------------------------------------
 
         const totalVotes = 10000;
+
+        for (const gauge of successfulGauges) {
+            gauge.score *= 0.9;
+            gauge.percentage *= 0.9;
+        }
+
+        for (const selectedGauge of selectedGauges) {
+            const existingGauge = successfulGauges.find(gauge => gauge.address === selectedGauge.address);
+
+            if (existingGauge) {
+                // If gauge already exists in successfulGauges, we update the extraWeight
+                existingGauge.score += selectedGauge.extraWeight;
+                existingGauge.percentage += selectedGauge.percentage;
+            } else {
+                // If gauge does not exist, we add it at the end of successfulGauges
+                successfulGauges.push({
+                    choice: selectedGauge.label,
+                    score: selectedGauge.extraWeight,
+                    percentage: selectedGauge.percentage,
+                    address: selectedGauge.address,
+                });
+            }
+        }
+
         const sumOfPercentages = successfulGauges.reduce((acc, x) => acc + x.percentage, 0);
         const weights = successfulGauges.map(gauge => Math.floor((totalVotes * gauge.percentage) / sumOfPercentages));
+
         const totalWeightBefore = weights.reduce((acc, x) => acc + x, 0);
 
         const voteDelta = totalVotes - totalWeightBefore;
