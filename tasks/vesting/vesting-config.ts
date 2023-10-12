@@ -77,6 +77,12 @@ const thirdPartners = [
     { address: "0xFdC004B6B92b45B224d37dc45dBA5cA82c1e08f2", amount: simpleToExactAmount(100_000) }, // BlueBerry
 ];
 
+const fourthPartners = [
+    { address: "0x6665e62ef6f6db29d5f8191fbac472222c2cc80f", amount: simpleToExactAmount(1_000_000) }, // DeFiCollective
+    { address: "0x9D5Df30F475CEA915b1ed4C0CCa59255C897b61B", amount: simpleToExactAmount(1_000_000) }, // Inverse
+    { address: "0x2CA74be68f0A0e053F030D143C1376806BaBEdc9", amount: simpleToExactAmount(100_000) }, // Jarvis
+];
+
 const distroList = {
     immutableVesting: [
         {
@@ -100,7 +106,7 @@ const distroList = {
         // 48 MONTHS
         {
             period: ONE_WEEK.mul(208),
-            recipients: thirdPartners,
+            recipients: fourthPartners,
         },
     ],
 };
