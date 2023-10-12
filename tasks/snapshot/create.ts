@@ -16,6 +16,8 @@ const readline = createInterface({
     output: process.stdout,
 });
 
+// yarn hardhat --config tasks.config.ts snapshot:create --snapshot <Block_Number> --hub main --network mainnet
+
 task("snapshot:create")
     .addParam("snapshot", "The block to snapshot")
     .addParam("hub", "test or main config")

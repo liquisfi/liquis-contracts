@@ -194,5 +194,17 @@
     {
         "address": "0x66f83e7a4F7Fd407B6564f25174D544a4B16aAf8",
         "label": "Bunni WETH/IZE LP [∞ - 0.000000]"
+    },
+    {
+        "address": "0xb73b1cd70d311c9FDAA78C621De2cc50B7799a25",
+        "label": "Bunni TBY-mar24(a)/USDC LP [1.000000 - 0.976287]"
+    },
+    {
+        "address": "0x88d1FF2F54538eEB8cA4E16963e17b1879eA7810",
+        "label": "Bunni WETH/UNIDX LP [0.001990 - 0.000793]"
+    },
+    {
+        "address": "0x820A8dC4d8265b0080AE56e1ea7AD756EF3Ca06b",
+        "label": "Bunni rETH/WETH LP [0.923305 - 0.906563]"
     }
 ]
