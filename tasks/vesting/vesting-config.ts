@@ -83,6 +83,10 @@ const fourthPartners = [
     { address: "0x2CA74be68f0A0e053F030D143C1376806BaBEdc9", amount: simpleToExactAmount(100_000) }, // Jarvis
 ];
 
+const fifthPartner = [
+    { address: "0x205e795336610f5131Be52F09218AF19f0f3eC60", amount: simpleToExactAmount(250_000) }, // AAVE
+];
+
 const distroList = {
     immutableVesting: [
         {
@@ -106,7 +110,7 @@ const distroList = {
         // 48 MONTHS
         {
             period: ONE_WEEK.mul(208),
-            recipients: fourthPartners,
+            recipients: fifthPartner,
         },
     ],
 };
