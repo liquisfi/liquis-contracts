@@ -206,5 +206,25 @@
     {
         "address": "0x820A8dC4d8265b0080AE56e1ea7AD756EF3Ca06b",
         "label": "Bunni rETH/WETH LP [0.923305 - 0.906563]"
+    },
+    {
+        "address": "0xC11869829D58150d5268e8F2d32BD4815B437142",
+        "label": "Bunni DOLA/USDC LP [1.021831 - 0.979805]"
+    },
+    {
+        "address": "0xC433eC439f5A63Bb360F432fb013D572564A9ce1",
+        "label": "Bunni INV/DOLA LP [∞ - 0.000000]"
+    },
+    {
+        "address": "0x9AfcE0c50E3696Df713371e3EEE23e8814d23518",
+        "label": "Bunni GHO/USDC LP [1.033133 - 0.997600]"
+    },
+    {
+        "address": "0x50593792615768ECAA29B08FB11b3dE9733e5366",
+        "label": "Bunni FRAX/USDC LP [1.000998 - 0.999897]"
+    },
+    {
+        "address": "0x9dd83Cd7877b1aC7A5057170bFf3EB59CA1C057a",
+        "label": "Bunni GRAI/ETHx LP [3101.366274 - 1098.444013]"
     }
 ]
