@@ -180,10 +180,6 @@
         "label": "Bunni WBTC/BADGER LP [0.000355 - 0.000036]"
     },
     {
-        "address": "0x082c0198B69e8e321A409A7dC5AD3238E4CD7D81",
-        "label": "Bunni GHO/USDC LP [1.024901 - 0.974919]"
-    },
-    {
         "address": "0x04D20FfF44c6FdDB4aFfecc56960Bb87B381bcc3",
         "label": "Bunni USDC/DUSD LP [1.010456 - 0.970838]"
     },
@@ -226,5 +222,21 @@
     {
         "address": "0x9dd83Cd7877b1aC7A5057170bFf3EB59CA1C057a",
         "label": "Bunni GRAI/ETHx LP [3101.366274 - 1098.444013]"
+    },
+    {
+        "address": "0x47346Aa27Fb7bA45551Ca4DB3Df11867F3EFC97b",
+        "label": "Bunni GRAI/TBY-mar24(b) LP [1.027980 - 0.979805]"
+    },
+    {
+        "address": "0x104b5D827AEAc64BB1efdfa63DAD0ABa500fCB9c",
+        "label": "Bunni tBTC/WBTC LP [1.010047 - 0.990048]"
+    },
+    {
+        "address": "0x1196E61acD651618219FcEf4c2931046Cd51a4AE",
+        "label": "Bunni LUSD/bLUSD LP [1.248558 - 1.086537]"
+    },
+    {
+        "address": "0x69DA19c1DE0BfaCD967fA1558a66CF9Ee23B9BE7",
+        "label": "Bunni GHO/USDC LP [1.176553 - 0.952752]"
     }
 ]
