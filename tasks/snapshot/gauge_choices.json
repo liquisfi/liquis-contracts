@@ -238,5 +238,17 @@
     {
         "address": "0x69DA19c1DE0BfaCD967fA1558a66CF9Ee23B9BE7",
         "label": "Bunni GHO/USDC LP [1.176553 - 0.952752]"
+    },
+    {
+        "address": "0xcBbA6d982BF9F341095590D73D95EA32A571a4A8",
+        "label": "Bunni paUSD/wUSK LP [1.039768 - 0.980200]"
+    },
+    {
+        "address": "0x2d8D844f862A7cF57e0E64b4AecB468aFAdB0A08",
+        "label": "Bunni JARVIS/WETH LP [∞ - 0.000000]"
+    },
+    {
+        "address": "0xE19E619f7A861Ac731c919705941669e8ee3f602",
+        "label": "Bunni WETH/AURA LP [0.001207 - 0.000400]"
     }
 ]
