@@ -250,5 +250,13 @@
     {
         "address": "0xE19E619f7A861Ac731c919705941669e8ee3f602",
         "label": "Bunni WETH/AURA LP [0.001207 - 0.000400]"
+    },
+    {
+        "address": "0x8b43A3B7aAbbDB4f83593202b4B8CE3ED24ba291",
+        "label": "Bunni IDLE/WETH LP [9077.411287 - 2498.907277]"
+    },
+    {
+        "address": "0x8D13a1409a09f9e1145c7BE2aEF1f2C654562C2c",
+        "label": "Bunni GRAI/LIQ LP [200.283731 - 1.173501]"
     }
 ]
