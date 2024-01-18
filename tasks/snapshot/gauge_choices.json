@@ -256,7 +256,19 @@
         "label": "Bunni IDLE/WETH LP [9077.411287 - 2498.907277]"
     },
     {
-        "address": "0x8D13a1409a09f9e1145c7BE2aEF1f2C654562C2c",
-        "label": "Bunni GRAI/LIQ LP [200.283731 - 1.173501]"
+        "address": "0xeD0836DA9B9A667f19232827094Ec2CB5DB7105E",
+        "label": "Bunni pxETH/WETH LP [1.010151 - 0.990149]"
+    },
+    {
+        "address": "0xaC3725421E2886A7684801Ab2Bc234535bD8f5Ad",
+        "label": "Bunni GRAI/LIQ LP [0.869364 - 0.004993]"
+    },
+    {
+        "address": "0xC463f70F3F3047CD804cd564bb5B4A9bAe765220",
+        "label": "Bunni ∞-vc-swETH-WETH-BPT-NYT/∞-vc-swETH-WETH-BPT-xPYT LP [4.952636 - 1.000000]"
+    },
+    {
+        "address": "0xE94E10563c6fad6A2913E9Bf4943C95D8B3A8DFa",
+        "label": "Bunni liqLIT/WETH LP [∞ - 0.000000]"
     }
 ]
