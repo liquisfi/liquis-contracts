@@ -4,6 +4,10 @@
         "label": "Bunni WETH/LIQ LP [∞ - 0.000000]"
     },
     {
+        "address": "0xE94E10563c6fad6A2913E9Bf4943C95D8B3A8DFa",
+        "label": "Bunni liqLIT/WETH LP [∞ - 0.000000]"
+    },
+    {
         "address": "0xbB6Fb649929420dc56d90B013C2e4cAeE291e759",
         "label": "Bunni liqLIT/BAL-20WETH-80LIT LP [∞ - 0.000000]"
     },
@@ -268,7 +272,11 @@
         "label": "Bunni ∞-vc-swETH-WETH-BPT-NYT/∞-vc-swETH-WETH-BPT-xPYT LP [4.952636 - 1.000000]"
     },
     {
-        "address": "0xE94E10563c6fad6A2913E9Bf4943C95D8B3A8DFa",
-        "label": "Bunni liqLIT/WETH LP [∞ - 0.000000]"
+        "address": "0xFCcA6818c68FccAC03fd8995FD08194E7C439bF1",
+        "label": "Bunni rETH/weETH LP [0.936321 - 0.919987]"
+    },
+    {
+        "address": "0xDD8Bf04f8F3f9646580192B1241553A737B5E3dA",
+        "label": "Bunni rETH/weETH LP [0.959735 - 0.919895]"
     }
 ]
