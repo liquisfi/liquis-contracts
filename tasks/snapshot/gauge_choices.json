@@ -278,5 +278,17 @@
     {
         "address": "0xDD8Bf04f8F3f9646580192B1241553A737B5E3dA",
         "label": "Bunni rETH/weETH LP [0.959735 - 0.919895]"
+    },
+    {
+        "address": "0xfB5E4ADaC4be9295Bf8008Fd78DBa7f7Fda48629",
+        "label": "Bunni WETH/rswETH LP [1.050218 - 0.990050]"
+    },
+    {
+        "address": "0xA2435583bCC13CC53E5DA10016b5784ad0C5c792",
+        "label": "Bunni WETH/weETH LP [1.060772 - 1.025314]"
+    },
+    {
+        "address": "0xa1290A1d1c574A5340C0127aa36160b87578c6F8",
+        "label": "Bunni WETH/LIT LP [0.000029 - 0.000005]"
     }
 ]
